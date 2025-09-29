@@ -1,0 +1,146 @@
+\documentclass[a4paper, 12pt]{article} % Font size (can be 10pt, 11pt or 12pt) and paper size (remove a4paper for US letter paper)
+\usepackage[portuguese]{babel}
+
+\usepackage[protrusion=true,expansion=true]{microtype} % Better typography
+\usepackage{graphicx} % Required for including pictures
+\usepackage{wrapfig} % Allows in-line images
+\usepackage{pdflscape} %Allows landscape oriented pages
+
+\usepackage{hyperref}%Required for hyperlink references
+\hypersetup{
+	colorlinks=true, % Ativa links coloridos em vez de caixas ao redor
+	linkcolor=black, % Cor dos links internos
+	citecolor=black, % Cor das citações
+	urlcolor=black   % Cor dos links externos (Jira, por exemplo)
+}
+
+\usepackage{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Required for accented characters
+\linespread{1.05} % Change line spacing here, Palatino benefits from a slight increase by default
+\usepackage{float}
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\addbibresource{references.bib} % Nome do arquivo de referências
+\makeatletter
+\renewcommand\@biblabel[1]{\textbf{#1.}} % Change the square brackets for each bibliography item from '[1]' to '1.'
+\renewcommand{\@listI}{\itemsep=0pt} % Reduce the space between items in the itemize and enumerate environments and the bibliography
+
+\renewcommand{\maketitle}{
+\begin{titlepage}
+\begin{center}
+\vspace*{1cm}
+% \includegraphics[width=0.35\textwidth]{../images/logo-no-bg.png}\\[1cm] % Logo
+{\Huge\textbf{Loja Social IPCA}}\\[0.5cm] % Main Title
+{\Large Projeto 50+10}\\[2cm] % Subtitle
+{\large \textsc{
+		Enrique Rodrigues Nº28602 \\
+		José Alves Nº27967 \\
+		Diogo Machado Nº26042 \\
+		Carlos Barreiro Nº20360
+	}}\\[0.5cm] % Authors
+{\textit{Instituto Politécnico do Cávado e do Ave}}\\[1.5cm] % Institution
+{\large 9 de março de 2025} % Date
+%{\large \today} % Date
+\vfill
+% \textbf{Keywords:} lorem, ipsum, dolor, sit amet, lectus % Keywords
+\end{center}
+\end{titlepage}
+}
+\makeatother
+
+%------------------------------------------------------------------------------------
+
+\begin{document}
+\maketitle % Print the title section
+
+\newpage
+\renewcommand{\contentsname}{Índice}
+\tableofcontents
+
+\newpage
+\renewcommand{\listfigurename}{Lista de Figuras}
+\listoffigures
+
+\newpage
+\section{Introdução}
+
+aaaa
+
+%------------------------------------------------------------------------------------
+
+\newpage
+\section{Requisitos Funcionais}
+Os requisitos funcionais \textbf{(RFs)} são as especificações que definem o que um sistema deve fazer para atender às necessidades dos utilizadores. Eles descrevem as funcionalidades, comportamentos e operações que o sistema deve oferecer, incluindo interações entre utilizadores e o sistema, processamento de dados e regras de negócio.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|c|p{12cm}|}
+		\hline
+		\textbf{Código} & \textbf{Requisito Funcional} \\
+		\hline
+		\textbf{RF 01} & O sistema deve permitir ao administrador registar novos itens, incluindo nome, categoria, quantidade e validade opcional e atualizar automaticamente o stock disponível. \\
+		\hline
+		\textbf{RF 02} & O sistema deve permitir ao administrador atualizar quantidades e outros detalhes dos itens existentes. \\
+		\hline
+		\textbf{RF 03} & O sistema deve permitir ao administrador consultar uma lista completa de todos os itens disponíveis, com filtros por categoria. \\
+		\hline
+		\textbf{RF 04} & O sistema deve permitir criar, editar e eliminar categorias para organizar os itens. \\
+		\hline
+		\textbf{RF 05} & O sistema deve permitir registar a entrada e saída de um item através do scan do código de barras e inserção da data de validade, atualizando automaticamente o stock. \\
+		\hline
+		\textbf{RF 06} & O sistema deve permitir ao administrador registar campanhas, indicando o nome e data. \\
+		\hline
+		\textbf{RF 07} & O sistema deve permitir criar um agendamento de recolha indicando data e hora. \\
+		\hline
+		\textbf{RF 08} & O sistema deve permitir alterar ou cancelar uma recolha agendada. \\
+		\hline
+		\textbf{RF 09} & O sistema deve permitir marcar uma recolha como concluída. \\
+		\hline
+		\textbf{RF 10} & O sistema deve permitir consultar as recolhas futuras ou passadas numa lista ou calendário, filtrando por data ou estado. \\
+		\hline
+	\end{tabular}
+	\caption{Requisitos Funcionais}
+	\label{tab:requisitos_funcionais}
+\end{table}
+
+%------------------------------------------------------------------------------------
+
+\newpage
+\section{Requisitos Não Funcionais}
+
+Os requisitos não funcionais \textbf{(RNFs)} definem as características e restrições de um sistema que não estão diretamente relacionadas com as funcionalidades oferecidas, mas sim à qualidade, desempenho, segurança e usabilidade da aplicação. Eles garantem que o sistema seja eficiente, confiável e utilizável dentro de determinados padrões.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|c|p{12cm}|}
+		\hline
+		\textbf{Código} & \textbf{Requisito Não Funcional} \\
+		\hline
+		\textbf{RNF 01} & Apenas utilizadores autenticados com perfil de administrador podem adicionar, editar ou remover itens e gerir doações/recolhas. \\
+		\hline
+		\textbf{RNF 02} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
+		\hline
+		\textbf{RNF 03} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
+		\hline
+		\textbf{RNF 04} & O sistema deve funcionar em dispositivos Android. \\
+		\hline
+		\textbf{RNF 05} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
+		\hline
+		\textbf{RNF 06} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
+		\hline
+	\end{tabular}
+	\caption{Requisitos Não Funcionais}
+	\label{tab:requisitos_nao_funcionais}
+\end{table}
+
+\newpage
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+\nocite{*}
+
+\printbibliography
+%----------------------------------------------------------------------------------------
+
+\end{document}
