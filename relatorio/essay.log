@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2024.1.2)  29 SEP 2025 12:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2024.1.2)  29 SEP 2025 12:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -672,32 +672,32 @@ LaTeX Font Warning: Font shape `TS1/ppl/m/sc' undefined
 
 {C:/Users/diogo/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/diog
 o/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc}] (essay.toc
-LaTeX Font Info:    Trying to load font information for OT1+ppl on input line 4
+LaTeX Font Info:    Trying to load font information for OT1+ppl on input line 5
 .
 
 (C:\Users\diogo\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1ppl.fd
 File: ot1ppl.fd 2001/06/04 font definitions for OT1/ppl.
 )
 LaTeX Font Info:    Trying to load font information for OML+zplm on input line 
-4.
+5.
 
 (C:\Users\diogo\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\omlzplm.fd
 File: omlzplm.fd 2002/09/08 Fontinst v1.914 font definitions for OML/zplm.
 )
 LaTeX Font Info:    Trying to load font information for OMS+zplm on input line 
-4.
+5.
 
 (C:\Users\diogo\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\omszplm.fd
 File: omszplm.fd 2002/09/08 Fontinst v1.914 font definitions for OMS/zplm.
 )
 LaTeX Font Info:    Trying to load font information for OMX+zplm on input line 
-4.
+5.
 
 (C:\Users\diogo\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\omxzplm.fd
 File: omxzplm.fd 2002/09/08 Fontinst v1.914 font definitions for OMX/zplm.
 )
 LaTeX Font Info:    Trying to load font information for OT1+zplm on input line 
-4.
+5.
 
 (C:\Users\diogo\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1zplm.fd
 File: ot1zplm.fd 2002/09/08 Fontinst v1.914 font definitions for OT1/zplm.
@@ -720,31 +720,31 @@ l.59 \newpage
 \tf@lof=\write6
 \openout6 = `essay.lof'.
 
- [2] [3] [4]
-Overfull \hbox (15.44073pt too wide) in paragraph at lines 98--123
- [][] 
- []
-
-[5
-pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has
- been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.129 \newpage
-              ]
-Overfull \hbox (15.76491pt too wide) in paragraph at lines 137--154
+ [2] [3] [4] [5]
+Overfull \hbox (15.44073pt too wide) in paragraph at lines 126--151
  [][] 
  []
 
 [6
+pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has
+ been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.157 \newpage
+              ]
+Overfull \hbox (15.76491pt too wide) in paragraph at lines 165--182
+ [][] 
+ []
+
+[7
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.158 \newpage
+l.186 \newpage
               ]
 
-LaTeX Warning: Empty bibliography on input line 164.
+LaTeX Warning: Empty bibliography on input line 192.
 
 (essay.aux)
  ***********
@@ -759,7 +759,7 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 LaTeX Warning: There were undefined references.
 
 Package rerunfilecheck Info: File `essay.out' has not changed.
-(rerunfilecheck)             Checksum: 92588C336A878E04EF036DE9B1659834;831.
+(rerunfilecheck)             Checksum: 18BB42E5BC55224BC8A20F31933EC106;1021.
 
 Package biblatex Warning: Please (re)run BibTeX on the file(s):
 (biblatex)                essay
@@ -770,20 +770,20 @@ Package logreq Info: Writing requests to 'essay.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 19274 strings out of 474491
- 341665 string characters out of 5743835
+ 19295 strings out of 474491
+ 341847 string characters out of 5743835
  1934473 words of memory out of 5000000
- 41159 multiletter control sequences out of 15000+600000
- 586214 words of font info for 159 fonts, out of 8000000 for 9000
+ 41160 multiletter control sequences out of 15000+600000
+ 587020 words of font info for 171 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,10n,81p,1918b,1717s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/diogo/AppData/Local/Programs/MiKTeX/fonts/type1/urw/palatino/uplb8a
 .pfb><C:/Users/diogo/AppData/Local/Programs/MiKTeX/fonts/type1/urw/palatino/upl
 r8a.pfb><C:/Users/diogo/AppData/Local/Programs/MiKTeX/fonts/type1/urw/palatino/
 uplri8a.pfb>
-Output written on essay.pdf (7 pages, 70630 bytes).
+Output written on essay.pdf (8 pages, 74828 bytes).
 PDF statistics:
- 85 PDF objects out of 1000 (max. 8388607)
- 16 named destinations out of 1000 (max. 500000)
- 56873 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 94 PDF objects out of 1000 (max. 8388607)
+ 18 named destinations out of 1000 (max. 500000)
+ 56881 words of extra memory for PDF output out of 61914 (max. 10000000)
 
