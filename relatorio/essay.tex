@@ -63,7 +63,12 @@
 \newpage
 \section{Introdução}
 
-aaaa
+Em tempos de desafios socioeconómicos crescentes, iniciativas de solidariedade como a \textbf{Loja Social} do \textbf{Instituto Politécnico do Cávado e do Ave (IPCA)} assumem um papel fundamental no apoio à comunidade académica. O projeto não se limita à entrega de bens essenciais: pretende também modernizar a gestão da Loja Social e fortalecer a participação da comunidade nas iniciativas solidárias do IPCA.
+
+O documento apresenta o projeto \textbf{50+10}, que tem como objetivo criar duas soluções digitais complementares: uma aplicação móvel, destinada ao uso interno pelos \textbf{Serviços de Ação Social (SAS)}, e um website informativo, acessível a toda a \textbf{comunidade académica}. A aplicação permitirá gerir de forma prática os beneficiários, o inventário, a calendarização de entregas e os alertas de validade, enquanto o website proporcionará uma visão clara do stock disponível e incentivará a participação da comunidade em doações e campanhas solidárias.
+
+Além da descrição do sistema e das funcionalidades propostas, o documento detalha os \textbf{objetivos de negócio}, os \textbf{requisitos funcionais e não funcionais} do sistema, e ainda os \textbf{regulamentos internos do grupo}, definindo responsabilidades, organização e critérios de avaliação. Assim, o documento oferece uma visão geral do projeto, permitindo entender não apenas como o sistema funcionará, mas também como contribuirá para a comunidade.
+
 \newpage
 
 %------------------------------------------------------------------------------------
@@ -133,34 +138,34 @@ Neste sistema de avaliação interno, todos os membros da equipa começam com um
 
 \newpage
 \section{Requisitos Funcionais}
-Os requisitos funcionais \textbf{(RFs)} são as especificações que definem o que um sistema deve fazer para atender às necessidades dos utilizadores. Eles descrevem as funcionalidades, comportamentos e operações que o sistema deve oferecer, incluindo interações entre utilizadores e o sistema, processamento de dados e regras de negócio.
+Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as funcionalidades a implementar no sistema para responder às necessidades dos utilizadores e da organização.
 
 \begin{table}[H]
 	\centering
 	\renewcommand{\arraystretch}{1.3}
 	\begin{tabular}{|c|p{12cm}|}
 		\hline
-		\textbf{Código} & \textbf{Requisito Funcional} \\
+		\textbf{RF 01} & O sistema deve permitir ao administrador registar e atualizar itens, incluindo nome, categoria, quantidade e validade opcional, garantindo a atualização automática do stock. \\
 		\hline
-		\textbf{RF 01} & O sistema deve permitir ao administrador registar novos itens, incluindo nome, categoria, quantidade e validade opcional e atualizar automaticamente o stock disponível. \\
+		\textbf{RF 02} & O sistema deve permitir consultar a lista de itens disponíveis, com possibilidade de aplicar filtros por categoria e/ou validade. \\
 		\hline
-		\textbf{RF 02} & O sistema deve permitir ao administrador atualizar quantidades e outros detalhes dos itens existentes. \\
+		\textbf{RF 03} & O sistema deve permitir a gestão de categorias (criação, edição e eliminação) para organizar os itens. \\
 		\hline
-		\textbf{RF 03} & O sistema deve permitir ao administrador consultar uma lista completa de todos os itens disponíveis, com filtros por categoria. \\
+		\textbf{RF 04} & O sistema deve permitir registar a entrada e saída de itens através do código de barras, associando data de validade e atualizando automaticamente o stock. \\
 		\hline
-		\textbf{RF 04} & O sistema deve permitir criar, editar e eliminar categorias para organizar os itens. \\
+		\textbf{RF 05} & O sistema deve permitir ao administrador registar e gerir campanhas, indicando nome e datas associadas. \\
 		\hline
-		\textbf{RF 05} & O sistema deve permitir registar a entrada e saída de um item através do scan do código de barras e inserção da data de validade, atualizando automaticamente o stock. \\
+		\textbf{RF 06} & O sistema deve permitir agendar recolhas, especificando data e hora. \\
 		\hline
-		\textbf{RF 06} & O sistema deve permitir ao administrador registar campanhas, indicando o nome e data. \\
+		\textbf{RF 07} & O sistema deve permitir alterar, cancelar ou concluir recolhas previamente agendadas. \\
 		\hline
-		\textbf{RF 07} & O sistema deve permitir criar um agendamento de recolha indicando data e hora. \\
+		\textbf{RF 08} & O sistema deve disponibilizar uma lista ou calendário de recolhas futuras e passadas, com possibilidade de filtragem por data e/ou estado. \\
 		\hline
-		\textbf{RF 08} & O sistema deve permitir alterar ou cancelar uma recolha agendada. \\
+		\textbf{RF 09} & O sistema deve permitir o acesso através de autenticação com PIN. \\
 		\hline
-		\textbf{RF 09} & O sistema deve permitir marcar uma recolha como concluída. \\
+		\textbf{RF 10} & O sistema deve permitir a extração de relatórios de informação sobre o stock. \\
 		\hline
-		\textbf{RF 10} & O sistema deve permitir consultar as recolhas futuras ou passadas numa lista ou calendário, filtrando por data ou estado. \\
+		\textbf{RF 11} & O sistema deve dar alertas de validade com um mês de antecedência. \\
 		\hline
 	\end{tabular}
 	\caption{Requisitos Funcionais}
@@ -172,7 +177,7 @@ Os requisitos funcionais \textbf{(RFs)} são as especificações que definem o q
 \newpage
 \section{Requisitos Não Funcionais}
 
-Os requisitos não funcionais \textbf{(RNFs)} definem as características e restrições de um sistema que não estão diretamente relacionadas com as funcionalidades oferecidas, mas sim à qualidade, desempenho, segurança e usabilidade da aplicação. Eles garantem que o sistema seja eficiente, confiável e utilizável dentro de determinados padrões.
+Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcionar em termos de qualidade, desempenho, segurança e usabilidade, garantindo uma aplicação eficiente e confiável para os utilizadores.
 
 \begin{table}[H]
 	\centering
@@ -181,17 +186,19 @@ Os requisitos não funcionais \textbf{(RNFs)} definem as características e rest
 		\hline
 		\textbf{Código} & \textbf{Requisito Não Funcional} \\
 		\hline
-		\textbf{RNF 01} & Apenas utilizadores autenticados com perfil de administrador podem adicionar, editar ou remover itens e gerir doações/recolhas. \\
+		\textbf{RNF01} & O sistema deve garantir autenticação segura do utilizador através de PIN, protegendo contra tentativas sucessivas de acesso indevido. \\
 		\hline
-		\textbf{RNF 02} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
+		\textbf{RNF02} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
 		\hline
-		\textbf{RNF 03} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
+		\textbf{RNF03} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
 		\hline
-		\textbf{RNF 04} & O sistema deve funcionar em dispositivos Android. \\
+		\textbf{RNF04} & O sistema deve funcionar em dispositivos Android. \\
 		\hline
-		\textbf{RNF 05} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
+		\textbf{RNF05} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
 		\hline
-		\textbf{RNF 06} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
+		\textbf{RNF06} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
+		\hline
+		\textbf{RNF07} & O sistema deve apresentar mensagens de erro claras e informativas, sem expor informação técnica sensível. \\
 		\hline
 	\end{tabular}
 	\caption{Requisitos Não Funcionais}
