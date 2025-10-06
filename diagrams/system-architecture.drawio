@@ -1,0 +1,71 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.2 Chrome/134.0.6998.205 Electron/35.3.0 Safari/537.36" version="27.0.2">
+  <diagram name="Page-1" id="ZtRXckprSfWWWMWI-0DX">
+    <mxGraphModel dx="744" dy="447" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vBv3hUEBhkKWaTl3btdl-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="u3RBaRpEE6LbFSr3Mo1L-6" target="u3RBaRpEE6LbFSr3Mo1L-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-6" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;App&amp;nbsp;LojaSocial (Kotlin Android)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DB7FEB;strokeColor=#36393d;" parent="1" vertex="1">
+          <mxGeometry x="430" y="170" width="195" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mVj3izY6Q9iM32bNOUG2-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="u3RBaRpEE6LbFSr3Mo1L-10" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="296" y="310" />
+              <mxPoint x="296" y="310" />
+            </Array>
+            <mxPoint x="296.0000000000001" y="300" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PoyKjKw98sfO0v0QUkvC-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.634;exitY=1.004;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" target="u3RBaRpEE6LbFSr3Mo1L-8" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="424.94000000000005" y="300.4199999999999" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="PoyKjKw98sfO0v0QUkvC-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.89;exitY=0.997;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" target="u3RBaRpEE6LbFSr3Mo1L-37" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="554.8999999999999" y="299.99999999999994" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-7" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Firebase BaaS&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fad7ac;fillStyle=solid;strokeColor=#b46504;" parent="1" vertex="1">
+          <mxGeometry x="220" y="240" width="410" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-8" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Firebase Auth&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;glass=0;shadow=0;strokeColor=#10739e;" parent="1" vertex="1">
+          <mxGeometry x="380" y="330.18" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-10" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Firebase Storage (CDN)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;" parent="1" vertex="1">
+          <mxGeometry x="250" y="330" width="92" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-19" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Firestore DB&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#b1ddf0;strokeColor=#10739e;" parent="1" vertex="1">
+          <mxGeometry x="100" y="222.5" width="80" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="u3RBaRpEE6LbFSr3Mo1L-7" target="u3RBaRpEE6LbFSr3Mo1L-19" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-27" value="Frontend" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="660" y="175" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-29" value="Backend" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="660" y="295" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-30" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="640" y="170" width="20" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-31" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;labelPosition=right;verticalLabelPosition=middle;align=left;verticalAlign=middle;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="640" y="240" width="20" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="u3RBaRpEE6LbFSr3Mo1L-37" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;SMTP/Email&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;" parent="1" vertex="1">
+          <mxGeometry x="510" y="330.18" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vBv3hUEBhkKWaTl3btdl-1" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Landing Page LojaSocial (NextJS)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cdeb8b;strokeColor=#36393d;" vertex="1" parent="1">
+          <mxGeometry x="220" y="170" width="195" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vBv3hUEBhkKWaTl3btdl-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.238;entryY=-0.002;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="vBv3hUEBhkKWaTl3btdl-1" target="u3RBaRpEE6LbFSr3Mo1L-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

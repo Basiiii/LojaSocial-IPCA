@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2024.8.27)  3 OCT 2025 12:20
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2024.8.27)  6 OCT 2025 12:10
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -757,12 +757,31 @@ pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.208 \newpage
+l.211 \newpage
               ]
+<../diagrams/system-architecture.png, id=95, 2493.315pt x 891.33pt>
+File: ../diagrams/system-architecture.png Graphic file (type png)
+<use ../diagrams/system-architecture.png>
+Package pdftex.def Info: ../diagrams/system-architecture.png  used on input lin
+e 218.
+(pdftex.def)             Requested size: 429.00238pt x 153.36017pt.
 
-LaTeX Warning: Empty bibliography on input line 214.
+Overfull \hbox (39.00238pt too wide) in paragraph at lines 218--219
+ [][] 
+ []
 
-(essay.aux)
+
+LaTeX Warning: Empty bibliography on input line 232.
+
+
+
+[9
+pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) ha
+s been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.235 \end{document}
+                     <../diagrams/system-architecture.png>] (essay.aux)
  ***********
 LaTeX2e <2024-06-01> patch level 2
 L3 programming layer <2024-07-20>
@@ -775,7 +794,7 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 LaTeX Warning: There were undefined references.
 
 Package rerunfilecheck Info: File `essay.out' has not changed.
-(rerunfilecheck)             Checksum: C153293BE5BB50E2CF5CF20443BD730C;1331.
+(rerunfilecheck)             Checksum: 0B0F2B9473530AB598C7E8634444779E;1490.
 
 Package biblatex Warning: Please (re)run BibTeX on the file(s):
 (biblatex)                essay
@@ -786,20 +805,20 @@ Package logreq Info: Writing requests to 'essay.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 19448 strings out of 473899
- 344104 string characters out of 5726972
+ 19466 strings out of 473899
+ 344546 string characters out of 5726972
  1935960 words of memory out of 5000000
- 41869 multiletter control sequences out of 15000+600000
- 588674 words of font info for 196 fonts, out of 8000000 for 9000
+ 41881 multiletter control sequences out of 15000+600000
+ 588833 words of font info for 198 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,10n,81p,1918b,1729s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Basi/AppData/Local/Programs/MiKTeX/fonts/type1/urw/palatino/uplb8a.
 pfb><C:/Users/Basi/AppData/Local/Programs/MiKTeX/fonts/type1/urw/palatino/uplr8
 a.pfb><C:/Users/Basi/AppData/Local/Programs/MiKTeX/fonts/type1/urw/palatino/upl
 ri8a.pfb>
-Output written on essay.pdf (9 pages, 80737 bytes).
+Output written on essay.pdf (10 pages, 175031 bytes).
 PDF statistics:
- 109 PDF objects out of 1000 (max. 8388607)
- 21 named destinations out of 1000 (max. 500000)
- 56897 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 124 PDF objects out of 1000 (max. 8388607)
+ 24 named destinations out of 1000 (max. 500000)
+ 56910 words of extra memory for PDF output out of 61914 (max. 10000000)
 

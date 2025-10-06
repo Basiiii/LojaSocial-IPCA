@@ -205,7 +205,25 @@ Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcio
 	\label{tab:requisitos_nao_funcionais}
 \end{table}
 
+
+%------------------------------------------------------------------------------------
+
 \newpage
+\section{Arquitetura do Sistema}
+
+A figura \ref{fig:arquitetura} apresenta a arquitetura da aplicação, integrando a página web em Next.js, a aplicação Android em Kotlin e o backend em Firebase com Firestore, Storage, Auth e envio de emails via SMTP.
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=1.1\textwidth]{../diagrams/system-architecture.png}
+	\caption{Arquitetura geral da aplicação.}
+	\label{fig:arquitetura}
+\end{figure}
+
+A página web, desenvolvida em Next.js, serve como ponto de acesso público para a comunidade académica, permitindo visualizar o stock da Loja Social em tempo real, consultar informações sobre campanhas de doação e acompanhar notícias relacionadas. O Next.js fornece renderização server-side quando necessário, garantindo desempenho otimizado e carregamento rápido de conteúdo.
+
+A aplicação móvel, construída em Kotlin para Android, é utilizada pelos Serviços de Ação Social (SAS) para gerir os beneficiários, o inventário de bens, a calendarização de entregas e alertas de validade.
+
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
