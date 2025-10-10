@@ -38,8 +38,8 @@
 		Carlos Barreiro Nº20360
 	}}\\[0.5cm] % Authors
 {\textit{Instituto Politécnico do Cávado e do Ave}}\\[1.5cm] % Institution
-{\large 9 de março de 2025} % Date
-%{\large \today} % Date
+%{\large 9 de março de 2025} % Date
+{\large \today} % Date
 \vfill
 % \textbf{Keywords:} lorem, ipsum, dolor, sit amet, lectus % Keywords
 \end{center}
@@ -114,6 +114,26 @@ O projeto em desenvolvimento tem como objetivo principal a criação de soluçõ
 Com estas ferramentas, pretende-se não apenas modernizar e agilizar a gestão operacional da Loja Social, mas também reforçar o envolvimento da comunidade académica nas práticas de solidariedade promovidas pelo IPCA.
 
 \newpage
+\newpage
+\section{Descrição dos Interessados (Stakeholders)}
+
+Os interessados, ou \textit{stakeholders}, correspondem a todas as entidades que, de forma direta ou indireta, influenciam ou são afetadas pelo desenvolvimento e utilização das soluções digitais da Loja Social do IPCA. A identificação destes grupos é essencial para assegurar que o sistema responde adequadamente às suas necessidades e expectativas.
+
+\subsection{Serviços de Ação Social (SAS) do IPCA}
+Os Serviços de Ação Social (SAS) do IPCA são responsáveis pela gestão da Loja Social e pela coordenação das atividades de apoio aos estudantes.  
+Constituem os principais utilizadores da aplicação móvel, pretendendo dispor de uma ferramenta digital que permita uma gestão mais eficiente de beneficiários, inventário, campanhas e agendamentos de entregas.  
+Estes serviços participam ativamente na definição de requisitos, validação de funcionalidades e acompanhamento da implementação do sistema.
+
+\subsection{Beneficiários}
+Os beneficiários são membros da comunidade académica que recebem apoio da Loja Social.
+Embora não utilizem diretamente as aplicações, são impactados positivamente pela melhoria na organização e eficiência da gestão de stocks e do processo de distribuição de bens.
+O sistema visa, desta forma, otimizar o controlo de inventário e assegurar uma gestão mais eficiente, transparente e equitativa dos recursos disponíveis.
+
+\subsection{Doadores e Colaboradores Externos}
+Incluem-se neste grupo as pessoas, empresas e organizações que contribuem com bens ou recursos para a Loja Social.  
+Estes interessados procuram transparência na gestão das doações e acesso a informação atualizada sobre campanhas e necessidades da instituição.  
+A sua interação ocorre através do \textbf{website informativo}, que disponibiliza dados sobre stocks, campanhas e instruções para efetuar doações.
+
 \section{Regulamento Interno do Grupo}
 
 O grupo vai reger-se pelas seguintes regras, que têm como objetivo garantir a organização, a cooperação e o cumprimento das responsabilidades por parte de todos os elementos:
@@ -205,7 +225,11 @@ Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcio
 	\label{tab:requisitos_nao_funcionais}
 \end{table}
 
+
+%------------------------------------------------------------------------------------
+
 \newpage
+<<<<<<< HEAD
 \section{Estudo de Viabilidade}
 
 O estudo de viabilidade tem como objetivo analisar se o desenvolvimento das soluções propostas - uma aplicação móvel interna e uma página web informativa - é viável nas dimensões técnica, económica, operacional, legal e de mercado. Esta análise ajuda a identificar riscos, estimar custos e confirmar o alinhamento com os objetivos do IPCA e da Loja Social.
@@ -230,6 +254,23 @@ Com base na análise efetuada, conclui-se que o projeto é \textbf{totalmente vi
 
 
 \newpage
+=======
+\section{Arquitetura do Sistema}
+
+A figura \ref{fig:arquitetura} apresenta a arquitetura da aplicação, integrando a página web em Next.js, a aplicação Android em Kotlin e o backend em Firebase com Firestore, Storage, Auth e envio de emails via SMTP.
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=1.1\textwidth]{../diagrams/system-architecture.png}
+	\caption{Arquitetura geral da aplicação.}
+	\label{fig:arquitetura}
+\end{figure}
+
+A página web, desenvolvida em Next.js, serve como ponto de acesso público para a comunidade académica, permitindo visualizar o stock da Loja Social em tempo real, consultar informações sobre campanhas de doação e acompanhar notícias relacionadas. O Next.js fornece renderização server-side quando necessário, garantindo desempenho otimizado e carregamento rápido de conteúdo.
+
+A aplicação móvel, construída em Kotlin para Android, é utilizada pelos Serviços de Ação Social (SAS) para gerir os beneficiários, o inventário de bens, a calendarização de entregas e alertas de validade.
+
+>>>>>>> b5f037bf6d5267855f4da48c4e8f6d1cf4c7919e
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
