@@ -1,0 +1,275 @@
+\documentclass[a4paper, 12pt]{article} % Font size (can be 10pt, 11pt or 12pt) and paper size (remove a4paper for US letter paper)
+\usepackage[portuguese]{babel}
+
+\usepackage[protrusion=true,expansion=true]{microtype} % Better typography
+\usepackage{graphicx} % Required for including pictures
+\usepackage{wrapfig} % Allows in-line images
+\usepackage{pdflscape} %Allows landscape oriented pages
+
+\usepackage{hyperref}%Required for hyperlink references
+\hypersetup{
+	colorlinks=true, % Ativa links coloridos em vez de caixas ao redor
+	linkcolor=black, % Cor dos links internos
+	citecolor=black, % Cor das citações
+	urlcolor=black   % Cor dos links externos (Jira, por exemplo)
+}
+
+\usepackage{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Required for accented characters
+\linespread{1.05} % Change line spacing here, Palatino benefits from a slight increase by default
+\usepackage{float}
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\addbibresource{references.bib} % Nome do arquivo de referências
+\makeatletter
+\renewcommand\@biblabel[1]{\textbf{#1.}} % Change the square brackets for each bibliography item from '[1]' to '1.'
+\renewcommand{\@listI}{\itemsep=0pt} % Reduce the space between items in the itemize and enumerate environments and the bibliography
+
+\renewcommand{\maketitle}{
+\begin{titlepage}
+\begin{center}
+\vspace*{1cm}
+% \includegraphics[width=0.35\textwidth]{../images/logo-no-bg.png}\\[1cm] % Logo
+{\Huge\textbf{Loja Social IPCA}}\\[0.5cm] % Main Title
+{\Large Projeto 50+10}\\[2cm] % Subtitle
+{\large \textsc{
+		Enrique Rodrigues Nº28602 \\
+		José Alves Nº27967 \\
+		Diogo Machado Nº26042 \\
+		Carlos Barreiro Nº20360
+	}}\\[0.5cm] % Authors
+{\textit{Instituto Politécnico do Cávado e do Ave}}\\[1.5cm] % Institution
+
+{\large\textsc{\textbf{Atas de Reunião}}}\\[1.5cm]
+
+{\large 06 de outubro de 2025} % Date
+%{\large \today} % Date
+\vfill
+% \textbf{Keywords:} lorem, ipsum, dolor, sit amet, lectus % Keywords
+\end{center}
+\end{titlepage}
+}
+\makeatother
+
+%------------------------------------------------------------------------------------
+
+\begin{document}
+\maketitle % Print the title section
+
+\newpage
+\renewcommand{\contentsname}{Índice}
+\tableofcontents
+
+\newpage
+\renewcommand{\listfigurename}{Lista de Figuras}
+\listoffigures
+
+\newpage
+\section*{Reunião 22 Setembro 2025}
+
+\subsection*{Contexto}
+\textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
+\newline\textbf{Hora}: 11h00
+\newline\textbf{Data}: 22 de Setembro de 2025
+\newline\textbf{Participantes}: Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves, Doutora Mónica (SASIPCA)
+
+\subsection*{Ordem de Trabalhos}
+\begin{itemize}
+	\item 1- Apresentação do Projeto
+	\item 2 - Funcionamento Atual do Processo
+\end{itemize}
+
+\subsection*{Desenvolvimento}
+
+\subsubsection*{1 - Apresentação do Projeto}
+
+	Proposta de desenvolvimento de uma aplicação móvel (\textit{Android}) que possa ser utilizada pelos funcionários dos \textbf{SASIPCA }para fazer a gestão de \textit{stocks} dos produtos existentes na sua Loja Social, bem como gestão das entregas.
+	Deve também ser feita uma página web, a incluir no site do IPCA, onde seja possível ver a proporção de \textit{stocks} existente em armazém.
+	
+	\begin{itemize}
+		\item \textbf{Aplicação móvel (uso interno dos SAS)}:
+		
+		\begin{itemize}
+			\item Gestão de beneficiários (base de dados de estudantes apoiados).
+			\item Gestão de inventário (entradas, saídas, validade dos bens).
+			\item Calendarização de apoios (agendamentos e lembretes).
+			\item Seleção e registo de bens entregues (com atualização automática de stock).
+			\item Alertas de validade e relatórios de produtos.
+		\end{itemize}
+		
+		\item \textbf{Website informativo (comunidade académica)}:
+		
+		\begin{itemize}
+			\item Gráfico com stock em tempo real (por categorias e quantidades disponíveis).
+			\item Secção para doações/contribuições pessoais.
+			\item Área de notícias sobre campanhas e divulgação de bens recolhidos.
+		\end{itemize}
+	\end{itemize}
+	
+\subsubsection*{2 - Funcionamento Atual do Processo}	
+	\begin{itemize}
+		\item Os bens são recolhidos em \textbf{campanhas} ou \textbf{doações pontuais};
+		\item Os bens recolhidos (quantidades e categorias) são registados numa folha excel;
+		\item Aquando da preparação do saco para entrega, apenas se regista na folha excel a quantidade entregue, que é abatida ao \textit{stock};
+		\item O que cada beneficiário leva é registado num \textbf{caderno pessoal};
+		\item A entrega é agendada por \textit{email};
+		\item Os \textbf{produtos perecíveis} são guardados em prateleiras, de acordo com o \textbf{trimestre} em que a validade acaba (prateleira marcada com \textit{post-its});
+		\item \textbf{Dois dias} antes da entrega, é enviada uma notificação por \textit{email} ao beneficiário;
+		\item É feita uma\textbf{ pré-seleção dos produtos} antes da entrega (fim da tarde anterior ou manhã do dia da entrega).
+	\end{itemize}
+	
+
+
+\subsection*{Deliberação e próximos passos}
+\begin{itemize}
+	\item O grupo compromete-se a estruturar os requisitos funcionais com base nas observações acima.
+	\item Na próxima reunião, serão discutidas ideias que vão de encontro às necessidades mencionadas.
+\end{itemize}
+
+\subsection*{Encerramento}
+
+\newpage
+
+%------------------------------------------------------------------------------------
+\section{Contextualização do Projeto}
+
+No âmbito da sua responsabilidade social e atento ao atual contexto socioeconómico, o Instituto Politécnico do Cávado e do Ave (IPCA) criou a \textbf{Loja Social}, com o objetivo de apoiar a comunidade académica, em especial os estudantes em situação de maior vulnerabilidade. A Loja Social funciona como um espaço de partilha e solidariedade, onde são disponibilizados bens alimentares, produtos de higiene pessoal e de limpeza, provenientes de doações ou de campanhas internas.
+
+De modo a otimizar a gestão deste espaço e a melhorar a resposta às necessidades dos estudantes, foi solicitado o desenvolvimento de duas soluções digitais complementares:
+
+\begin{itemize}
+	\item \textbf{Aplicação móvel de uso interno}, destinada aos Serviços de Ação Social (SAS), que deverá incluir funcionalidades como:
+	\begin{itemize}
+		\item gestão de beneficiários (base de dados dos estudantes apoiados);
+		\item gestão de inventário (registo, agrupamento e atualização de stocks);
+		\item calendarização de apoios e sistema de lembretes;
+		\item seleção e registo de bens a entregar;
+		\item controlo do estado das entregas e atualização automática do stock;
+		\item alertas sobre prazos de validade e relatórios de distribuição.
+	\end{itemize}
+	
+	\item \textbf{Website informativo}, disponível para toda a comunidade académica, com:
+	\begin{itemize}
+		\item visualização em tempo real do stock da Loja Social, por categorias de produtos;
+		\item informações para doações e contributos pessoais;
+		\item divulgação de campanhas e notícias relacionadas.
+	\end{itemize}
+\end{itemize}
+
+Estas ferramentas digitais pretendem, assim, não só tornar mais eficiente a gestão interna da Loja Social, como também promover a transparência e o envolvimento da comunidade académica nas iniciativas de solidariedade.
+
+\newpage
+\section{Descrição do Negócio}
+A Loja Social do IPCA surge como uma iniciativa de responsabilidade social do Instituto Politécnico do Cávado e do Ave, com a missão de apoiar a comunidade académica, em particular os estudantes em situação de maior vulnerabilidade económica e social. Este espaço funciona como um ponto de acolhimento e de distribuição gratuita de bens essenciais, tais como géneros alimentares, produtos de higiene pessoal e de limpeza, obtidos através de doações da comunidade, de empresas e de campanhas promovidas pelo próprio IPCA.  
+A Loja Social constitui, assim, uma rede de partilha e solidariedade, contribuindo para a redução de desigualdades e para a promoção do bem-estar dos membros da instituição.
+
+\section{Objetivos de Negócio}
+O projeto em desenvolvimento tem como objetivo principal a criação de soluções digitais que tornem a gestão da Loja Social mais eficiente e transparente. Para tal, serão implementadas:
+\begin{itemize}
+	\item Uma \textbf{aplicação móvel}, de uso interno pelos colaboradores dos Serviços de Ação Social (SAS), que permitirá gerir beneficiários, inventário, calendários de distribuição, entregas e alertas de validade;
+	\item Um \textbf{website informativo}, acessível a toda a comunidade académica, que disponibilizará informação sobre stocks em tempo real, campanhas de recolha de bens e instruções para efetuar doações.
+\end{itemize}
+
+Com estas ferramentas, pretende-se não apenas modernizar e agilizar a gestão operacional da Loja Social, mas também reforçar o envolvimento da comunidade académica nas práticas de solidariedade promovidas pelo IPCA.
+
+\newpage
+\section{Regulamento Interno do Grupo}
+
+O grupo vai reger-se pelas seguintes regras, que têm como objetivo garantir a organização, a cooperação e o cumprimento das responsabilidades por parte de todos os elementos:
+
+\begin{itemize}
+	\item Serão atribuídas tarefas a cada um dos elementos;
+	\item As datas e horários das reuniões podem ser alteradas, desde que respeitem os prazos estipulados, de forma a evitar faltas. Qualquer alteração só poderá ser feita mediante aprovação do restante grupo;
+	\item É permitido faltar a reuniões, desde que prévia e devidamente justificado e as tarefas a apresentar estejam concluídas.
+\end{itemize}
+\subsection{Sistema de Avaliação Interno}
+
+Neste sistema de avaliação interno, todos os membros da equipa começam com um total de 20 valores, e as penalizações diferem de ligeiras a mais graves, sendo as ligeiras correspondentes a uma perda de 0,5 valor e as graves a uma perda de 1 valor:
+
+\begin{itemize}
+	\item Falta de presença nas reuniões semanais, sem aviso prévio, e a não realização da tarefa atribuída resultam numa perda de 1 valor;
+	\item A não realização da tarefa atribuída dentro do prazo estipulado implica uma penalização de 1 valor;
+	\item Ausência sem comunicação prévia, mas com a tarefa atribuída concluída, resulta numa perda de 0,5 valor;
+	\item Atrasos recorrentes na entrega de tarefas ou nas reuniões podem implicar uma perda de 0,5 valor por cada ocorrência;
+	\item A falta de participação ativa nas discussões de grupo poderá levar a uma penalização de 0,5 valor;
+	\item O desrespeito pelas opiniões dos colegas ou comportamentos que comprometam a harmonia da equipa implicam uma perda de 1 valor.
+\end{itemize}
+
+\newpage
+\section{Requisitos Funcionais}
+Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as funcionalidades a implementar no sistema para responder às necessidades dos utilizadores e da organização.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|c|p{12cm}|}
+		\hline
+		\textbf{RF 01} & O sistema deve permitir ao administrador registar e atualizar itens, incluindo nome, categoria, quantidade e validade opcional, garantindo a atualização automática do stock. \\
+		\hline
+		\textbf{RF 02} & O sistema deve permitir consultar a lista de itens disponíveis, com possibilidade de aplicar filtros por categoria e/ou validade. \\
+		\hline
+		\textbf{RF 03} & O sistema deve permitir a gestão de categorias (criação, edição e eliminação) para organizar os itens. \\
+		\hline
+		\textbf{RF 04} & O sistema deve permitir registar a entrada e saída de itens através do código de barras, associando data de validade e atualizando automaticamente o stock. \\
+		\hline
+		\textbf{RF 05} & O sistema deve permitir ao administrador registar e gerir campanhas, indicando nome e datas associadas. \\
+		\hline
+		\textbf{RF 06} & O sistema deve permitir agendar recolhas, especificando data e hora. \\
+		\hline
+		\textbf{RF 07} & O sistema deve permitir alterar, cancelar ou concluir recolhas previamente agendadas. \\
+		\hline
+		\textbf{RF 08} & O sistema deve disponibilizar uma lista ou calendário de recolhas futuras e passadas, com possibilidade de filtragem por data e/ou estado. \\
+		\hline
+		\textbf{RF 09} & O sistema deve permitir o acesso através de autenticação com PIN. \\
+		\hline
+		\textbf{RF 10} & O sistema deve permitir a extração de relatórios de informação sobre o stock. \\
+		\hline
+		\textbf{RF 11} & O sistema deve dar alertas de validade com um mês de antecedência. \\
+		\hline
+	\end{tabular}
+	\caption{Requisitos Funcionais}
+	\label{tab:requisitos_funcionais}
+\end{table}
+
+%------------------------------------------------------------------------------------
+
+\newpage
+\section{Requisitos Não Funcionais}
+
+Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcionar em termos de qualidade, desempenho, segurança e usabilidade, garantindo uma aplicação eficiente e confiável para os utilizadores.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|c|p{12cm}|}
+		\hline
+		\textbf{Código} & \textbf{Requisito Não Funcional} \\
+		\hline
+		\textbf{RNF01} & O sistema deve garantir autenticação segura do utilizador através de PIN, protegendo contra tentativas sucessivas de acesso indevido. \\
+		\hline
+		\textbf{RNF02} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
+		\hline
+		\textbf{RNF03} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
+		\hline
+		\textbf{RNF04} & O sistema deve funcionar em dispositivos Android. \\
+		\hline
+		\textbf{RNF05} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
+		\hline
+		\textbf{RNF06} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
+		\hline
+		\textbf{RNF07} & O sistema deve apresentar mensagens de erro claras e informativas, sem expor informação técnica sensível. \\
+		\hline
+	\end{tabular}
+	\caption{Requisitos Não Funcionais}
+	\label{tab:requisitos_nao_funcionais}
+\end{table}
+
+\newpage
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+\nocite{*}
+
+\printbibliography
+%----------------------------------------------------------------------------------------
+
+\end{document}
