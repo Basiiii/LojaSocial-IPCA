@@ -5,6 +5,7 @@
 \usepackage{graphicx} % Required for including pictures
 \usepackage{wrapfig} % Allows in-line images
 \usepackage{pdflscape} %Allows landscape oriented pages
+\usepackage{xcolor}
 
 \usepackage{hyperref}%Required for hyperlink references
 \hypersetup{
@@ -60,11 +61,7 @@
 \tableofcontents
 
 \newpage
-\renewcommand{\listfigurename}{Lista de Figuras}
-\listoffigures
-
-\newpage
-\section*{Reunião 22 Setembro 2025}
+\section{Reunião 22 Setembro 2025}
 
 \subsection*{Contexto}
 \textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
@@ -126,150 +123,279 @@
 \end{itemize}
 
 \subsection*{Encerramento}
+\textbf{Encerramento da reunião:} 12h30
+\newline \textbf{Elaborada por:} José Alves
+\newline \textbf{Aprovada por:} Enrique Rodrigues
 
 \newpage
 
-%------------------------------------------------------------------------------------
-\section{Contextualização do Projeto}
+\section{Reunião 26 Setembro 2025}
 
-No âmbito da sua responsabilidade social e atento ao atual contexto socioeconómico, o Instituto Politécnico do Cávado e do Ave (IPCA) criou a \textbf{Loja Social}, com o objetivo de apoiar a comunidade académica, em especial os estudantes em situação de maior vulnerabilidade. A Loja Social funciona como um espaço de partilha e solidariedade, onde são disponibilizados bens alimentares, produtos de higiene pessoal e de limpeza, provenientes de doações ou de campanhas internas.
+\subsection*{Contexto}
+\textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
+\newline\textbf{Hora}: 11h00
+\newline\textbf{Data}: 26 de Setembro de 2025
+\newline\textbf{Participantes}: Diogo Machado, Enrique Rodrigues, José Alves
 
-De modo a otimizar a gestão deste espaço e a melhorar a resposta às necessidades dos estudantes, foi solicitado o desenvolvimento de duas soluções digitais complementares:
+\subsection*{Ordem de Trabalhos}
+\begin{itemize}
+	\item 1 - Preparação das questões a fazer à Dra. Mónica
+	\item 2 - Discussão dos Requisitos Funcionais e Não Funcionais baseados nessas questões
+	
+\end{itemize}
+
+\subsection*{Desenvolvimento}
+
+\subsubsection*{1 - Preparação das questões a fazer à Dra. Mónica }
+
+No próximo dia 3 de Outubro de 2025, em nova reunião com a Dra. Mónica, fazer as seguintes questões:
 
 \begin{itemize}
-	\item \textbf{Aplicação móvel de uso interno}, destinada aos Serviços de Ação Social (SAS), que deverá incluir funcionalidades como:
+	\item Tem de se registar quem doa os produtos?
+	\item Há registo de quem recebe?
+	\item Já existe uma BD de estudantes apoiados pelos SAS e de doadores?
 	\begin{itemize}
-		\item gestão de beneficiários (base de dados dos estudantes apoiados);
-		\item gestão de inventário (registo, agrupamento e atualização de stocks);
-		\item calendarização de apoios e sistema de lembretes;
-		\item seleção e registo de bens a entregar;
-		\item controlo do estado das entregas e atualização automática do stock;
-		\item alertas sobre prazos de validade e relatórios de distribuição.
+		\item Se sim, podemos ter acesso à sua estrutura?
+	\end{itemize}
+	\item São necessários graus de permissão? Ou todos os funcionários podem fazer tudo?
+	\item Que tipos de grupos/categorias de bens existem? 
+	\item Quem falha um levantamento, pode reagendar?
+		\begin{itemize}
+			\item É possível alterar a data prevista da recolha?
+			\item O funcionário recebe notificação em caso de alteração da data?
+		\end{itemize}
+	\item Quem agenda o levantamento de bens? O colaborador ou o beneficiário? Se for o beneficiário, onde o faz?
+	\item Existem diferentes escalões de beneficiários?
+		\begin{itemize}
+			\item Se sim, o que os distingue? Quantidade de bens? Número de recolhas mensais?
+		\end{itemize}
+	\item Em relação ao \textbf{site}:
+	\begin{itemize}
+		\item É possível fazer uma doação anónima?
+		\item A aba a implementar no site dos SAS é na barra do topo ou na lateral? (Aparentemente, na lateral)
 	\end{itemize}
 	
-	\item \textbf{Website informativo}, disponível para toda a comunidade académica, com:
+\end{itemize}
+
+\subsubsection*{Discussão dos Requisitos Funcionais e Não Funcionais baseados nessas questões}
+
+\begin{itemize}
+	\item \textbf{Requisitos Funcionais (RF)}
+		\begin{itemize}
+			\item \textbf{Gestão de Stock}
+				\begin{itemize}
+					\item RF1.1 - Adicionar Item: O sistema deve permitir ao administrador registar novos itens, incluindo nome, categoria, quantidade e validade opcional.
+					\item RF1.2 - Editar Item: O sistema deve permitir ao administrador atualizar quantidades e outros detalhes dos itens existentes.
+					\item RF1.3 - Ver Stock Atual: O sistema deve permitir ao administrador consultar uma lista completa de todos os itens disponíveis, com filtros por categoria.
+					\item RF1.4 - Gestão de Categorias: O sistema deve permitir criar, editar e eliminar categorias para organizar os itens.
+					\item RF1.5 - Scan de Entrada: O sistema deve permitir registar a entrada de um item através do scan do código de barras ou QR, associando-o automaticamente ao stock.
+					\item RF1.6 - Validade Manual: Após o scan do item em entrada, o sistema deve permitir registar manualmente a data de validade. 
+				\end{itemize}
+			\item \textbf{Gestão de Doações}
+				\begin{itemize}
+					\item RF2.1 - Registar Doação: O sistema deve permitir ao administrador registar doações, indicando doador, itens doados, quantidade e data.
+					\item RF2.2 - Associar ao Stock: O sistema deve atualizar automaticamente o stock disponível quando um item é registado como doação.
+				\end{itemize}
+			\item Gestão de Recolhas
+				\begin{itemize}
+					\item RF3.1 - Criar Marcação de Recolha: O sistema deve permitir criar um agendamento de recolha indicando data, hora e itens.
+					\item RF3.2 - Editar/Cancelar Marcação: O sistema deve permitir alterar ou cancelar uma recolha agendada.
+					\item RF3.3 - Confirmar Recolha: O sistema deve permitir marcar a recolha como concluída.
+					\item RF3.4 - Scan de Saída: O sistema deve permitir registar a saída de um item através do scan do código de barras ou QR, removendo-o do stock.
+					\item RF3.5 - Data Manual de Saída: Após o scan do item em saída, o sistema deve permitir registar manualmente a data da recolha.
+					\item RF3.6 - Visualização de Recolhas: O sistema deve permitir consultar as recolhas futuras ou passadas numa lista ou calendário, filtrando por data, tipo de item ou estado.
+				\end{itemize}
+		\end{itemize}
+	\item \textbf{Requisitos Não Funcionais (RNF)}
+		\begin{itemize}
+			\item RNF1 - Segurança: Apenas utilizadores autenticados com perfil de administrador podem adicionar, editar ou remover itens e gerir doações/recolhas.
+			\item RNF2 - Performance: O sistema deve processar scans e atualizações de stock de forma eficiente.
+			\item RNF3 - Usabilidade: A interface de scan de código de barras/QR deve ser intuitiva e rápida, com mínima necessidade de dados manuais.
+			\item RNF4 - Compatibilidade: O sistema deve funcionar em dispositivos Android.
+			\item RNF5 - Fiabilidade: Todos os registos de entrada e saída devem ser persistentes e auditáveis.
+		\end{itemize}
+\end{itemize}
+
+\subsection*{Deliberação e próximos passos}
+\begin{itemize}
+	\item Iniciar elaboração do relatório de projeto e finalização do Regulamento Interno do grupo.
+	\item Discussão de novas ideias de funcionalidades e possibilidades de arquiteturas do sistema.
+\end{itemize}
+
+\subsection*{Encerramento}
+\textbf{Encerramento da reunião:} 12h40
+\newline \textbf{Elaborada por:} José Alves
+\newline \textbf{Aprovada por:} Enrique Rodrigues
+
+\newpage
+
+\section{Reunião 29 Setembro 2025}
+
+\subsection*{Contexto}
+\textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
+\newline\textbf{Hora}: 11h00
+\newline\textbf{Data}: 26 de Setembro de 2025
+\newline\textbf{Participantes}: Carlos Barreiro, Diogo Machado, Enrique Rodrigues
+
+\subsection*{Ordem de Trabalhos}
+\begin{itemize}
+	\item 1 - Revisão das questões a fazer à Dra. Mónica
+	\item 2 - Início da Elaboração do Relatório
+	
+\end{itemize}
+
+\subsection*{Desenvolvimento}
+
+\subsubsection*{1 - Revisão das questões a fazer à Dra. Mónica}
+
+As questões preparadas na reunião anterior foram validadas.
+
+Surge a ideia de utilizar a leitura de Códigos de Barras para facilitar a gestão de stocks.
+
+\subsubsection*{2 - Início da Elaboração do Relatório}
+Iniciou-se o relatório de projeto e o Estudo de Viabilidade.
+
+\subsection*{Deliberação e próximos passos}
+\begin{itemize}
+	\item Concluir o Estudo de Viabilidade.
+	\item Preparação da reunião com Dra. Mónica.
+\end{itemize}
+
+\subsection*{Encerramento}
+\textbf{Encerramento da reunião:} 12h25
+\newline \textbf{Elaborada por:} Diogo Machado
+\newline \textbf{Aprovada por:} Enrique Rodrigues
+
+\newpage
+
+\section{Reunião 03 Outubro 2025}
+
+\subsection*{Contexto}
+\textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
+\newline\textbf{Hora}: 11h00
+\newline\textbf{Data}: 26 de Setembro de 2025
+\newline\textbf{Participantes}: Diogo Machado, Enrique Rodrigues, José Alves, Dra. Mónica (SASIPCA)
+
+\subsection*{Ordem de Trabalhos}
+\begin{itemize}
+	\item 1 - Validação de Requisitos e Perguntas à Dra. Mónica.
+	
+\end{itemize}
+
+\subsection*{Desenvolvimento}
+
+\subsubsection*{1 - Validação de Requisitos e Perguntas à Dra. Mónica.}
+
+\begin{itemize}
+	\item Tem de se registar quem doa os produtos? \textcolor{blue}{Não. Apenas se é originário de Recolha de Campanha Interna/Externa ou Doação Esporádica}
+	\item Há registo de quem recebe? \textcolor{blue}{Sim!}
+	\item Já existe uma BD de estudantes apoiados pelos SAS e de doadores? \textcolor{blue}{Não existe BD nenhuma.}
+	\item São necessários graus de permissão? Ou todos os funcionários podem fazer tudo? \textcolor{blue}{Todos os Funcionários dos SAS podem fazer tudo.}
+	\item Que tipos de grupos/categorias de bens existem? \textcolor{blue}{arroz, massa, higiene pessoal, higiene da casa, etc.}
+	\item Quem falha um levantamento, pode reagendar? \textcolor{blue}{Sim, por e-mail.}
 	\begin{itemize}
-		\item visualização em tempo real do stock da Loja Social, por categorias de produtos;
-		\item informações para doações e contributos pessoais;
-		\item divulgação de campanhas e notícias relacionadas.
+		\item É possível alterar a data prevista da recolha? \textcolor{blue}{Sim, por e-mail.}
+		\item O funcionário recebe notificação em caso de alteração da data? \textcolor{blue}{É o funcionário quem altera o agendamento na app.}
 	\end{itemize}
+	\item Quem agenda o levantamento de bens? O colaborador ou o beneficiário? Se for o beneficiário, onde o faz? \textcolor{blue}{O agendamento é feito por e-mail ou sms entre o colaborador dos SAS e o beneficiário. É o colaborador quem agenda a recolha na app.}
+	\item Existem diferentes escalões de beneficiários? \textcolor{blue}{Não. A única distinção que existe é \textbf{Estudante} ou \textbf{Não Estudante}}
+	\item Em relação ao \textbf{site}:
+	\begin{itemize}
+		\item É possível fazer uma doação anónima? \textcolor{blue}{Sim. Os bens são entregues nos locais de recolha das campanhas ou diretamente nos SAS, pelo que é só deixar lá os bens, sem ser necessário recolha de dados pessoais.} 
+		\item A aba a implementar no site dos SAS é na barra do topo ou na lateral? (Aparentemente, na lateral) \textcolor{blue}{Sim, aba lateral.}
+	\end{itemize}
+	
 \end{itemize}
 
-Estas ferramentas digitais pretendem, assim, não só tornar mais eficiente a gestão interna da Loja Social, como também promover a transparência e o envolvimento da comunidade académica nas iniciativas de solidariedade.
-
-\newpage
-\section{Descrição do Negócio}
-A Loja Social do IPCA surge como uma iniciativa de responsabilidade social do Instituto Politécnico do Cávado e do Ave, com a missão de apoiar a comunidade académica, em particular os estudantes em situação de maior vulnerabilidade económica e social. Este espaço funciona como um ponto de acolhimento e de distribuição gratuita de bens essenciais, tais como géneros alimentares, produtos de higiene pessoal e de limpeza, obtidos através de doações da comunidade, de empresas e de campanhas promovidas pelo próprio IPCA.  
-A Loja Social constitui, assim, uma rede de partilha e solidariedade, contribuindo para a redução de desigualdades e para a promoção do bem-estar dos membros da instituição.
-
-\section{Objetivos de Negócio}
-O projeto em desenvolvimento tem como objetivo principal a criação de soluções digitais que tornem a gestão da Loja Social mais eficiente e transparente. Para tal, serão implementadas:
+\subsection*{Deliberação e próximos passos}
 \begin{itemize}
-	\item Uma \textbf{aplicação móvel}, de uso interno pelos colaboradores dos Serviços de Ação Social (SAS), que permitirá gerir beneficiários, inventário, calendários de distribuição, entregas e alertas de validade;
-	\item Um \textbf{website informativo}, acessível a toda a comunidade académica, que disponibilizará informação sobre stocks em tempo real, campanhas de recolha de bens e instruções para efetuar doações.
+	\item Continuação da elaboração do relatório.
+	\item Início da elaboração de diagramas.
+	\item Conclusão do Estudo de Viabilidade.
 \end{itemize}
 
-Com estas ferramentas, pretende-se não apenas modernizar e agilizar a gestão operacional da Loja Social, mas também reforçar o envolvimento da comunidade académica nas práticas de solidariedade promovidas pelo IPCA.
+\subsection*{Encerramento}
+\textbf{Encerramento da reunião:} 12h45
+\newline \textbf{Elaborada por:} José Alves
+\newline \textbf{Aprovada por:} Enrique Rodrigues
 
 \newpage
-\section{Regulamento Interno do Grupo}
 
-O grupo vai reger-se pelas seguintes regras, que têm como objetivo garantir a organização, a cooperação e o cumprimento das responsabilidades por parte de todos os elementos:
+\section{Reunião 06 Outubro 2025}
 
+\subsection*{Contexto}
+\textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
+\newline\textbf{Hora}: 11h00
+\newline\textbf{Data}: 26 de Setembro de 2025
+\newline\textbf{Participantes}: Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves
+
+\subsection*{Ordem de Trabalhos}
 \begin{itemize}
-	\item Serão atribuídas tarefas a cada um dos elementos;
-	\item As datas e horários das reuniões podem ser alteradas, desde que respeitem os prazos estipulados, de forma a evitar faltas. Qualquer alteração só poderá ser feita mediante aprovação do restante grupo;
-	\item É permitido faltar a reuniões, desde que prévia e devidamente justificado e as tarefas a apresentar estejam concluídas.
+	\item 1 - Avançar no relatório
+	\item 2 - Elaboração de Diagramas de Contexto e Arquitetura de Sistema
+	
 \end{itemize}
-\subsection{Sistema de Avaliação Interno}
 
-Neste sistema de avaliação interno, todos os membros da equipa começam com um total de 20 valores, e as penalizações diferem de ligeiras a mais graves, sendo as ligeiras correspondentes a uma perda de 0,5 valor e as graves a uma perda de 1 valor:
+\subsection*{Desenvolvimento}
 
+\subsubsection*{1 - Avançar no relatório}
+
+Concluiu-se o Estudo de Viabilidade.
+Introduziram-se os novos dados no relatório.
+
+\subsubsection*{2 - Elaboração de Diagramas de Contexto e Arquitetura de Sistema}
+Foram feitos os diagramas de contexto e arquitetura do sistema.
+\newline Definiu-se a utilização de:
 \begin{itemize}
-	\item Falta de presença nas reuniões semanais, sem aviso prévio, e a não realização da tarefa atribuída resultam numa perda de 1 valor;
-	\item A não realização da tarefa atribuída dentro do prazo estipulado implica uma penalização de 1 valor;
-	\item Ausência sem comunicação prévia, mas com a tarefa atribuída concluída, resulta numa perda de 0,5 valor;
-	\item Atrasos recorrentes na entrega de tarefas ou nas reuniões podem implicar uma perda de 0,5 valor por cada ocorrência;
-	\item A falta de participação ativa nas discussões de grupo poderá levar a uma penalização de 0,5 valor;
-	\item O desrespeito pelas opiniões dos colegas ou comportamentos que comprometam a harmonia da equipa implicam uma perda de 1 valor.
+	\item Landing Page da LojaSocial: \textbf{NextJS}
+	\item App LojaSocial: \textbf{Kotlin Android}
+	\item Necessidades de Backend (Storage, Auth e SMTP/Email): \textbf{Firebase}
 \end{itemize}
 
-\newpage
-\section{Requisitos Funcionais}
-Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as funcionalidades a implementar no sistema para responder às necessidades dos utilizadores e da organização.
+\subsection*{Deliberação e próximos passos}
+\begin{itemize}
+	\item Continuação da elaboração do relatório.
+	\item Definição do Processo de Negócio e elaboração do respetivo diagrama BPMN.
+\end{itemize}
 
-\begin{table}[H]
-	\centering
-	\renewcommand{\arraystretch}{1.3}
-	\begin{tabular}{|c|p{12cm}|}
-		\hline
-		\textbf{RF 01} & O sistema deve permitir ao administrador registar e atualizar itens, incluindo nome, categoria, quantidade e validade opcional, garantindo a atualização automática do stock. \\
-		\hline
-		\textbf{RF 02} & O sistema deve permitir consultar a lista de itens disponíveis, com possibilidade de aplicar filtros por categoria e/ou validade. \\
-		\hline
-		\textbf{RF 03} & O sistema deve permitir a gestão de categorias (criação, edição e eliminação) para organizar os itens. \\
-		\hline
-		\textbf{RF 04} & O sistema deve permitir registar a entrada e saída de itens através do código de barras, associando data de validade e atualizando automaticamente o stock. \\
-		\hline
-		\textbf{RF 05} & O sistema deve permitir ao administrador registar e gerir campanhas, indicando nome e datas associadas. \\
-		\hline
-		\textbf{RF 06} & O sistema deve permitir agendar recolhas, especificando data e hora. \\
-		\hline
-		\textbf{RF 07} & O sistema deve permitir alterar, cancelar ou concluir recolhas previamente agendadas. \\
-		\hline
-		\textbf{RF 08} & O sistema deve disponibilizar uma lista ou calendário de recolhas futuras e passadas, com possibilidade de filtragem por data e/ou estado. \\
-		\hline
-		\textbf{RF 09} & O sistema deve permitir o acesso através de autenticação com PIN. \\
-		\hline
-		\textbf{RF 10} & O sistema deve permitir a extração de relatórios de informação sobre o stock. \\
-		\hline
-		\textbf{RF 11} & O sistema deve dar alertas de validade com um mês de antecedência. \\
-		\hline
-	\end{tabular}
-	\caption{Requisitos Funcionais}
-	\label{tab:requisitos_funcionais}
-\end{table}
-
-%------------------------------------------------------------------------------------
+\subsection*{Encerramento}
+\textbf{Encerramento da reunião:} 12h40
+\newline \textbf{Elaborada por:} José Alves
+\newline \textbf{Aprovada por:} Enrique Rodrigues
 
 \newpage
-\section{Requisitos Não Funcionais}
 
-Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcionar em termos de qualidade, desempenho, segurança e usabilidade, garantindo uma aplicação eficiente e confiável para os utilizadores.
+\section{Reunião 10 Outubro 2025}
 
-\begin{table}[H]
-	\centering
-	\renewcommand{\arraystretch}{1.3}
-	\begin{tabular}{|c|p{12cm}|}
-		\hline
-		\textbf{Código} & \textbf{Requisito Não Funcional} \\
-		\hline
-		\textbf{RNF01} & O sistema deve garantir autenticação segura do utilizador através de PIN, protegendo contra tentativas sucessivas de acesso indevido. \\
-		\hline
-		\textbf{RNF02} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
-		\hline
-		\textbf{RNF03} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
-		\hline
-		\textbf{RNF04} & O sistema deve funcionar em dispositivos Android. \\
-		\hline
-		\textbf{RNF05} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
-		\hline
-		\textbf{RNF06} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
-		\hline
-		\textbf{RNF07} & O sistema deve apresentar mensagens de erro claras e informativas, sem expor informação técnica sensível. \\
-		\hline
-	\end{tabular}
-	\caption{Requisitos Não Funcionais}
-	\label{tab:requisitos_nao_funcionais}
-\end{table}
+\subsection*{Contexto}
+\textbf{Local}: IPCA – Escola Superior de Tecnologia - Laboratório de Redes
+\newline\textbf{Hora}: 11h00
+\newline\textbf{Data}: 26 de Setembro de 2025
+\newline\textbf{Participantes}: Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves
+
+\subsection*{Ordem de Trabalhos}
+\begin{itemize}
+	\item 1 - Avançar no relatório
+	
+\end{itemize}
+
+\subsection*{Desenvolvimento}
+
+\subsubsection*{1 - Avançar no relatório}
+
+Introduziram-se os dados da arquitetura de sistema no relatório.
+
+\subsection*{Deliberação e próximos passos}
+\begin{itemize}
+	\item Terminar BPMN.
+	\item Preparação da Primeira Entrega do projeto.
+\end{itemize}
+
+\subsection*{Encerramento}
+\textbf{Encerramento da reunião:} 15h35
+\newline \textbf{Elaborada por:} José Alves
+\newline \textbf{Aprovada por:} Enrique Rodrigues
 
 \newpage
-%----------------------------------------------------------------------------------------
-%	BIBLIOGRAPHY
-%----------------------------------------------------------------------------------------
-\nocite{*}
-
-\printbibliography
-%----------------------------------------------------------------------------------------
 
 \end{document}
