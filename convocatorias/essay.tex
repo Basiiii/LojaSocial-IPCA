@@ -1,0 +1,84 @@
+\documentclass[a4paper, 11pt]{article}
+\usepackage[portuguese]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{array} % Para melhor formatação de tabelas
+\usepackage{titlesec} % Para personalizar o título das secções/subsecções
+\usepackage{hyperref} % Para links clicáveis no Índice
+\usepackage{lipsum} 
+
+% Comando para definir uma convocatória com a formatação desejada
+\newcommand{\convocatoria}[5]{
+	\section*{Convocatória para a Reunião de #1}
+	\addcontentsline{toc}{section}{Reunião de #1} % Adiciona a convocatória ao índice
+	\begin{center}
+		\begin{tabular}{|>{\bfseries}l|p{10cm}|}
+			\hline
+			Data: & #1 \\
+			\hline
+			Hora: & #2 \\
+			\hline
+			Local: & #3 \\
+			\hline
+			Convocados: & #4 \\
+			\hline
+		\end{tabular}
+	\end{center}
+	
+	\subsection*{Ordem de Trabalhos}
+	\begin{itemize}
+		#5
+	\end{itemize}
+	\vspace{0.5cm}
+	\hrule
+	\vspace{0.5cm}
+}
+
+% Definição do Título e Autores
+\title{\textbf{Convocatórias de Reunião} \\ Projeto Loja Social IPCA}
+\author{
+	Enrique Rodrigues No. 28602 \\
+	José Alves No. 27967 \\
+	Diogo Machado No. 26042 \\
+	Carlos Barreiro No. 20360
+}
+\date{\today}
+
+\begin{document}
+	\maketitle
+	\thispagestyle{empty} 
+	
+	\newpage
+	
+	% Índice
+	\tableofcontents
+	\newpage
+	
+	\section*{Lista de Convocatórias}
+	\hrule
+	\vspace{0.5cm}
+	
+	% 1. Reunião 22 Setembro 2025
+	\convocatoria{22 de Setembro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves, \textbf{Dra. Mónica (SASIPCA)}}{\item 1. Apresentação do Projeto \item 2. Funcionamento Atual do Processo}
+	
+	% 2. Reunião 26 Setembro 2025
+	\convocatoria{26 de Setembro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Diogo Machado, Enrique Rodrigues, José Alves}{\item 1. Preparação das questões a fazer à Dra. Mónica \item 2. Discussão dos Requisitos Funcionais e Não Funcionais baseados nessas questões}
+	
+	% 3. Reunião 29 Setembro 2025
+	\convocatoria{29 de Setembro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Carlos Barreiro, Diogo Machado, Enrique Rodrigues}{\item 1. Revisão das questões a fazer à Dra. Mónica \item 2. Início da Elaboração do Relatório}
+	
+	% 4. Reunião 03 Outubro 2025
+	\convocatoria{03 de Outubro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Diogo Machado, Enrique Rodrigues, José Alves, \textbf{Dra. Mónica (SASIPCA)}}{\item 1. Validação de Requisitos e Perguntas à Dra. Mónica}
+	
+	% 5. Reunião 06 Outubro 2025
+	\convocatoria{06 de Outubro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves}{\item 1. Avançar no relatório \item 2. Elaboração de Diagramas de Contexto e Arquitetura de Sistema}
+	
+	% 6. Reunião 10 Outubro 2025
+	\convocatoria{10 de Outubro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves}{\item 1. Avançar no relatório}
+	
+	% 7. Reunião 13 Outubro 2025
+	\convocatoria{13 de Outubro de 2025}{11h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Diogo Machado, Enrique Rodrigues, José Alves}{\item 1. Discussão e Desenvolvimento do diagrama BPMN}
+	
+	% 8. Reunião 17 Outubro 2025
+	\convocatoria{17 de Outubro de 2025}{14h00}{IPCA – Escola Superior de Tecnologia - Laboratório de Redes}{Carlos Barreiro, Diogo Machado, Enrique Rodrigues, José Alves, \textbf{Prof. Patrícia Leite}}{\item 1. Alteração de Requisitos (Reunião com cliente) \item 2. Conclusão Diagrama BPMN \item 3. Conclusão da Calendarização}
+	
+\end{document}
