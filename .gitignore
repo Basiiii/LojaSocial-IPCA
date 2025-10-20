@@ -29,7 +29,6 @@
 *.nlo
 *.nls
 *.out
-*.pdf
 *.pyg
 *.run.xml
 *.snm
@@ -45,4 +44,6 @@
 .bak 
 .mtc
 build/
-*.pdf
+# PDFs: ignore inside subfolders of docs, keep PDFs directly in docs/
+docs/**/*.pdf
+!docs/*.pdf
