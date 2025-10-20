@@ -1,0 +1,96 @@
+\documentclass[a4paper, 12pt]{article} % Font size (can be 10pt, 11pt or 12pt) and paper size (remove a4paper for US letter paper)
+\usepackage[portuguese]{babel}
+
+\usepackage[protrusion=true,expansion=true]{microtype} % Better typography
+\usepackage{graphicx} % Required for including pictures
+\usepackage{wrapfig} % Allows in-line images
+\usepackage{pdflscape} %Allows landscape oriented pages
+\usepackage{xcolor}
+
+\usepackage{hyperref}%Required for hyperlink references
+\hypersetup{
+	colorlinks=true, % Ativa links coloridos em vez de caixas ao redor
+	linkcolor=black, % Cor dos links internos
+	citecolor=black, % Cor das citações
+	urlcolor=black   % Cor dos links externos (Jira, por exemplo)
+}
+
+\usepackage{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Required for accented characters
+\linespread{1.05} % Change line spacing here, Palatino benefits from a slight increase by default
+\usepackage{float}
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\addbibresource{references.bib} % Nome do arquivo de referências
+\makeatletter
+\renewcommand\@biblabel[1]{\textbf{#1.}} % Change the square brackets for each bibliography item from '[1]' to '1.'
+\renewcommand{\@listI}{\itemsep=0pt} % Reduce the space between items in the itemize and enumerate environments and the bibliography
+
+\renewcommand{\maketitle}{
+\begin{titlepage}
+\begin{center}
+\vspace*{1cm}
+% \includegraphics[width=0.35\textwidth]{../images/logo-no-bg.png}\\[1cm] % Logo
+{\Huge\textbf{Loja Social IPCA}}\\[0.5cm] % Main Title
+{\Large Projeto 50+10}\\[2cm] % Subtitle
+{\large \textsc{
+		Enrique Rodrigues Nº28602 \\
+		José Alves Nº27967 \\
+		Diogo Machado Nº26042 \\
+		Carlos Barreiro Nº20360
+	}}\\[0.5cm] % Authors
+{\textit{Instituto Politécnico do Cávado e do Ave}}\\[1.5cm] % Institution
+
+{\large\textsc{\textbf{Regulamento Interno}}}\\[1.5cm]
+
+% {\large 06 de outubro de 2025} % Date
+{\large \today} % Date
+\vfill
+% \textbf{Keywords:} lorem, ipsum, dolor, sit amet, lectus % Keywords
+\end{center}
+\end{titlepage}
+}
+\makeatother
+
+%------------------------------------------------------------------------------------
+
+\begin{document}
+\maketitle % Print the title section
+
+\newpage
+\renewcommand{\contentsname}{Índice}
+\tableofcontents
+
+\newpage
+
+\section{Regulamento Interno do Grupo}
+
+O grupo vai reger-se pelas seguintes regras, que têm como objetivo garantir a organização, a cooperação e o cumprimento das responsabilidades por parte de todos os elementos:
+
+\begin{itemize}
+	\item Serão atribuídas tarefas a cada um dos elementos;
+	\item As datas e horários das reuniões podem ser alteradas, desde que respeitem os prazos estipulados, de forma a evitar faltas. Qualquer alteração só poderá ser feita mediante aprovação do restante grupo;
+	\item É permitido faltar a reuniões, desde que prévia e devidamente justificado e as tarefas a apresentar estejam concluídas.
+\end{itemize}
+\subsection{Sistema de Avaliação Interno}
+
+Neste sistema de avaliação interno, todos os membros da equipa começam com um total de 20 valores, e as penalizações diferem de ligeiras a mais graves, sendo as ligeiras correspondentes a uma perda de 0,5 valor e as graves a uma perda de 1 valor:
+
+\begin{itemize}
+	\item Falta de presença nas reuniões semanais, sem aviso prévio, e a não realização da tarefa atribuída resultam numa perda de 1 valor;
+	\item A não realização da tarefa atribuída dentro do prazo estipulado implica uma penalização de 1 valor;
+	\item Ausência sem comunicação prévia, mas com a tarefa atribuída concluída, resulta numa perda de 0,5 valor;
+	\item Atrasos recorrentes na entrega de tarefas ou nas reuniões podem implicar uma perda de 0,5 valor por cada ocorrência;
+	\item A falta de participação ativa nas discussões de grupo poderá levar a uma penalização de 0,5 valor;
+	\item O desrespeito pelas opiniões dos colegas ou comportamentos que comprometam a harmonia da equipa implicam uma perda de 1 valor.
+\end{itemize}
+
+\newpage
+\section{Disposições Finais}
+
+\begin{itemize}
+	\item Este regulamento pode ser revisto ou alterado mediante consenso de todos os membros do grupo;
+	\item Os casos omissos neste regulamento serão resolvidos pelo grupo, em conjunto, de forma democrática;
+	\item O presente documento entra em vigor após a sua aprovação por todos os elementos do grupo.
+\end{itemize}
+
+\end{document}
