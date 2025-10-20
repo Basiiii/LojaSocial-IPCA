@@ -74,7 +74,7 @@ Além da descrição do sistema e das funcionalidades propostas, o documento det
 %------------------------------------------------------------------------------------
 \section{Contextualização do Projeto}
 
-O Instituto Politécnico do Cávado e do Ave (IPCA) criou a \textbf{Loja Social} para apoiar a comunidade académica em situações de necessidade, disponibilizando bens alimentares, de higiene e de limpeza, obtidos via doações ou campanhas internas.
+O Instituto Politécnico do Cávado e do Ave (IPCA) criou a \textbf{Loja Social} para apoiar a comunidade académica em situações de necessidade, disponibilizando bens alimentares, de higiene e de limpeza, obtidos via doações ou campanhas internas e externas.
 
 Para otimizar a gestão e a resposta às necessidades, serão desenvolvidas duas soluções digitais:
 
@@ -136,6 +136,28 @@ O sistema visa, desta forma, otimizar o controlo de inventário e assegurar uma 
 Incluem-se neste grupo as pessoas, empresas e organizações que contribuem com bens ou recursos para a Loja Social.  
 Estes interessados procuram transparência na gestão das doações e acesso a informação atualizada sobre campanhas e necessidades da instituição.  
 A sua interação ocorre através do \textbf{website informativo}, que disponibiliza dados sobre stocks, campanhas e instruções para efetuar doações.
+
+\section{Regulamento Interno do Grupo}
+
+O grupo vai reger-se pelas seguintes regras, que têm como objetivo garantir a organização, a cooperação e o cumprimento das responsabilidades por parte de todos os elementos:
+
+\begin{itemize}
+	\item Serão atribuídas tarefas a cada um dos elementos;
+	\item As datas e horários das reuniões podem ser alteradas, desde que respeitem os prazos estipulados, de forma a evitar faltas. Qualquer alteração só poderá ser feita mediante aprovação do restante grupo;
+	\item É permitido faltar a reuniões, desde que prévia e devidamente justificado e as tarefas a apresentar estejam concluídas.
+\end{itemize}
+\subsection{Sistema de Avaliação Interno}
+
+Neste sistema de avaliação interno, todos os membros da equipa começam com um total de 20 valores, e as penalizações diferem de ligeiras a mais graves, sendo as ligeiras correspondentes a uma perda de 0,5 valor e as graves a uma perda de 1 valor:
+
+\begin{itemize}
+	\item Falta de presença nas reuniões semanais, sem aviso prévio, e a não realização da tarefa atribuída resultam numa perda de 1 valor;
+	\item A não realização da tarefa atribuída dentro do prazo estipulado implica uma penalização de 1 valor;
+	\item Ausência sem comunicação prévia, mas com a tarefa atribuída concluída, resulta numa perda de 0,5 valor;
+	\item Atrasos recorrentes na entrega de tarefas ou nas reuniões podem implicar uma perda de 0,5 valor por cada ocorrência;
+	\item A falta de participação ativa nas discussões de grupo poderá levar a uma penalização de 0,5 valor;
+	\item O desrespeito pelas opiniões dos colegas ou comportamentos que comprometam a harmonia da equipa implicam uma perda de 1 valor.
+\end{itemize}
 
 \newpage
 \section{Cronograma}
@@ -226,16 +248,16 @@ Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcio
 
 \newpage
 
-\section{Introdução aos Diagramas BPMN}
+\section{Diagramas BPMN}
+O diagrama representa o processo de gestão de doações de produtos. Inicialmente, o voluntário recebe o produto, verifica o código de barras e confirma se está dentro do prazo de validade. Produtos válidos são adicionados ao stock, enquanto os fora de prazo são separados e comunicados a instituições adequadas.
 
-O BPMN (\textit{Business Process Model and Notation}) é uma notação padronizada para a modelação de processos de negócio. Permite representar graficamente as atividades, decisões e fluxos de um processo, facilitando a compreensão e comunicação entre diferentes intervenientes.  
+Os beneficiários podem realizar pedidos de produtos. O sistema verifica a elegibilidade da pessoa; se for elegível, o voluntário prepara a entrega, regista-a na aplicação e o pedido é concluído com sucesso. Caso contrário, é apresentada uma mensagem de erro.
 
-Os diagramas BPMN ajudam a documentar, analisar e otimizar processos, proporcionando uma visão clara e estruturada das operações de uma organização.
-
+Paralelamente, o sistema realiza verificações mensais da validade dos produtos existentes em stock e gera relatórios de auditoria.
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[height=0.6\textheight]{../images/bpmn-diagram.png}
+	\includegraphics[height=0.5\textheight]{../images/bpmn-diagram.png}
 	\caption{Diagrama BPMN}
 	\label{fig:diagrama-bpmn}
 \end{figure}
