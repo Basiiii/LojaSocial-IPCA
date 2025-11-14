@@ -76,7 +76,7 @@ Além da descrição do sistema e das funcionalidades propostas, o documento det
 
 O Instituto Politécnico do Cávado e do Ave (IPCA) criou a \textbf{Loja Social} para apoiar a comunidade académica em situações de necessidade, disponibilizando bens alimentares, de higiene e de limpeza, obtidos via doações ou campanhas internas e externas.
 
-Para otimizar a gestão e a resposta às necessidades, serão desenvolvidas duas soluções digitais:
+Para otimizar a gestão e a resposta às necessidades, serão desenvolvidas duas soluções digitais, conforme ilustrado no Diagrama de Contexto da Loja Social (Figura~\ref{fig:context-diagram}):
 
 \subsubsection*{Aplicação móvel (uso interno pelos SAS)}
 Funcionalidades principais:
@@ -100,6 +100,7 @@ Estas ferramentas aumentam a eficiência interna e promovem transparência e env
 	\centering
 	\includegraphics[width=1.0\textwidth]{../images/context-diagram.png}
 	\caption{Diagrama de Contexto da Loja Social}
+	\label{fig:context-diagram}
 \end{figure}
 
 \newpage
@@ -162,7 +163,7 @@ Neste sistema de avaliação interno, todos os membros da equipa começam com um
 \newpage
 \section{Cronograma}
 
-O cronograma apresentado descreve as atividades realizadas até ao momento no desenvolvimento do projeto, 
+O cronograma (Figura~\ref{fig:img-cronograma}) apresentado descreve as atividades realizadas até ao momento no desenvolvimento do projeto, 
 bem como as próximas ações planeadas, incluindo reuniões com o cliente e datas de entrega previstas. 
 Este planeamento permite uma visão global do progresso do projeto, facilitando o acompanhamento das tarefas concluídas 
 e a organização das etapas futuras, de forma a garantir o cumprimento dos prazos e a coordenação eficaz da equipa.
@@ -171,12 +172,12 @@ e a organização das etapas futuras, de forma a garantir o cumprimento dos praz
 	\centering
 	\includegraphics[width=0.9\textwidth]{../images/cronograma.png}
 	\caption{Cronograma}
-	\label{fig:cronograma}
+	\label{fig:img-cronograma}
 \end{figure}
 
 \newpage
 \section{Requisitos Funcionais}
-Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as funcionalidades a implementar no sistema para responder às necessidades dos utilizadores e da organização.
+Esta secção apresenta os requisitos funcionais (Tabela~\ref{tab:requisitos_funcionais}) que descrevem as funcionalidades a implementar no sistema para responder às necessidades dos utilizadores e da organização.
 
 \begin{table}[H]
 	\centering
@@ -215,7 +216,7 @@ Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as
 \newpage
 \section{Requisitos Não Funcionais}
 
-Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcionar em termos de qualidade, desempenho, segurança e usabilidade, garantindo uma aplicação eficiente e confiável para os utilizadores.
+Os requisitos não funcionais (Tabela~\ref{tab:requisitos_funcionais}) definem como o sistema deve funcionar em termos de qualidade, desempenho, segurança e usabilidade, garantindo uma aplicação eficiente e confiável para os utilizadores.
 
 \begin{table}[H]
 	\centering
@@ -249,7 +250,7 @@ Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcio
 \newpage
 
 \section{Diagramas BPMN}
-O diagrama representa o processo de gestão de doações de produtos. Inicialmente, o voluntário recebe o produto, verifica o código de barras e confirma se está dentro do prazo de validade. Produtos válidos são adicionados ao stock, enquanto os fora de prazo são separados e comunicados a instituições adequadas.
+O diagrama de BPMN, representado pela Figura~\ref{fig:diagrama-bpmn} representa o processo de gestão de doações de produtos. Inicialmente, o voluntário recebe o produto, verifica o código de barras e confirma se está dentro do prazo de validade. Produtos válidos são adicionados ao stock, enquanto os fora de prazo são separados e comunicados a instituições adequadas.
 
 Os beneficiários podem realizar pedidos de produtos. O sistema verifica a elegibilidade da pessoa; se for elegível, o voluntário prepara a entrega, regista-a na aplicação e o pedido é concluído com sucesso. Caso contrário, é apresentada uma mensagem de erro.
 
