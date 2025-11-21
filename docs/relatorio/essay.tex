@@ -107,6 +107,8 @@ Estas ferramentas aumentam a eficiência interna e promovem transparência e env
 A Loja Social do IPCA surge como uma iniciativa de responsabilidade social do Instituto Politécnico do Cávado e do Ave, com a missão de apoiar a comunidade académica, em particular os estudantes em situação de maior vulnerabilidade económica e social. Este espaço funciona como um ponto de acolhimento e de distribuição gratuita de bens essenciais, tais como géneros alimentares, produtos de higiene pessoal e de limpeza, obtidos através de doações da comunidade, de empresas e de campanhas promovidas pelo próprio IPCA.  
 A Loja Social constitui, assim, uma rede de partilha e solidariedade, contribuindo para a redução de desigualdades e para a promoção do bem-estar dos membros da instituição.
 
+Atualmente, o funcionamento da Loja Social assenta num sistema de gestão baseado em registos manuais em papel e em ficheiros Excel, utilizados para acompanhar entradas, saídas e níveis de stock. Embora este método permita o controlo básico dos bens, torna o processo mais moroso, sujeito a erros e dependente de atualizações manuais.
+
 \section{Objetivos de Negócio}
 O projeto em desenvolvimento tem como objetivo principal a criação de soluções digitais que tornem a gestão da Loja Social mais eficiente \cite{hayes2025inventory} e transparente. Para tal, serão implementadas:
 \begin{itemize}
@@ -153,7 +155,7 @@ e a organização das etapas futuras, de forma a garantir o cumprimento dos praz
 
 \newpage
 \section{Requisitos Funcionais}
-Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as funcionalidades a implementar no sistema para responder às necessidades dos utilizadores e da organização.
+Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as funcionalidades a implementar no sistema.
 
 \begin{table}[H]
 	\centering
@@ -170,7 +172,7 @@ Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as
 		\hline
 		\textbf{RF 05} & O sistema deve permitir ao administrador registar e gerir campanhas, indicando nome e datas associadas. \\
 		\hline
-		\textbf{RF 06} & O sistema deve permitir agendar recolhas, especificando data e hora. \\
+		\textbf{RF 06} & O sistema deve permitir agendar recolhas, especificando data. \\
 		\hline
 		\textbf{RF 07} & O sistema deve permitir alterar, cancelar ou concluir recolhas previamente agendadas. \\
 		\hline
@@ -179,6 +181,12 @@ Esta secção apresenta os requisitos funcionais \textbf{(RFs)} que descrevem as
 		\textbf{RF 09} & O sistema deve permitir a extração de relatórios de informação sobre o stock. \\
 		\hline
 		\textbf{RF 10} & O sistema deve dar alertas de validade com um mês de antecedência. \\
+		\hline
+		\textbf{RF 11} & O sistema deve permitir ao benefeciário submeter e ver estado da candidatura. \\
+		\hline
+		\textbf{RF 12} & O sistema deve permitir aos administradores rejeitar e aceitar candidaturas de benefeciários. \\
+		\hline
+		\textbf{RF 13} & O sistema deve permitir fazer perguntas através de um chat de suporte. \\
 		\hline
 	\end{tabular}
 	\caption{Requisitos Funcionais}
@@ -199,21 +207,23 @@ Os requisitos não funcionais \textbf{(RNFs)} definem como o sistema deve funcio
 		\hline
 		\textbf{Código} & \textbf{Requisito Não Funcional} \\
 		\hline
-		\textbf{RNF01} & O sistema deve garantir autenticação segura do utilizador através de PIN, protegendo contra tentativas sucessivas de acesso indevido. \\
+		\textbf{RNF01} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
 		\hline
-		\textbf{RNF02} & O sistema deve processar scans e atualizações de stock de forma eficiente. \\
+		\textbf{RNF02} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
 		\hline
-		\textbf{RNF03} & A interface de scan de código de barras deve ser intuitiva e rápida, com mínima necessidade de dados manuais. \\
+		\textbf{RNF03} & O sistema deve funcionar em dispositivos Android. \\
 		\hline
-		\textbf{RNF04} & O sistema deve funcionar em dispositivos Android. \\
+		\textbf{RNF04} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
 		\hline
-		\textbf{RNF05} & Todos os registos de entrada e saída devem ser persistentes e auditáveis. \\
+		\textbf{RNF05} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
 		\hline
-		\textbf{RNF06} & A interface deve ser responsiva e adaptável a diferentes tamanhos de ecrã e resoluções de dispositivos Android. \\
+		\textbf{RNF06} & O sistema deve apresentar mensagens de erro claras e informativas, sem expor informação técnica sensível. \\
 		\hline
-		\textbf{RNF07} & O sistema deve apresentar mensagens de erro claras e informativas, sem expor informação técnica sensível. \\
+		\textbf{RNF 07} & O sistema deve permitir o acesso através de autenticação com email e pass. \\
 		\hline
-		\textbf{RNF 08} & O sistema deve permitir o acesso através de autenticação com PIN. \\
+		\textbf{RNF 08} & O chat de suporte deve ser em tempo real. \\
+		\hline
+		\textbf{RNF 09} & A aplicação deve seguir todas as regras de RGPD. \\
 		\hline
 	\end{tabular}
 	\caption{Requisitos Não Funcionais}
@@ -274,9 +284,10 @@ A figura \ref{fig:arquitetura} apresenta a arquitetura da aplicação, integrand
 	\label{fig:arquitetura}
 \end{figure}
 
-A página web, desenvolvida em Next.js, serve como ponto de acesso público para a comunidade académica, permitindo visualizar o stock da Loja Social em tempo real, consultar informações sobre campanhas de doação e acompanhar notícias relacionadas. O Next.js fornece renderização server-side quando necessário, garantindo desempenho otimizado e carregamento rápido de conteúdo.
+A página web, desenvolvida em Next.js, serve como ponto de acesso público para a comunidade académica, permitindo visualizar o stock da Loja Social, consultar informações sobre campanhas de doação e acompanhar notícias relacionadas. O Next.js fornece renderização server-side quando necessário, garantindo desempenho otimizado e carregamento rápido de conteúdo.
+O acesso a áreas reservadas faz uso do Firebase Auth, assegurando a autenticação de utilizadores e o controlo de permissões.
 
-A aplicação móvel, construída em Kotlin para Android, é utilizada pelos Serviços de Ação Social (SAS) para gerir os beneficiários, o inventário de bens, a calendarização de entregas e alertas de validade.
+A aplicação móvel, construída em Kotlin para Android, é utilizada pelos Serviços de Ação Social (SAS) para gerir os beneficiários, o inventário de bens, a calendarização de entregas e alertas de validade. A autenticação dos colaboradores também é realizada através do Firebase Auth, garantindo que apenas utilizadores autorizados podem aceder às funcionalidades de gestão.
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
