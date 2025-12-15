@@ -46,9 +46,9 @@ fun ProfileView(paddingValues: PaddingValues, authRepository: AuthRepository, on
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(
+            Row(
                 modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Profile Picture
                 Box(
@@ -66,34 +66,39 @@ fun ProfileView(paddingValues: PaddingValues, authRepository: AuthRepository, on
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 
-                // Name
-                Text(
-                    text = "Mónica Silva",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // Email
-                Text(
-                    text = "monica.silva@lojasocial.pt",
-                    fontSize = 14.sp,
-                    color = TextGray
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // Role
-                Text(
-                    text = "Funcionária",
-                    fontSize = 12.sp,
-                    color = Color(0xFF10B981),
-                    fontWeight = FontWeight.Medium
-                )
+                // Profile Info
+                Column(
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Name
+                    Text(
+                        text = "Mónica Silva",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Email
+                    Text(
+                        text = "monica.silva@lojasocial.pt",
+                        fontSize = 14.sp,
+                        color = TextGray
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // Role
+                    Text(
+                        text = "Funcionária",
+                        fontSize = 12.sp,
+                        color = Color(0xFF10B981),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
         
