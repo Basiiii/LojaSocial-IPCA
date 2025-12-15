@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.layout.fillMaxWidth
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
@@ -36,8 +38,8 @@ fun AppTopBar(subtitle: String) {
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(text = "LojaSocial", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
-                    Text(text = subtitle, fontSize = 12.sp, color = TextGray)
+                    Text(text = "LojaSocial", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark, lineHeight = 16.sp)
+                    Text(text = subtitle, fontSize = 12.sp, color = TextGray, lineHeight = 12.sp)
                 }
             }
         },
@@ -54,4 +56,10 @@ fun AppTopBar(subtitle: String) {
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = AppBgColor)
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AppTopBarPreview() {
+    AppTopBar(subtitle = "Bem-vindo de volta!")
 }

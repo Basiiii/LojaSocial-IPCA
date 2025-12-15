@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun ActionCard(
@@ -87,4 +88,30 @@ fun ActionCard(
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ActionCardPreview() {
+    ActionCard(
+        title = "Novos Pedidos",
+        description = "Você tem 5 novos pedidos para processar hoje",
+        buttonText = "Ver Pedidos",
+        backgroundColor = Color(0xFF10B981),
+        badgeCount = 5,
+        badgeLabel = "novos",
+        onClick = { }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ActionCardWithoutIconPreview() {
+    ActionCard(
+        title = "Relatórios",
+        description = "Visualize suas vendas e métricas de desempenho",
+        buttonText = "Ver Relatórios",
+        backgroundColor = Color(0xFFF59E0B),
+        onClick = { }
+    )
 }

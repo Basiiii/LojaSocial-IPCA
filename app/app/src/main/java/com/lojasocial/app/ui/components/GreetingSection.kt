@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 
@@ -18,4 +19,13 @@ fun GreetingSection(name: String, message: String) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = message, fontSize = 14.sp, color = TextGray, lineHeight = 20.sp)
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GreetingSectionPreview() {
+    GreetingSection(
+        name = "João",
+        message = "Tenha um ótimo dia! Suas vendas estão 15% acima da média esta semana."
+    )
 }
