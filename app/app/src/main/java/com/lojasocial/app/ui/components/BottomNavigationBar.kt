@@ -1,6 +1,7 @@
 package com.lojasocial.app.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -30,7 +31,7 @@ fun BottomNavigationBar(
             )
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Suporte") },
+            icon = { Icon(Icons.AutoMirrored.Outlined.HelpOutline, contentDescription = "Suporte") },
             label = { Text("Suporte") },
             selected = selectedTab == "support",
             onClick = { onTabSelected("support") },

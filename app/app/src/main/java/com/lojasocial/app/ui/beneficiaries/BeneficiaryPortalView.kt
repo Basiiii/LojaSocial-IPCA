@@ -15,11 +15,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.lojasocial.app.ui.components.ActionCard
+import com.lojasocial.app.ui.components.ActivityItem
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.AppTopBar
 import com.lojasocial.app.ui.components.BottomNavigationBar
 import com.lojasocial.app.ui.components.GreetingSection
-import com.lojasocial.app.ui.employees.ActivityItem
 
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.BrandBlue
@@ -67,7 +67,7 @@ fun BeneficiaryPortalView(useAppLayout: Boolean = true) {
                 description = "Vê o que temos e faz um pedido de bens que precisas",
                 buttonText = "Faz Pedido",
                 backgroundColor = BrandGreen,
-                icon = null,
+                icon = Icons.Default.ShoppingCart,
                 onClick = { /* Navigate to Order */ }
             )
 
@@ -78,7 +78,7 @@ fun BeneficiaryPortalView(useAppLayout: Boolean = true) {
                 description = "A nossa equipa de suporte está aqui para te ajudar com qualquer pergunta",
                 buttonText = "Entra em Contacto",
                 backgroundColor = BrandOrange,
-                icon = null,
+                icon = Icons.Default.Help,
                 onClick = { /* Navigate to Support */ }
             )
 
@@ -132,7 +132,7 @@ fun BeneficiaryPortalView(useAppLayout: Boolean = true) {
                 description = "Vê o que temos e faz um pedido de bens que precisas",
                 buttonText = "Faz Pedido",
                 backgroundColor = BrandGreen,
-                icon = null,
+                icon = Icons.Default.ShoppingCart,
                 onClick = { /* Navigate to Order */ }
             )
 
@@ -143,7 +143,7 @@ fun BeneficiaryPortalView(useAppLayout: Boolean = true) {
                 description = "A nossa equipa de suporte está aqui para te ajudar com qualquer pergunta",
                 buttonText = "Entra em Contacto",
                 backgroundColor = BrandOrange,
-                icon = null,
+                icon = Icons.Default.Help,
                 onClick = { /* Navigate to Support */ }
             )
 
