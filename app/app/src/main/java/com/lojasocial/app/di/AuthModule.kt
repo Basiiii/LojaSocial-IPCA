@@ -23,6 +23,10 @@ abstract class AuthModule {
     companion object {
         @Provides
         @Singleton
-        fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
+        fun provideFirebaseAuth(): FirebaseAuth {
+            // Firebase Auth persistence is enabled by default
+            // No need to call setPersistence as it's not available in standard Firebase Auth
+            return FirebaseAuth.getInstance()
+        }
     }
 }
