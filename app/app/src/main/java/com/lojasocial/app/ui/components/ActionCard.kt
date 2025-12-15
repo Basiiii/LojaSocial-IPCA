@@ -2,11 +2,10 @@ package com.lojasocial.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.* // Imports all outlined icons (Calendar, Help, etc.)
-import androidx.compose.material.icons.outlined.* import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,69 +15,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.ui.theme.AppBgColor
-import com.lojasocial.app.ui.theme.TextDark
-import com.lojasocial.app.ui.theme.TextGray
 
-// In your Components file (e.g., SharedComponents.kt)
-
-// 1. Updated Top Bar (Accepts a subtitle)
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AppTopBar(subtitle: String) { // Added subtitle parameter
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF064E3B)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(text = "LojaSocial", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
-                    Text(text = subtitle, fontSize = 12.sp, color = TextGray) // Dynamic subtitle
-                }
-            }
-        },
-        actions = {
-            Box(modifier = Modifier.padding(end = 8.dp)) {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = TextDark)
-                }
-                Box(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp)
-                        .size(8.dp).clip(CircleShape).background(Color.Red)
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = AppBgColor)
-    )
-}
-
-// 2. Updated Greeting Section (Accepts name and message)
-@Composable
-fun GreetingSection(name: String, message: String) {
-    Column {
-        Text(text = "Olá, $name", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDark)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = message, fontSize = 14.sp, color = TextGray, lineHeight = 20.sp)
-    }
-}
-
-// 3. Updated Action Card (Icon is now nullable)
-// In the new design, the Green and Orange cards don't have the top-left icon box.
 @Composable
 fun ActionCard(
     title: String,
     description: String,
     buttonText: String,
     backgroundColor: Color,
-    icon: ImageVector? = null, // Made nullable
+    icon: ImageVector? = null,
     badgeCount: Int? = null,
     badgeLabel: String? = null,
     isRedBadge: Boolean = false,
@@ -90,14 +34,12 @@ fun ActionCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            // Header: Only show row if there is an icon or a badge
             if (icon != null || badgeCount != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    // Only show icon box if icon exists
                     if (icon != null) {
                         Box(
                             modifier = Modifier
@@ -109,7 +51,7 @@ fun ActionCard(
                             Icon(icon, contentDescription = null, tint = Color.White)
                         }
                     } else {
-                        Spacer(modifier = Modifier.width(1.dp)) // Filler if no icon but badge exists
+                        Spacer(modifier = Modifier.width(1.dp))
                     }
 
                     if (badgeCount != null && badgeLabel != null) {

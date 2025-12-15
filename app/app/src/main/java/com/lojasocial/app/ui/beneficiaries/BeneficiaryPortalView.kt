@@ -48,7 +48,6 @@ fun BeneficiaryPortalView() {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-
             GreetingSection(
                 name = "Carla",
                 message = "Recebe apoio quando precisares e acompanha os teus pedidos"
