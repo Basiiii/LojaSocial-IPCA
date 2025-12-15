@@ -24,3 +24,5 @@ val BrandPurple = Color(0xFF9333EA)
 val BrandBlue = Color(0xFF2563EB)
 val TextDark = Color(0xFF1F2937)
 val TextGray = Color(0xFF6B7280)
+
+val BrandOrange = Color(0xFFD97706)

@@ -1,24 +1,21 @@
-package com.lojasocial.app.ui.components
+package com.lojasocial.app.ui.beneficiaries
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.ui.theme.BrandBlue
-import com.lojasocial.app.ui.theme.BrandGreen
-import com.lojasocial.app.ui.theme.BrandPurple
-import com.lojasocial.app.ui.theme.TextDark
+import com.lojasocial.app.ui.components.ActivityItem
+import com.lojasocial.app.ui.theme.BrandOrange
 
 @Composable
-fun RecentActivitySection() {
+fun ActivitySection() {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -28,14 +25,14 @@ fun RecentActivitySection() {
             Text(
                 text = "Atividade Recente",
                 fontSize = 18.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                color = TextDark
+                fontWeight = FontWeight.Bold,
+                color = com.lojasocial.app.ui.theme.TextDark
             )
             Text(
                 text = "Ver tudo",
                 fontSize = 14.sp,
-                color = BrandBlue,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                color = com.lojasocial.app.ui.theme.BrandBlue,
+                fontWeight = FontWeight.Medium
             )
         }
 
@@ -43,33 +40,35 @@ fun RecentActivitySection() {
 
         ActivityItem(
             title = "Levantamento Concluído",
-            subtitle = "José Alves - Alimentar",
-            time = "há 15 minutos",
-            icon = Icons.Default.Inventory,
+            subtitle = "Levantamento feito com sucesso",
+            time = "há 2 minutos",
+            icon = Icons.Default.ShoppingBag,
             iconBg = Color(0xFFDBEAFE),
-            iconTint = BrandBlue
+            iconTint = com.lojasocial.app.ui.theme.BrandBlue
         )
+
         ActivityItem(
-            title = "Candidatura Aceite",
-            subtitle = "Marco Cardoso",
-            time = "há 27 minutos",
+            title = "Pedido Aceite",
+            subtitle = "O teu pedido foi aceite",
+            time = "há 15 minutos",
             icon = Icons.Default.Check,
             iconBg = Color(0xFFDCFCE7),
-            iconTint = BrandGreen
+            iconTint = com.lojasocial.app.ui.theme.BrandGreen
         )
+
         ActivityItem(
-            title = "Nova Candidatura",
-            subtitle = "Enrique Rodrigues",
+            title = "Pedido Submetido",
+            subtitle = "Pedido submetido e pendente",
             time = "há 1 hora",
-            icon = Icons.Default.Description,
-            iconBg = Color(0xFFF3E8FF),
-            iconTint = BrandPurple
+            icon = Icons.Default.Schedule,
+            iconBg = Color(0xFFFEF3C7),
+            iconTint = BrandOrange
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun RecentActivitySectionPreview() {
-    RecentActivitySection()
+fun ActivitySectionPreview() {
+    ActivitySection()
 }

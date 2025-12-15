@@ -27,8 +27,8 @@ import com.lojasocial.app.ui.components.StatCard
 import com.lojasocial.app.ui.components.ActionCard
 import com.lojasocial.app.ui.components.ActivityItem
 import com.lojasocial.app.ui.components.StatsSection
-import com.lojasocial.app.ui.components.RecentActivitySection
-import com.lojasocial.app.ui.components.QuickActionsSection
+import com.lojasocial.app.ui.employees.RecentActivitySection
+import com.lojasocial.app.ui.employees.QuickActionsSection
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
