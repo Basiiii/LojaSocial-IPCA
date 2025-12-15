@@ -11,10 +11,15 @@ import androidx.compose.ui.Modifier
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.login.LoginScreen
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
+import com.lojasocial.app.ui.employees.EmployeePortalView
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -26,12 +31,21 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    LoginScreen(
-                        onLoginSuccess = {
-                            // Navigate to main app screen after successful login
-                            // For now, we'll just show a success message
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = "login") {
+                        composable("login") {
+                            LoginScreen(
+                                onLoginSuccess = {
+                                    navController.navigate("employeePortal") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                }
+                            )
                         }
-                    )
+                        composable("employeePortal") {
+                            BeneficiaryPortalView()
+                        }
+                    }
                 }
             }
         }
