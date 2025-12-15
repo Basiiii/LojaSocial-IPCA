@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lojasocial.app.ui.components.AppLayout
+import com.lojasocial.app.ui.components.BottomNavigationBar
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
@@ -30,133 +32,24 @@ import com.lojasocial.app.ui.theme.TextGray
 
 // --- Main Screen ---
 @Composable
-fun EmployeePortalView() {
-    Scaffold(
-        topBar = { EmployeeTopBar() },
-        bottomBar = { EmployeeBottomBar() },
-        containerColor = AppBgColor
-    ) { paddingValues ->
-        // Main Content Scrollable Area
-        Column(
-            modifier = Modifier
-                .padding(paddingValues) // Respects Top/Bottom bar padding
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(20.dp))
-            GreetingSection()
-            Spacer(modifier = Modifier.height(16.dp))
-            StatsSection()
-            Spacer(modifier = Modifier.height(24.dp))
-            QuickActionsSection()
-            Spacer(modifier = Modifier.height(24.dp))
-            RecentActivitySection()
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-// --- Component: Top Bar ---
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EmployeeTopBar() {
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Logo Box
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF064E3B)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Favorite,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "LojaSocial",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = TextDark
-                    )
-                    Text(
-                        text = "Portal Funcionários",
-                        fontSize = 12.sp,
-                        color = TextGray
-                    )
-                }
-            }
-        },
-        actions = {
-            Box(modifier = Modifier.padding(end = 8.dp)) {
-                IconButton(onClick = { }) {
-                    Icon(
-                        Icons.Default.Notifications,
-                        contentDescription = "Notificações",
-                        tint = TextDark
-                    )
-                }
-                // Notification Dot
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 10.dp, end = 10.dp)
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(Color.Red)
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = AppBgColor
-        )
-    )
-}
-
-// --- Component: Bottom Bar ---
-@Composable
-fun EmployeeBottomBar() {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
+fun EmployeePortalView(paddingValues: PaddingValues) {
+    // Main Content Scrollable Area
+    Column(
+        modifier = Modifier
+            .padding(paddingValues) // Respects Top/Bottom bar padding
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
     ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-            label = { Text("Home") },
-            selected = true,
-            onClick = { },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = BrandGreen,
-                selectedTextColor = BrandGreen,
-                indicatorColor = Color(0xFFDCFCE7)
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Suporte") },
-            label = { Text("Suporte") },
-            selected = false,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Outlined.DateRange, contentDescription = "Calendário") },
-            label = { Text("Calendário") },
-            selected = false,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Outlined.Person, contentDescription = "Perfil") },
-            label = { Text("Perfil") },
-            selected = false,
-            onClick = { }
-        )
+        Spacer(modifier = Modifier.height(20.dp))
+        GreetingSection()
+        Spacer(modifier = Modifier.height(16.dp))
+        StatsSection()
+        Spacer(modifier = Modifier.height(24.dp))
+        QuickActionsSection()
+        Spacer(modifier = Modifier.height(24.dp))
+        RecentActivitySection()
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -516,6 +409,6 @@ fun ActivityItem(
 @Composable
 fun EmployeeScreenPreview() {
     MaterialTheme {
-        EmployeePortalView()
+        EmployeePortalView(PaddingValues(0.dp))
     }
 }
