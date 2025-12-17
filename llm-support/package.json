@@ -1,0 +1,20 @@
+{
+  "name": "llm-support",
+  "version": "1.0.0",
+  "description": "LLM API service for Loja Social IPCA app using OpenRouter",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5"
+  },
+  "keywords": ["llm", "api", "openrouter", "ai"],
+  "author": "Loja Social IPCA",
+  "license": "MIT"
+}
