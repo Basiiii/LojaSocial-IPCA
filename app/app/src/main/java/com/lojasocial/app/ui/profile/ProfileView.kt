@@ -21,6 +21,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.theme.AppBgColor
+import com.lojasocial.app.ui.theme.BrandBlue
+import com.lojasocial.app.ui.theme.BrandGreen
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 import dagger.hilt.android.AndroidEntryPoint
@@ -104,51 +106,30 @@ fun ProfileView(paddingValues: PaddingValues, authRepository: AuthRepository, on
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Profile Options
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // Review Applications Button
+        Button(
+            onClick = { /* TODO: Navigate to applications screen */ },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BrandBlue,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                ProfileOption(
-                    icon = Icons.Default.Person,
-                    title = "Editar Perfil",
-                    subtitle = "Atualize as suas informações pessoais",
-                    onClick = { }
-                )
-                
-                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-                
-                ProfileOption(
-                    icon = Icons.Default.Notifications,
-                    title = "Notificações",
-                    subtitle = "Gerir as suas preferências de notificação",
-                    onClick = { }
-                )
-                
-                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-                
-                ProfileOption(
-                    icon = Icons.Default.Settings,
-                    title = "Definições",
-                    subtitle = "Configurações da aplicação",
-                    onClick = { }
-                )
-                
-                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-                
-                ProfileOption(
-                    icon = Icons.Default.Help,
-                    title = "Ajuda e Suporte",
-                    subtitle = "Obtenha ajuda e contacte o suporte",
-                    onClick = { }
-                )
-            }
+            Icon(
+                Icons.Default.Assignment,
+                contentDescription = "Applications",
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Rever Candidaturas",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         
         // Logout Button
         Button(

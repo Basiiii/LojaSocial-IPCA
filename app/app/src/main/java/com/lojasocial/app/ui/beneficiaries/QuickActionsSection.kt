@@ -21,7 +21,7 @@ fun QuickActionsSection() {
         Text(
             text = "Ações Rápidas",
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = com.lojasocial.app.ui.theme.TextDark
         )
         Spacer(modifier = Modifier.height(12.dp))

@@ -29,7 +29,7 @@ fun RecentActivitySection() {
             Text(
                 text = "Atividade Recente",
                 fontSize = 18.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 color = TextDark
             )
             Text(

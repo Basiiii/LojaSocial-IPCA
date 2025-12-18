@@ -21,7 +21,7 @@ fun GreetingSection(
         Text(
             text = "Olá, $name",
             fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = TextDark
         )
         Spacer(modifier = Modifier.height(4.dp))
