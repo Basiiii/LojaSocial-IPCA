@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
@@ -26,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lojasocial.app.ui.components.AppLayout
 import javax.inject.Inject
@@ -35,6 +37,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +71,7 @@ class MainActivity : ComponentActivity() {
                                 composable("employeePortal") {
                                     EmployeePortalWrapper(
                                         authRepository = authRepository,
+                                        userRepository = userRepository,
                                         onLogout = {
                                             navController.navigate("login") {
                                                 popUpTo("employeePortal") { inclusive = true }
@@ -90,6 +96,7 @@ class MainActivity : ComponentActivity() {
                                 composable("employeePortal") {
                                     EmployeePortalWrapper(
                                         authRepository = authRepository,
+                                        userRepository = userRepository,
                                         onLogout = {
                                             navController.navigate("login") {
                                                 popUpTo("employeePortal") { inclusive = true }
@@ -109,6 +116,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun EmployeePortalWrapper(
     authRepository: AuthRepository,
+    userRepository: UserRepository,
     onLogout: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf("home") }
@@ -126,7 +134,7 @@ fun EmployeePortalWrapper(
     ) { paddingValues ->
         when (selectedTab) {
             "home" -> EmployeePortalView(paddingValues)
-            "profile" -> ProfileView(paddingValues, authRepository, onLogout)
+            "profile" -> ProfileView(paddingValues, authRepository, userRepository, onLogout)
             "support" -> SupportView(paddingValues)
             "calendar" -> CalendarView(paddingValues)
             else -> EmployeePortalView(paddingValues)
@@ -145,7 +153,7 @@ fun SupportView(paddingValues: PaddingValues) {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            Icons.Default.Help,
+            Icons.AutoMirrored.Filled.Help,
             contentDescription = "Support",
             modifier = Modifier.size(64.dp),
             tint = TextGray
