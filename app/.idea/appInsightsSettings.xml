@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.lojasocial.app" />
-                  <option name="mobileSdkAppId" value="1:987070441846:android:c5d571eb8a6815dba23257" />
-                  <option name="projectId" value="loja-social-ipca-c58d2" />
-                  <option name="projectNumber" value="987070441846" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

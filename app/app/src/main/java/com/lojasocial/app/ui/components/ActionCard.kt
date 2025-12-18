@@ -24,7 +24,7 @@ fun ActionCard(
     description: String,
     buttonText: String,
     backgroundColor: Color,
-    icon: ImageVector,
+    icon: ImageVector?,
     badgeCount: Int? = null,
     badgeLabel: String? = null,
     isRedBadge: Boolean = false,
@@ -42,15 +42,16 @@ fun ActionCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Translucent Icon Box
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(icon, contentDescription = null, tint = Color.White)
+                if(icon != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(icon, contentDescription = null, tint = Color.White)
+                    }
                 }
 
                 // Optional Badge

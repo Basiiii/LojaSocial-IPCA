@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.lojasocial.app.ui.components.ActionCard
+import com.lojasocial.app.ui.theme.BrandOrange
 
 
 @Composable
