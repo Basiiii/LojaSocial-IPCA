@@ -23,7 +23,7 @@ import com.lojasocial.app.ui.theme.TextGray
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppTopBar(subtitle: String) {
+fun AppTopBar(subtitle: String, notifications: Boolean = true) {
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -37,6 +37,7 @@ fun AppTopBar(subtitle: String) {
                     Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
+
                 Column {
                     Text(text = "LojaSocial", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark, lineHeight = 16.sp)
                     Text(text = subtitle, fontSize = 12.sp, color = TextGray, lineHeight = 12.sp)
@@ -44,14 +45,16 @@ fun AppTopBar(subtitle: String) {
             }
         },
         actions = {
-            Box(modifier = Modifier.padding(end = 8.dp)) {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = TextDark)
+            if(notifications) {
+                Box(modifier = Modifier.padding(end = 8.dp)) {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = TextDark)
+                    }
+                    Box(
+                        modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp)
+                            .size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color.Red)
+                    )
                 }
-                Box(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp)
-                        .size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color.Red)
-                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = AppBgColor)
