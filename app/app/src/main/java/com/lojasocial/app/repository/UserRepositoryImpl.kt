@@ -41,12 +41,23 @@ class UserRepositoryImpl @Inject constructor(
                 }
                 
                 println("DEBUG: Snapshot data: ${snapshot?.data}")
-                
-                val profile = snapshot?.toObject(UserProfile::class.java)
-                if (profile != null) {
-                    cachedProfile.value = profile
-                    println("DEBUG: Profile loaded: $profile")
+
+                val data = snapshot?.data
+                val profile = if (data != null) {
+                    val mappedProfile = UserProfile(
+                        uid = data["uid"] as? String ?: uid,
+                        email = data["email"] as? String ?: "",
+                        name = data["name"] as? String ?: "",
+                        isAdmin = data["isAdmin"] as? Boolean ?: false,
+                        isBeneficiary = data["isBeneficiary"] as? Boolean ?: false
+                    )
+                    cachedProfile.value = mappedProfile
+                    println("DEBUG: Profile loaded (manual map): $mappedProfile")
+                    mappedProfile
+                } else {
+                    null
                 }
+
                 trySend(profile)
             }
             

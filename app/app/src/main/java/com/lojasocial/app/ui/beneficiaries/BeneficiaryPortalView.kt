@@ -13,7 +13,11 @@ import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 
 @Composable
-fun BeneficiaryPortalView(useAppLayout: Boolean = true) {
+fun BeneficiaryPortalView(
+    useAppLayout: Boolean = true,
+    showPortalSelection: Boolean = false,
+    onPortalSelectionClick: (() -> Unit)? = null
+) {
     val content = @Composable { paddingValues: PaddingValues ->
         Column(
             modifier = Modifier
@@ -45,7 +49,9 @@ fun BeneficiaryPortalView(useAppLayout: Boolean = true) {
         AppLayout(
             selectedTab = "home",
             onTabSelected = {},
-            subtitle = "Portal Beneficiários"
+            subtitle = "Portal Beneficiários",
+            showPortalSelection = showPortalSelection,
+            onPortalSelectionClick = onPortalSelectionClick
         ) { paddingValues ->
             content(paddingValues)
         }

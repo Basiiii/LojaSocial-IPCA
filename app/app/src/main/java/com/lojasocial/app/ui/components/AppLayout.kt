@@ -12,14 +12,23 @@ fun AppLayout(
     selectedTab: String,
     onTabSelected: (String) -> Unit,
     subtitle: String,
+    showPortalSelection: Boolean = false,
+    onPortalSelectionClick: (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
         topBar = {
-            AppTopBar(subtitle = subtitle)
+            AppTopBar(
+                subtitle = subtitle,
+                showPortalSelection = showPortalSelection,
+                onPortalSelectionClick = onPortalSelectionClick
+            )
         },
         bottomBar = {
-            BottomNavigationBar(selectedTab = selectedTab, onTabSelected = onTabSelected)
+            BottomNavigationBar(
+                selectedTab = selectedTab,
+                onTabSelected = onTabSelected
+            )
         },
         containerColor = AppBgColor
     ) { paddingValues ->
