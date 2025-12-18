@@ -81,7 +81,12 @@ class MainActivity : ComponentActivity() {
                             // Show portal selection tab only if user has both roles
                             val profile = lastProfile.value
                             val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
+                            val displayName = profile?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?.substringBefore(" ")
+                                ?: "Utilizador"
                             EmployeePortalView(
+                                userName = displayName,
                                 showPortalSelection = showPortalSelection,
                                 onPortalSelectionClick = {
                                     navController.navigate("portalSelection")
@@ -92,7 +97,12 @@ class MainActivity : ComponentActivity() {
                             // Show portal selection tab only if user has both roles
                             val profile = lastProfile.value
                             val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
+                            val displayName = profile?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?.substringBefore(" ")
+                                ?: "Utilizador"
                             BeneficiaryPortalView(
+                                userName = displayName,
                                 showPortalSelection = showPortalSelection,
                                 onPortalSelectionClick = {
                                     navController.navigate("portalSelection")
@@ -100,7 +110,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("portalSelection") {
+                            val profile = lastProfile.value
+                            val displayName = profile?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?.substringBefore(" ")
+                                ?: "Utilizador"
                             PortalSelectionView(
+                                userName = displayName,
                                 onNavigateToEmployeePortal = {
                                     navController.navigate("employeePortal")
                                 },

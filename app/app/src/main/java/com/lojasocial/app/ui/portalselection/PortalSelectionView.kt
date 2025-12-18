@@ -18,6 +18,7 @@ import com.lojasocial.app.ui.theme.*
 
 @Composable
 fun PortalSelectionView(
+    userName: String,
     onNavigateToEmployeePortal: () -> Unit,
     onNavigateToBeneficiaryPortal: () -> Unit,
     onLogout: () -> Unit
@@ -37,7 +38,7 @@ fun PortalSelectionView(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "Olá, Manel",
+                text = "Olá, $userName",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = TextDark,
@@ -91,10 +92,4 @@ fun PortalSelectionView(
 //            }
         }
     }
-}
-
-@Preview(name = "1. Staff e Beneficiário", showBackground = true, heightDp = 800)
-@Composable
-fun PreviewBothRoles() {
-    PortalSelectionView(onNavigateToEmployeePortal = {}, onNavigateToBeneficiaryPortal = {}, onLogout = {})
 }

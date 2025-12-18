@@ -15,6 +15,7 @@ import com.lojasocial.app.ui.components.StatsSection
 @Composable
 fun EmployeePortalView(
     useAppLayout: Boolean = true,
+    userName: String? = null,
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null
 ) {
@@ -27,7 +28,9 @@ fun EmployeePortalView(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(20.dp))
-            GreetingSection()
+            GreetingSection(
+                name = userName?.takeIf { it.isNotBlank() } ?: "Utilizador"
+            )
             Spacer(modifier = Modifier.height(16.dp))
             StatsSection()
             Spacer(modifier = Modifier.height(24.dp))

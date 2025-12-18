@@ -15,6 +15,7 @@ import com.lojasocial.app.ui.components.GreetingSection
 @Composable
 fun BeneficiaryPortalView(
     useAppLayout: Boolean = true,
+    userName: String? = null,
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null
 ) {
@@ -29,7 +30,7 @@ fun BeneficiaryPortalView(
             Spacer(modifier = Modifier.height(20.dp))
 
             GreetingSection(
-                name = "Carla",
+                name = userName?.takeIf { it.isNotBlank() } ?: "Carla",
                 message = "Recebe apoio quando precisares e acompanha os teus pedidos"
             )
 
