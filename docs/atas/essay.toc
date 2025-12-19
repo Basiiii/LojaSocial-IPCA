@@ -20,4 +20,5 @@
 \contentsline {section}{\numberline {19}Reunião 28 Novembro 2025}{33}{section.19}%
 \contentsline {section}{\numberline {20}Reunião 5 Dezembro 2025}{34}{section.20}%
 \contentsline {section}{\numberline {21}Reunião 12 Dezembro 2025}{35}{section.21}%
-\contentsline {section}{\numberline {22}Reunião 12 Dezembro 2025}{36}{section.22}%
+\contentsline {section}{\numberline {22}Reunião 15 Dezembro 2025}{36}{section.22}%
+\contentsline {section}{\numberline {23}Reunião 19 Dezembro 2025}{37}{section.23}%
