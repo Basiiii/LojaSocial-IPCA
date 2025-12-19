@@ -75,193 +75,244 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val navigationError = remember { mutableStateOf<String?>(null) }
                     val lastProfile = remember { mutableStateOf<UserProfile?>(null) }
+                    var startDestination by remember { mutableStateOf<String?>(null) }
 
                     LaunchedEffect(Unit) {
                         try {
                             val currentUser = authRepository.getCurrentUser()
-                            Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect currentUser=$currentUser")
+                            Log.d(
+                                "LojaSocialDebug",
+                                "DEBUG_MAIN: LaunchedEffect currentUser=$currentUser"
+                            )
                             if (currentUser != null) {
                                 val profile = userRepository.getCurrentUserProfile().first()
-                                Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect collected profile=$profile")
+                                Log.d(
+                                    "LojaSocialDebug",
+                                    "DEBUG_MAIN: LaunchedEffect collected profile=$profile"
+                                )
                                 if (profile != null) {
                                     lastProfile.value = profile
                                     val destination = getDestinationForUser(profile)
-                                    Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect navigating to $destination with profile=$profile")
+                                    Log.d(
+                                        "LojaSocialDebug",
+                                        "DEBUG_MAIN: LaunchedEffect startDestination=$destination with profile=$profile"
+                                    )
                                     if (destination == "login") {
                                         navigationError.value =
                                             "Perfil carregado mas sem portal válido: isAdmin=${profile.isAdmin}, isBeneficiário=${profile.isBeneficiary}. Contacta o SAS."
+                                        startDestination = "login"
                                     } else {
-                                        navController.navigate(destination) {
-                                            popUpTo("login") { inclusive = true }
-                                        }
+                                        startDestination = destination
                                     }
                                 } else {
-                                    Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect profile is null despite logged-in user")
+                                    Log.d(
+                                        "LojaSocialDebug",
+                                        "DEBUG_MAIN: LaunchedEffect profile is null despite logged-in user"
+                                    )
+                                    startDestination = "login"
                                 }
+                            } else {
+                                // No current user, go to login
+                                startDestination = "login"
                             }
                         } catch (e: Exception) {
-                            Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect error: ${e.message}")
+                            Log.d(
+                                "LojaSocialDebug",
+                                "DEBUG_MAIN: LaunchedEffect error: ${e.message}"
+                            )
+                            startDestination = "login"
                         }
                     }
 
-                    NavHost(navController = navController, startDestination = "login") {
-                        composable("employeePortal") {
-                            // Show portal selection tab only if user has both roles
-                            val profile = lastProfile.value
-                            val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-                            val displayName = profile?.name
-                                ?.takeIf { it.isNotBlank() }
-                                ?.substringBefore(" ")
-                                ?: "Utilizador"
-                            EmployeePortalView(
-                                userName = displayName,
-                                showPortalSelection = showPortalSelection,
-                                onPortalSelectionClick = {
-                                    navController.navigate("portalSelection")
-                                }
-                            )
+                    if (startDestination == null) {
+                        // Simple loading state while we determine where to start
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
                         }
-                        composable("beneficiaryPortal") {
-                            // Show portal selection tab only if user has both roles
-                            val profile = lastProfile.value
-                            val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-                            val displayName = profile?.name
-                                ?.takeIf { it.isNotBlank() }
-                                ?.substringBefore(" ")
-                                ?: "Utilizador"
-                            BeneficiaryPortalView(
-                                userName = displayName,
-                                showPortalSelection = showPortalSelection,
-                                onPortalSelectionClick = {
-                                    navController.navigate("portalSelection")
-                                }
-                            )
-                        }
-                        composable("portalSelection") {
-                            val profile = lastProfile.value
-                            val displayName = profile?.name
-                                ?.takeIf { it.isNotBlank() }
-                                ?.substringBefore(" ")
-                                ?: "Utilizador"
-                            PortalSelectionView(
-                                userName = displayName,
-                                onNavigateToEmployeePortal = {
-                                    navController.navigate("employeePortal")
-                                },
-                                onNavigateToBeneficiaryPortal = {
-                                    navController.navigate("beneficiaryPortal")
-                                },
-                                onLogout = {
-                                    CoroutineScope(Dispatchers.Main).launch {
-                                        authRepository.signOut()
-                                        navController.navigate("login") {
-                                            popUpTo(0) { inclusive = true }
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                        composable("login") {
-                            LoginScreen(
-                                externalError = navigationError.value,
-                                onLoginSuccess = {
-                                    // After login, fetch profile once and navigate based on roles
-                                    CoroutineScope(Dispatchers.Main).launch {
-                                        try {
-                                            navigationError.value = null
-                                            val profile = userRepository.getCurrentUserProfile().first()
-                                            Log.d("LojaSocialDebug", "DEBUG_MAIN: onLoginSuccess collected profile=$profile")
-                                            if (profile != null) {
-                                                lastProfile.value = profile
-                                                val destination = getDestinationForUser(profile)
-                                                Log.d("LojaSocialDebug", "DEBUG_MAIN: onLoginSuccess navigating to $destination with profile=$profile")
-                                                if (destination == "login") {
-                                                    // Roles don't allow any portal, show error with actual flags
-                                                    navigationError.value =
-                                                        "Perfil carregado mas sem portal válido: isAdmin=${profile.isAdmin}, isBeneficiário=${profile.isBeneficiary}. Contacta o SAS."
-                                                } else {
-                                                    navController.navigate(destination) {
-                                                        popUpTo("login") { inclusive = true }
-                                                    }
-                                                }
-                                            } else {
-                                                navigationError.value = "Não foi possível carregar o teu perfil. Tenta novamente ou contacta o SAS."
+                    } else {
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination!!
+                        ) {
+                            composable("employeePortal") {
+                                // Show portal selection tab only if user has both roles
+                                val profile = lastProfile.value
+                                val showPortalSelection =
+                                    profile?.isAdmin == true && profile.isBeneficiary
+                                val displayName = profile?.name
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.substringBefore(" ")
+                                    ?: "Utilizador"
+                                EmployeePortalView(
+                                    userName = displayName,
+                                    showPortalSelection = showPortalSelection,
+                                    onPortalSelectionClick = {
+                                        navController.navigate("portalSelection")
+                                    },
+                                    authRepository = authRepository,
+                                    userRepository = userRepository
+                                )
+                            }
+                            composable("beneficiaryPortal") {
+                                // Show portal selection tab only if user has both roles
+                                val profile = lastProfile.value
+                                val showPortalSelection =
+                                    profile?.isAdmin == true && profile.isBeneficiary
+                                val displayName = profile?.name
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.substringBefore(" ")
+                                    ?: "Utilizador"
+                                BeneficiaryPortalView(
+                                    userName = displayName,
+                                    showPortalSelection = showPortalSelection,
+                                    onPortalSelectionClick = {
+                                        navController.navigate("portalSelection")
+                                    },
+                                    authRepository = authRepository,
+                                    userRepository = userRepository
+                                )
+                            }
+                            composable("portalSelection") {
+                                val profile = lastProfile.value
+                                val displayName = profile?.name
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.substringBefore(" ")
+                                    ?: "Utilizador"
+                                PortalSelectionView(
+                                    userName = displayName,
+                                    onNavigateToEmployeePortal = {
+                                        navController.navigate("employeePortal")
+                                    },
+                                    onNavigateToBeneficiaryPortal = {
+                                        navController.navigate("beneficiaryPortal")
+                                    },
+                                    onLogout = {
+                                        CoroutineScope(Dispatchers.Main).launch {
+                                            authRepository.signOut()
+                                            navController.navigate("login") {
+                                                popUpTo(0) { inclusive = true }
                                             }
-                                        } catch (e: Exception) {
-                                            navigationError.value = "Erro ao carregar o teu perfil. Tenta novamente mais tarde."
-                                            Log.d("LojaSocialDebug", "DEBUG_MAIN: onLoginSuccess error: ${e.message}")
                                         }
                                     }
-                                }
-                            )
+                                )
+                            }
+                            composable("login") {
+                                LoginScreen(
+                                    externalError = navigationError.value,
+                                    onLoginSuccess = {
+                                        // After login, fetch profile once and navigate based on roles
+                                        CoroutineScope(Dispatchers.Main).launch {
+                                            try {
+                                                navigationError.value = null
+                                                val profile =
+                                                    userRepository.getCurrentUserProfile().first()
+                                                Log.d(
+                                                    "LojaSocialDebug",
+                                                    "DEBUG_MAIN: onLoginSuccess collected profile=$profile"
+                                                )
+                                                if (profile != null) {
+                                                    lastProfile.value = profile
+                                                    val destination = getDestinationForUser(profile)
+                                                    Log.d(
+                                                        "LojaSocialDebug",
+                                                        "DEBUG_MAIN: onLoginSuccess navigating to $destination with profile=$profile"
+                                                    )
+                                                    if (destination == "login") {
+                                                        // Roles don't allow any portal, show error with actual flags
+                                                        navigationError.value =
+                                                            "Perfil carregado mas sem portal válido: isAdmin=${profile.isAdmin}, isBeneficiário=${profile.isBeneficiary}. Contacta o SAS."
+                                                    } else {
+                                                        navController.navigate(destination) {
+                                                            popUpTo("login") { inclusive = true }
+                                                        }
+                                                    }
+                                                } else {
+                                                    navigationError.value =
+                                                        "Não foi possível carregar o teu perfil. Tenta novamente ou contacta o SAS."
+                                                }
+                                            } catch (e: Exception) {
+                                                navigationError.value =
+                                                    "Erro ao carregar o teu perfil. Tenta novamente mais tarde."
+                                                Log.d(
+                                                    "LojaSocialDebug",
+                                                    "DEBUG_MAIN: onLoginSuccess error: ${e.message}"
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
 
-@Composable
-fun SupportView(paddingValues: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            Icons.AutoMirrored.Filled.Help,
-            contentDescription = "Support",
-            modifier = Modifier.size(64.dp),
-            tint = TextGray
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Suporte",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextDark
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Em breve disponível",
-            fontSize = 16.sp,
-            color = TextGray
-        )
+    @Composable
+    fun SupportView(paddingValues: PaddingValues) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Help,
+                contentDescription = "Support",
+                modifier = Modifier.size(64.dp),
+                tint = TextGray
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Suporte",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Em breve disponível",
+                fontSize = 16.sp,
+                color = TextGray
+            )
+        }
     }
-}
 
-@Composable
-fun CalendarView(paddingValues: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            Icons.Default.DateRange,
-            contentDescription = "Calendar",
-            modifier = Modifier.size(64.dp),
-            tint = TextGray
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Calendário",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = TextDark
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Em breve disponível",
-            fontSize = 16.sp,
-            color = TextGray
-        )
+    @Composable
+    fun CalendarView(paddingValues: PaddingValues) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                Icons.Default.DateRange,
+                contentDescription = "Calendar",
+                modifier = Modifier.size(64.dp),
+                tint = TextGray
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Calendário",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Em breve disponível",
+                fontSize = 16.sp,
+                color = TextGray
+            )
+        }
     }
 }
