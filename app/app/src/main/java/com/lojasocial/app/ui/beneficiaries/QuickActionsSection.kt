@@ -2,6 +2,7 @@ package com.lojasocial.app.ui.beneficiaries
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +22,7 @@ fun QuickActionsSection() {
         Text(
             text = "Ações Rápidas",
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = com.lojasocial.app.ui.theme.TextDark
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -42,7 +43,7 @@ fun QuickActionsSection() {
             description = "A nossa equipa de suporte está aqui para te ajudar com qualquer pergunta",
             buttonText = "Entra em Contacto",
             backgroundColor = BrandOrange,
-            icon = Icons.Default.Help,
+            icon = Icons.AutoMirrored.Filled.Help,
             onClick = { /* Navigate to Support */ }
         )
 

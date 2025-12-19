@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,13 +18,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.outlined.Apps
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppTopBar(subtitle: String) {
+fun AppTopBar(
+    subtitle: String,
+    notifications: Boolean = true,
+    showPortalSelection: Boolean = false,
+    onPortalSelectionClick: (() -> Unit)? = null
+) {
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -37,6 +44,7 @@ fun AppTopBar(subtitle: String) {
                     Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
+
                 Column {
                     Text(text = "LojaSocial", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark, lineHeight = 16.sp)
                     Text(text = subtitle, fontSize = 12.sp, color = TextGray, lineHeight = 12.sp)
@@ -44,14 +52,29 @@ fun AppTopBar(subtitle: String) {
             }
         },
         actions = {
-            Box(modifier = Modifier.padding(end = 8.dp)) {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = TextDark)
+            if (showPortalSelection && onPortalSelectionClick != null) {
+                IconButton(onClick = onPortalSelectionClick) {
+                    Icon(
+                        Icons.Outlined.Apps,
+                        contentDescription = "Mudar de portal",
+                        tint = TextDark
+                    )
                 }
-                Box(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp)
-                        .size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Color.Red)
-                )
+            }
+            if (notifications) {
+                Box(modifier = Modifier.padding(end = 8.dp)) {
+                    IconButton(onClick = { }) {
+                        Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = TextDark)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 10.dp, end = 10.dp)
+                            .size(8.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Color.Red)
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = AppBgColor)

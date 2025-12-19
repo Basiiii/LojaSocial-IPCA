@@ -1,6 +1,7 @@
 package com.lojasocial.app
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,12 +10,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
@@ -26,8 +34,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
 import com.lojasocial.app.ui.components.AppLayout
+import com.lojasocial.app.ui.portalselection.PortalSelectionView
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -35,6 +46,20 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
+    // Helper function to determine portal based on user roles
+    private fun getDestinationForUser(userProfile: UserProfile?): String {
+        return when {
+            userProfile == null -> "login" // No profile means not logged in
+            userProfile.isAdmin && userProfile.isBeneficiary -> "portalSelection"
+            userProfile.isAdmin -> "employeePortal"
+            userProfile.isBeneficiary -> "beneficiaryPortal"
+            else -> "login" // No roles means login
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,89 +72,104 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val isLoggedIn = authRepository.isUserLoggedIn().collectAsStateWithLifecycle(initialValue = null)
                     val navController = rememberNavController()
-                    
-                    when (isLoggedIn.value) {
-                        null -> {
-                            // Show loading spinner while checking auth state
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
+                    val navigationError = remember { mutableStateOf<String?>(null) }
+                    val lastProfile = remember { mutableStateOf<UserProfile?>(null) }
+
+                    NavHost(navController = navController, startDestination = "login") {
+                        composable("employeePortal") {
+                            // Show portal selection tab only if user has both roles
+                            val profile = lastProfile.value
+                            val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
+                            val displayName = profile?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?.substringBefore(" ")
+                                ?: "Utilizador"
+                            EmployeePortalView(
+                                userName = displayName,
+                                showPortalSelection = showPortalSelection,
+                                onPortalSelectionClick = {
+                                    navController.navigate("portalSelection")
+                                }
+                            )
                         }
-                        true -> {
-                            // User is logged in, navigate to employee portal
-                            NavHost(navController = navController, startDestination = "employeePortal") {
-                                composable("employeePortal") {
-                                    EmployeePortalWrapper(
-                                        authRepository = authRepository,
-                                        onLogout = {
-                                            navController.navigate("login") {
-                                                popUpTo("employeePortal") { inclusive = true }
-                                            }
-                                        }
-                                    )
+                        composable("beneficiaryPortal") {
+                            // Show portal selection tab only if user has both roles
+                            val profile = lastProfile.value
+                            val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
+                            val displayName = profile?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?.substringBefore(" ")
+                                ?: "Utilizador"
+                            BeneficiaryPortalView(
+                                userName = displayName,
+                                showPortalSelection = showPortalSelection,
+                                onPortalSelectionClick = {
+                                    navController.navigate("portalSelection")
                                 }
-                            }
+                            )
                         }
-                        false -> {
-                            // User is not logged in, show login screen
-                            NavHost(navController = navController, startDestination = "login") {
-                                composable("login") {
-                                    LoginScreen(
-                                        onLoginSuccess = {
-                                            navController.navigate("employeePortal") {
-                                                popUpTo("login") { inclusive = true }
-                                            }
+                        composable("portalSelection") {
+                            val profile = lastProfile.value
+                            val displayName = profile?.name
+                                ?.takeIf { it.isNotBlank() }
+                                ?.substringBefore(" ")
+                                ?: "Utilizador"
+                            PortalSelectionView(
+                                userName = displayName,
+                                onNavigateToEmployeePortal = {
+                                    navController.navigate("employeePortal")
+                                },
+                                onNavigateToBeneficiaryPortal = {
+                                    navController.navigate("beneficiaryPortal")
+                                },
+                                onLogout = {
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        authRepository.signOut()
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
                                         }
-                                    )
+                                    }
                                 }
-                                composable("employeePortal") {
-                                    EmployeePortalWrapper(
-                                        authRepository = authRepository,
-                                        onLogout = {
-                                            navController.navigate("login") {
-                                                popUpTo("employeePortal") { inclusive = true }
+                            )
+                        }
+                        composable("login") {
+                            LoginScreen(
+                                externalError = navigationError.value,
+                                onLoginSuccess = {
+                                    // After login, fetch profile once and navigate based on roles
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        try {
+                                            navigationError.value = null
+                                            val profile = userRepository.getCurrentUserProfile().first()
+                                            Log.d("LojaSocialDebug", "DEBUG_MAIN: onLoginSuccess collected profile=$profile")
+                                            if (profile != null) {
+                                                lastProfile.value = profile
+                                                val destination = getDestinationForUser(profile)
+                                                Log.d("LojaSocialDebug", "DEBUG_MAIN: onLoginSuccess navigating to $destination with profile=$profile")
+                                                if (destination == "login") {
+                                                    // Roles don't allow any portal, show error with actual flags
+                                                    navigationError.value =
+                                                        "Perfil carregado mas sem portal válido: isAdmin=${profile.isAdmin}, isBeneficiário=${profile.isBeneficiary}. Contacta o SAS."
+                                                } else {
+                                                    navController.navigate(destination) {
+                                                        popUpTo("login") { inclusive = true }
+                                                    }
+                                                }
+                                            } else {
+                                                navigationError.value = "Não foi possível carregar o teu perfil. Tenta novamente ou contacta o SAS."
                                             }
+                                        } catch (e: Exception) {
+                                            navigationError.value = "Erro ao carregar o teu perfil. Tenta novamente mais tarde."
+                                            Log.d("LojaSocialDebug", "DEBUG_MAIN: onLoginSuccess error: ${e.message}")
                                         }
-                                    )
+                                    }
                                 }
-                            }
+                            )
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun EmployeePortalWrapper(
-    authRepository: AuthRepository,
-    onLogout: () -> Unit
-) {
-    var selectedTab by remember { mutableStateOf("home") }
-    
-    AppLayout(
-        selectedTab = selectedTab,
-        onTabSelected = { selectedTab = it },
-        subtitle = when (selectedTab) {
-            "home" -> "Portal Funcionários"
-            "profile" -> "Perfil"
-            "support" -> "Suporte"
-            "calendar" -> "Calendário"
-            else -> "Portal Funcionários"
-        }
-    ) { paddingValues ->
-        when (selectedTab) {
-            "home" -> EmployeePortalView(paddingValues)
-            "profile" -> ProfileView(paddingValues, authRepository, onLogout)
-            "support" -> SupportView(paddingValues)
-            "calendar" -> CalendarView(paddingValues)
-            else -> EmployeePortalView(paddingValues)
         }
     }
 }
@@ -145,7 +185,7 @@ fun SupportView(paddingValues: PaddingValues) {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            Icons.Default.Help,
+            Icons.AutoMirrored.Filled.Help,
             contentDescription = "Support",
             modifier = Modifier.size(64.dp),
             tint = TextGray

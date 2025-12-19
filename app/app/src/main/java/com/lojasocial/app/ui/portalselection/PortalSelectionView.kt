@@ -1,16 +1,11 @@
 package com.lojasocial.app.ui.portalselection
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,21 +14,17 @@ import androidx.compose.ui.unit.sp
 
 import com.lojasocial.app.ui.components.ActionCard
 import com.lojasocial.app.ui.components.AppTopBar
-import com.lojasocial.app.ui.theme.AppBgColor
-import com.lojasocial.app.ui.theme.BrandBlue
-import com.lojasocial.app.ui.theme.BrandGreen
-import com.lojasocial.app.ui.theme.BrandPurple
-import com.lojasocial.app.ui.theme.TextDark
-import com.lojasocial.app.ui.theme.TextGray
+import com.lojasocial.app.ui.theme.*
 
 @Composable
 fun PortalSelectionView(
+    userName: String,
     onNavigateToEmployeePortal: () -> Unit,
     onNavigateToBeneficiaryPortal: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
-        topBar = { AppTopBar(subtitle = "Área Pessoal") },
+        topBar = { AppTopBar(subtitle = "Escolher Portal", notifications = false) },
         containerColor = AppBgColor
     ) { paddingValues ->
         Column(
@@ -45,13 +36,11 @@ fun PortalSelectionView(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
-
-            // Título de Boas-vindas
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "Olá, Manel",
+                text = "Olá, $userName",
                 fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = TextDark,
                 textAlign = TextAlign.Left
             )
@@ -61,22 +50,12 @@ fun PortalSelectionView(
                 color = TextGray,
                 textAlign = TextAlign.Left
             )
-            Spacer(modifier = Modifier.height(32.dp))
-
-                Text(
-                    text = "Seleciona o Portal",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextDark,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Botão Portal Funcionário
+            Spacer(modifier = Modifier.height(22.dp))
+                // Portal Funcionário
                 ActionCard(
                     title = "Portal Funcionário",
-                    description = "Gestão de stocks, pedidos e candidaturas.",
-                    buttonText = "Entrar como Staff",
+                    description = "Acompanha candidaturas, controla pedidos e gere o stock facilmente",
+                    buttonText = "Entrar",
                     backgroundColor = BrandBlue,
                     icon = null,
                     onClick = onNavigateToEmployeePortal
@@ -84,43 +63,33 @@ fun PortalSelectionView(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botão Portal Beneficiário
+                // Portal Beneficiário
                 ActionCard(
                     title = "Portal Beneficiário",
-                    description = "Acede aos teus pedidos e apoios.",
-                    buttonText = "Aceder aos meus Pedidos",
+                    description = "Recebe apoio quando precisares e acompanha os teus pedidos",
+                    buttonText = "Entrar",
                     backgroundColor = BrandPurple,
                     icon = null,
                     onClick = onNavigateToBeneficiaryPortal
                 )
 
-
             Spacer(modifier = Modifier.weight(1f))
 
-            // Botão de Logout
-            Spacer(modifier = Modifier.height(32.dp))
-            Column (modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center){
-                TextButton(
-                    onClick = onLogout,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444)),
-                    modifier = Modifier.padding(bottom = 16.dp),
-                ) {
-                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Terminar Sessão", fontWeight = FontWeight.Medium, fontSize = 16.sp)
-                }
-            }
-
+//            Column (modifier = Modifier
+//                .padding(paddingValues)
+//                .fillMaxSize(),
+//                horizontalAlignment = Alignment.CenterHorizontally,
+//                verticalArrangement = Arrangement.Center){
+//                TextButton(
+//                    onClick = onLogout,
+//                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444)),
+//                    modifier = Modifier.padding(bottom = 16.dp),
+//                ) {
+//                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+//                    Spacer(modifier = Modifier.width(8.dp))
+//                    Text("Terminar Sessão", fontWeight = FontWeight.Medium, fontSize = 16.sp)
+//                }
+//            }
         }
     }
-}
-
-@Preview(name = "1. Staff e Beneficiário", showBackground = true, heightDp = 800)
-@Composable
-fun PreviewBothRoles() {
-    PortalSelectionView(onNavigateToEmployeePortal = {}, onNavigateToBeneficiaryPortal = {}, onLogout = {})
 }

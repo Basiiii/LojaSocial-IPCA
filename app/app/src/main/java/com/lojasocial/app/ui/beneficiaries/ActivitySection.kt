@@ -25,7 +25,7 @@ fun ActivitySection() {
             Text(
                 text = "Atividade Recente",
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = com.lojasocial.app.ui.theme.TextDark
             )
             Text(

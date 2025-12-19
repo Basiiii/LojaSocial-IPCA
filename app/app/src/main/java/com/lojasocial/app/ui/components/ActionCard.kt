@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.runtime.Composable
@@ -37,12 +38,12 @@ fun ActionCard(
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Card Header: Icon + Badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                if(icon != null) {
+            if(icon != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -52,37 +53,40 @@ fun ActionCard(
                     ) {
                         Icon(icon, contentDescription = null, tint = Color.White)
                     }
-                }
 
-                // Optional Badge
-                if (badgeCount != null && badgeLabel != null) {
-                    val badgeColor = if (isRedBadge) Color(0xFFEF4444) else Color(0xFFF59E0B)
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(badgeColor)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "$badgeCount $badgeLabel",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+
+                    // Optional Badge
+                    if (badgeCount != null && badgeLabel != null) {
+                        val badgeColor = if (isRedBadge) Color(0xFFEF4444) else Color(0xFFF59E0B)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(badgeColor)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "$badgeCount $badgeLabel",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if(icon != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Card Text Content
             Text(
                 text = title,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = description,
                 fontSize = 14.sp,
@@ -114,7 +118,7 @@ fun ActionCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp)
                 )

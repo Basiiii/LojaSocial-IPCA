@@ -16,8 +16,8 @@ fun BottomNavigationBar(
     onTabSelected: (String) -> Unit
 ) {
     NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
+        containerColor = Color(0xFFFFFFFF),
+        tonalElevation = 0.dp
     ) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = "Home") },

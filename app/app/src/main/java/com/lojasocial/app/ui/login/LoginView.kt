@@ -24,6 +24,7 @@ import com.lojasocial.app.ui.theme.LojaSocialTheme
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit = {},
+    externalError: String? = null,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -152,8 +153,18 @@ fun LoginScreen(
             }
         }
 
-        // Error message
+        // Error message from login
         uiState.errorMessage?.let { error ->
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        // Error message from navigation/profile loading
+        externalError?.let { error ->
             Text(
                 text = error,
                 color = MaterialTheme.colorScheme.error,
