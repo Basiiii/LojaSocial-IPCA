@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.employees
+package com.lojasocial.app.ui.requests
 
 import com.lojasocial.app.domain.PendingRequest
 

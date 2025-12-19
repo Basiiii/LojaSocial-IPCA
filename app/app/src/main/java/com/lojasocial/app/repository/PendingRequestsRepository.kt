@@ -1,4 +1,4 @@
-package com.lojasocial.app.data.repository
+package com.lojasocial.app.repository
 
 import com.lojasocial.app.R
 import com.lojasocial.app.domain.PendingRequest

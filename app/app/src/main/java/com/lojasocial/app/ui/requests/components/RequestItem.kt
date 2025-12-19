@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.employees
+package com.lojasocial.app.ui.requests.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +16,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.R
 import com.lojasocial.app.domain.PendingRequest
 import com.lojasocial.app.ui.theme.*
 

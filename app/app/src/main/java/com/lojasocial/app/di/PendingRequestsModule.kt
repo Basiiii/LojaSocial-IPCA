@@ -1,6 +1,6 @@
 package com.lojasocial.app.di
 
-import com.lojasocial.app.data.repository.PendingRequestsRepository
+import com.lojasocial.app.repository.PendingRequestsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -9,7 +9,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule {
+object PendingRequestsModule {
 
     @Provides
     @Singleton

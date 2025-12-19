@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.employees
+package com.lojasocial.app.ui.requests
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,28 +9,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.R
 import com.lojasocial.app.domain.PendingRequest
+import com.lojasocial.app.ui.requests.components.RequestItem
 import com.lojasocial.app.ui.theme.*
-
-@Composable
-fun PendingRequestsScreen(
-    onBack: () -> Unit,
-    viewModel: PendingRequestsViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    PendingRequestsView(uiState = uiState, onBack = onBack)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
