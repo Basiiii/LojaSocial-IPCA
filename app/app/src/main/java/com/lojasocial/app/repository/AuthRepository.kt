@@ -11,3 +11,4 @@ interface AuthRepository {
     fun getCurrentUser(): FirebaseUser?
     fun isUserLoggedIn(): Flow<Boolean>
 }
+

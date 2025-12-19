@@ -76,6 +76,34 @@ class MainActivity : ComponentActivity() {
                     val navigationError = remember { mutableStateOf<String?>(null) }
                     val lastProfile = remember { mutableStateOf<UserProfile?>(null) }
 
+                    LaunchedEffect(Unit) {
+                        try {
+                            val currentUser = authRepository.getCurrentUser()
+                            Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect currentUser=$currentUser")
+                            if (currentUser != null) {
+                                val profile = userRepository.getCurrentUserProfile().first()
+                                Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect collected profile=$profile")
+                                if (profile != null) {
+                                    lastProfile.value = profile
+                                    val destination = getDestinationForUser(profile)
+                                    Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect navigating to $destination with profile=$profile")
+                                    if (destination == "login") {
+                                        navigationError.value =
+                                            "Perfil carregado mas sem portal válido: isAdmin=${profile.isAdmin}, isBeneficiário=${profile.isBeneficiary}. Contacta o SAS."
+                                    } else {
+                                        navController.navigate(destination) {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    }
+                                } else {
+                                    Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect profile is null despite logged-in user")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.d("LojaSocialDebug", "DEBUG_MAIN: LaunchedEffect error: ${e.message}")
+                        }
+                    }
+
                     NavHost(navController = navController, startDestination = "login") {
                         composable("employeePortal") {
                             // Show portal selection tab only if user has both roles
