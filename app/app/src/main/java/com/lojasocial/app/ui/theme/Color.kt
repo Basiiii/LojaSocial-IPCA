@@ -24,5 +24,13 @@ val BrandPurple = Color(0xFF9333EA)
 val BrandBlue = Color(0xFF2563EB)
 val TextDark = Color(0xFF1F2937)
 val TextGray = Color(0xFF6B7280)
+val TextDarkGray = Color(0xFF4B5563)
 
 val BrandOrange = Color(0xFFD97706)
+
+val RedStock = Color(0xFFE53935)
+val DisabledBtn = Color(0xFFD1D5DB)
+val LightBlue = Color(0xFFEFF5FF)
+val ProgressFull = Color(0xFFBFFEC3)
+val BorderColor = Color(0xFFE5E7EB)
+val InactiveFilterBackground = Color(0xFFF3F4F6)
