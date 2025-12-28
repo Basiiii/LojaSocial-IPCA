@@ -9,6 +9,7 @@ import javax.inject.Inject
 
 class PendingRequestsRepository @Inject constructor() {
     fun getPendingRequests(): Flow<List<PendingRequest>> = flow {
+        // TODO: Conectar na base de dados
         delay(1500)
 
         val fakeRequests = listOf(
