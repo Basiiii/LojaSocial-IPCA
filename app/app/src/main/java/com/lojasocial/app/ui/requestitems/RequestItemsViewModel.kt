@@ -2,13 +2,13 @@ package com.lojasocial.app.ui.requestitems
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.repository.ProductsRepository
+import com.lojasocial.app.repository.RequestItemsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class RequestItemsViewModel(private val productsRepository: ProductsRepository = ProductsRepository()) : ViewModel() {
+class RequestItemsViewModel(private val repository: RequestItemsRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RequestItemsUiState>(RequestItemsUiState.Loading)
     val uiState: StateFlow<RequestItemsUiState> = _uiState.asStateFlow()
@@ -23,7 +23,7 @@ class RequestItemsViewModel(private val productsRepository: ProductsRepository =
     private fun fetchProducts() {
         viewModelScope.launch {
             try {
-                val products = productsRepository.getProducts()
+                val products = repository.getProducts()
                 _uiState.value = RequestItemsUiState.Success(products)
             } catch (e: Exception) {
                 _uiState.value = RequestItemsUiState.Error
