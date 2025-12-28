@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.domain.RequestItem
@@ -128,4 +129,16 @@ private fun QuantityButton(
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProductItemRowPreview() {
+    ProductItemRow(
+        product = RequestItem(1, "Arroz", "Alimentos", 10),
+        quantity = 2,
+        onAdd = { },
+        onRemove = { },
+        enabled = true
+    )
 }

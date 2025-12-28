@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.theme.LightBlue
@@ -65,6 +66,19 @@ fun RequestStatusHeader(
                 .clip(RoundedCornerShape(6.dp)),
             color = ProgressFull,
             trackColor = ProgressFull,
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RequestStatusHeaderPreview() {
+    MaterialTheme {
+        RequestStatusHeader(
+            totalItemsSelected = 3,
+            maxItems = 10,
+            progress = 0.3f,
+            onClearClick = {}
         )
     }
 }

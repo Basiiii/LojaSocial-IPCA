@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.beneficiaries.components
+package com.lojasocial.app.ui.requestitems.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,4 +39,12 @@ fun RequestItemsTopAppBar(onBackClick: () -> Unit) {
             containerColor = MaterialTheme.colorScheme.background
         )
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RequestItemsTopAppBarPreview() {
+    MaterialTheme {
+        RequestItemsTopAppBar(onBackClick = {})
+    }
 }
