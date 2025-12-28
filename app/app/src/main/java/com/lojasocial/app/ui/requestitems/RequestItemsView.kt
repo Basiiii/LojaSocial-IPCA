@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.ui.requestitems.components.CategoryFilters
 import com.lojasocial.app.ui.requestitems.components.ProductItemRow
 import com.lojasocial.app.ui.requestitems.components.RequestItemsBottomBar
@@ -38,7 +39,7 @@ import com.lojasocial.app.ui.theme.TextGray
 fun RequestItemsView(
     onBackClick: () -> Unit = {},
     onSubmitClick: () -> Unit = {},
-    viewModel: RequestItemsViewModel = viewModel()
+    viewModel: RequestItemsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val productQuantities by viewModel.productQuantities.collectAsState()

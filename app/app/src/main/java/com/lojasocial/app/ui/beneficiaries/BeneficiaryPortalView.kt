@@ -22,6 +22,9 @@ fun BeneficiaryPortalView(
     userName: String? = null,
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null,
+    onNavigateToOrders: (() -> Unit)? = null,
+    onNavigateToSupport: (() -> Unit)? = null,
+    onNavigateToPickups: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository
 ) {
@@ -46,7 +49,11 @@ fun BeneficiaryPortalView(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    QuickActionsSection()
+                    QuickActionsSection(
+                        onNavigateToOrders = onNavigateToOrders,
+                        onNavigateToSupport = onNavigateToSupport,
+                        onNavigateToPickups = onNavigateToPickups
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 

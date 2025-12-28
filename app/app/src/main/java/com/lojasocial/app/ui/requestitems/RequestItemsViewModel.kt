@@ -3,12 +3,17 @@ package com.lojasocial.app.ui.requestitems
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.repository.RequestItemsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class RequestItemsViewModel(private val repository: RequestItemsRepository) : ViewModel() {
+@HiltViewModel
+class RequestItemsViewModel @Inject constructor(
+    private val repository: RequestItemsRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RequestItemsUiState>(RequestItemsUiState.Loading)
     val uiState: StateFlow<RequestItemsUiState> = _uiState.asStateFlow()

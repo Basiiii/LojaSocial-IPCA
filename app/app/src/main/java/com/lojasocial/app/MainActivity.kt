@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.portalselection.PortalSelectionView
+import com.lojasocial.app.ui.requestitems.RequestItemsView
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -171,6 +172,15 @@ class MainActivity : ComponentActivity() {
                                     onPortalSelectionClick = {
                                         navController.navigate("portalSelection")
                                     },
+                                    onNavigateToOrders = {
+                                        navController.navigate("requestItems")
+                                    },
+                                    onNavigateToSupport = {
+                                        // TODO: Navigate to support screen when implemented
+                                    },
+                                    onNavigateToPickups = {
+                                        // TODO: Navigate to pickups screen when implemented
+                                    },
                                     authRepository = authRepository,
                                     userRepository = userRepository
                                 )
@@ -196,6 +206,16 @@ class MainActivity : ComponentActivity() {
                                                 popUpTo(0) { inclusive = true }
                                             }
                                         }
+                                    }
+                                )
+                            }
+                            composable("requestItems") {
+                                RequestItemsView(
+                                    onBackClick = {
+                                        navController.popBackStack()
+                                    },
+                                    onSubmitClick = {
+                                        navController.popBackStack()
                                     }
                                 )
                             }

@@ -17,7 +17,11 @@ import com.lojasocial.app.ui.theme.BrandOrange
 
 
 @Composable
-fun QuickActionsSection() {
+fun QuickActionsSection(
+    onNavigateToOrders: (() -> Unit)? = null,
+    onNavigateToSupport: (() -> Unit)? = null,
+    onNavigateToPickups: (() -> Unit)? = null
+) {
     Column {
         Text(
             text = "Ações Rápidas",
@@ -33,7 +37,7 @@ fun QuickActionsSection() {
             buttonText = "Faz Pedido",
             backgroundColor = com.lojasocial.app.ui.theme.BrandGreen,
             icon = Icons.Default.ShoppingCart,
-            onClick = { /* Navigate to Order */ }
+            onClick = { onNavigateToOrders?.invoke() }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -44,7 +48,7 @@ fun QuickActionsSection() {
             buttonText = "Entra em Contacto",
             backgroundColor = BrandOrange,
             icon = Icons.AutoMirrored.Filled.Help,
-            onClick = { /* Navigate to Support */ }
+            onClick = { onNavigateToSupport?.invoke() }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -57,7 +61,7 @@ fun QuickActionsSection() {
             icon = Icons.Default.Inventory2,
             badgeCount = 2,
             badgeLabel = "Pendentes",
-            onClick = { /* Navigate to Pickups */ }
+            onClick = { onNavigateToPickups?.invoke() }
         )
     }
 }
