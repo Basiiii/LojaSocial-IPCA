@@ -2,7 +2,8 @@ package com.lojasocial.app.ui.requestitems
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.repository.RequestItemsRepository
+import com.lojasocial.app.repository.ItemsRepository
+import com.lojasocial.app.repository.OrdersRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RequestItemsViewModel @Inject constructor(
-    private val repository: RequestItemsRepository
+    private val itemsRepository: ItemsRepository,
+    private val ordersRepository: OrdersRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RequestItemsUiState>(RequestItemsUiState.Loading)
@@ -32,7 +34,7 @@ class RequestItemsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = RequestItemsUiState.Loading
             try {
-                val products = repository.getProducts()
+                val products = itemsRepository.getProducts()
                 if (products.isEmpty()) {
                     _uiState.value = RequestItemsUiState.Success(emptyList())
                 } else {
@@ -87,7 +89,7 @@ class RequestItemsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _submissionState.value = SubmissionState.Loading
-            val result = repository.submitOrder(itemsToSend)
+            val result = ordersRepository.submitOrder(itemsToSend)
             result.fold(
                 onSuccess = {
                     clearQuantities()
