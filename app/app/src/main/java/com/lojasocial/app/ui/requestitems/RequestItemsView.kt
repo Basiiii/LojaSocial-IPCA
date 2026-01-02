@@ -50,16 +50,17 @@ fun RequestItemsView(
     val isSubmitting = submissionState is SubmissionState.Loading
 
     LaunchedEffect(submissionState) {
-        when (submissionState) {
+        val currentSubmissionState = submissionState
+        when (currentSubmissionState) {
             is SubmissionState.Success -> {
                 viewModel.resetSubmissionState()
                 onSubmitClick()
             }
             is SubmissionState.Error -> {
                 viewModel.resetSubmissionState()
+                onSubmitClick()
             }
-            else -> {
-            }
+            else -> {}
         }
     }
 
@@ -191,7 +192,7 @@ fun RequestItemsContent(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f))
+                        .background(Color.Black.copy(alpha = 0.4f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {

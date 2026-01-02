@@ -216,7 +216,6 @@ class MainActivity : ComponentActivity() {
                                         navController.popBackStack()
                                     },
                                     onSubmitClick = {
-                                        // Always navigate to beneficiaryPortal after submission
                                         navController.navigate("beneficiaryPortal")
                                     }
                                 )
