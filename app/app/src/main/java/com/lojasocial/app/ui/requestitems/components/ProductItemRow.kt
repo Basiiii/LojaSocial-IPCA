@@ -135,7 +135,7 @@ private fun QuantityButton(
 @Composable
 fun ProductItemRowPreview() {
     ProductItemRow(
-        product = RequestItem(1, "Arroz", "Alimentos", 10),
+        product = RequestItem(docId = "1", id = 1, name = "Arroz", category = "Alimentos", quantity = 10),
         quantity = 2,
         onAdd = { },
         onRemove = { },

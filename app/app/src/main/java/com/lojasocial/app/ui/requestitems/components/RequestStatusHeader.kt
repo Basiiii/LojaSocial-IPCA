@@ -30,11 +30,12 @@ import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.theme.LightBlue
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.ProgressFull
+import com.lojasocial.app.ui.requestitems.RequestItemsConstants
 
 @Composable
 fun RequestStatusHeader(
     totalItemsSelected: Int,
-    maxItems: Int,
+    maxItems: Int = RequestItemsConstants.MAX_ITEMS,
     progress: Float,
     onClearClick: () -> Unit
 ) {
@@ -91,7 +92,7 @@ fun RequestStatusHeaderPreview() {
     MaterialTheme {
         RequestStatusHeader(
             totalItemsSelected = 3,
-            maxItems = 10,
+            maxItems = RequestItemsConstants.MAX_ITEMS,
             progress = 0.3f,
             onClearClick = {}
         )

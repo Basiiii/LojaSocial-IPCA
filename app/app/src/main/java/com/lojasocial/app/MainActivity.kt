@@ -210,12 +210,14 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable("requestItems") {
+                                val profile = lastProfile.value
                                 RequestItemsView(
                                     onBackClick = {
                                         navController.popBackStack()
                                     },
                                     onSubmitClick = {
-                                        navController.popBackStack()
+                                        // Always navigate to beneficiaryPortal after submission
+                                        navController.navigate("beneficiaryPortal")
                                     }
                                 )
                             }
