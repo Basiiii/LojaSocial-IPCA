@@ -15,6 +15,7 @@ import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
 import com.lojasocial.app.ui.profile.ProfileView
+import com.lojasocial.app.ui.stock.ScanStockScreen
 
 @Composable
 fun EmployeePortalView(
@@ -26,6 +27,7 @@ fun EmployeePortalView(
     userRepository: UserRepository
 ) {
     var selectedTab by remember { mutableStateOf("home") }
+    var showScanStockScreen by remember { mutableStateOf(false) }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -44,7 +46,9 @@ fun EmployeePortalView(
                     Spacer(modifier = Modifier.height(16.dp))
                     StatsSection()
                     Spacer(modifier = Modifier.height(24.dp))
-                    QuickActionsSection()
+                    QuickActionsSection(
+                        onNavigateToScanStock = { showScanStockScreen = true }
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection()
                     Spacer(modifier = Modifier.height(24.dp))
@@ -84,18 +88,24 @@ fun EmployeePortalView(
         }
     }
 
-    if (useAppLayout) {
-        AppLayout(
-            selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
-            subtitle = "Portal Funcionários",
-            showPortalSelection = showPortalSelection,
-            onPortalSelectionClick = onPortalSelectionClick
-        ) { paddingValues ->
-            content(paddingValues)
-        }
+    if (showScanStockScreen) {
+        ScanStockScreen(
+            onNavigateBack = { showScanStockScreen = false }
+        )
     } else {
-        content(PaddingValues(0.dp))
+        if (useAppLayout) {
+            AppLayout(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                subtitle = "Portal Funcionários",
+                showPortalSelection = showPortalSelection,
+                onPortalSelectionClick = onPortalSelectionClick
+            ) { paddingValues ->
+                content(paddingValues)
+            }
+        } else {
+            content(PaddingValues(0.dp))
+        }
     }
 }
 

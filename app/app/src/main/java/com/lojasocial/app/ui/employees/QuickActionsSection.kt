@@ -11,13 +11,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.components.ActionCard
+import com.lojasocial.app.ui.stock.ScanStockScreen
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
 import com.lojasocial.app.ui.theme.BrandPurple
 import com.lojasocial.app.ui.theme.TextDark
 
 @Composable
-fun QuickActionsSection() {
+fun QuickActionsSection(
+    onNavigateToScanStock: () -> Unit = {}
+) {
     Column {
         Text(
             text = "Ações Rápidas",
@@ -33,7 +36,7 @@ fun QuickActionsSection() {
             buttonText = "Adiciona Item",
             backgroundColor = BrandGreen,
             icon = Icons.Default.QrCodeScanner,
-            onClick = { /* Handle Add Item */ }
+            onClick = onNavigateToScanStock
         )
 
         Spacer(modifier = Modifier.height(16.dp))
