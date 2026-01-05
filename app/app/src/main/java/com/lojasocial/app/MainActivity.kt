@@ -35,10 +35,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+    @AndroidEntryPoint
+    class MainActivity : ComponentActivity() {
 
-    @Inject
+        @Inject
     lateinit var authRepository: AuthRepository
 
     @Inject
@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
                                     val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
 
                                     CandidaturaPersonalInfoView(
-                                        onNavigateBack = { navController.navigateUp() },
+                                        onNavigateBack = { navController.navigate("nonBeneficiaryPortal") },
                                         onNavigateNext = { navController.navigate("applicationPage2") },
                                         viewModel = viewModel
                                     )
@@ -204,7 +204,7 @@ class MainActivity : ComponentActivity() {
                                     val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
 
                                     CandidaturaAcademicDataView(
-                                        onNavigateBack = { navController.navigateUp() },
+                                        onNavigateBack = { navController.navigate("applicationPage1") },
                                         onNavigateNext = { navController.navigate("applicationPage3") },
                                         viewModel = viewModel
                                     )
@@ -217,7 +217,7 @@ class MainActivity : ComponentActivity() {
                                     val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
 
                                     CandidaturaDocumentsView(
-                                        onNavigateBack = { navController.navigateUp() },
+                                        onNavigateBack = { navController.navigate("applicationPage2") },
                                         onSubmit = {
                                             navController.navigate("nonBeneficiaryPortal") {
                                                 popUpTo("applicationFlow") { inclusive = true }
