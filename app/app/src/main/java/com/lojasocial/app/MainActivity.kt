@@ -157,7 +157,12 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate("portalSelection")
                                     },
                                     authRepository = authRepository,
-                                    userRepository = userRepository
+                                    userRepository = userRepository,
+                                    onLogout = {
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
                                 )
                             }
                             composable("beneficiaryPortal") {
@@ -176,7 +181,12 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate("portalSelection")
                                     },
                                     authRepository = authRepository,
-                                    userRepository = userRepository
+                                    userRepository = userRepository,
+                                    onLogout = {
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
                                 )
                             }
                             composable("portalSelection") {
@@ -219,6 +229,11 @@ class MainActivity : ComponentActivity() {
                                     userRepository = userRepository,
                                     onNavigateToApplication = {
                                         navController.navigate("applicationFlow")
+                                    },
+                                    onLogout = {
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
                                     }
                                 )
                             }

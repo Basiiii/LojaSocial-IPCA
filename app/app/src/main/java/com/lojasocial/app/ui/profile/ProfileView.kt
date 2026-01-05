@@ -167,7 +167,8 @@ fun ProfileView(paddingValues: PaddingValues, authRepository: AuthRepository, us
                 coroutineScope.launch {
                     try {
                         authRepository.signOut()
-                        // Navigation will be handled automatically by auth state listener
+                        // Call the logout callback to handle navigation
+                        onLogout()
                     } catch (e: Exception) {
                         showLogoutError = true
                     }
