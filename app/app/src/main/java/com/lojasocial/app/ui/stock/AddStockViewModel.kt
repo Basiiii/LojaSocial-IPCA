@@ -3,7 +3,7 @@ package com.lojasocial.app.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.api.ProductResponse
+import com.lojasocial.app.api.BarcodeProduct
 import com.lojasocial.app.data.model.Campaign
 import com.lojasocial.app.repository.CampaignRepository
 import com.lojasocial.app.repository.ProductRepository
@@ -23,6 +23,10 @@ class ScanStockViewModel @Inject constructor(
     // UI State
     private val _uiState = MutableStateFlow(ScanStockUiState())
     val uiState: StateFlow<ScanStockUiState> = _uiState.asStateFlow()
+    
+    // Product data
+    private val _productData = MutableStateFlow<BarcodeProduct?>(null)
+    val productData: StateFlow<BarcodeProduct?> = _productData.asStateFlow()
     
     // Form fields
     private val _barcode = MutableStateFlow("")
@@ -127,18 +131,17 @@ class ScanStockViewModel @Inject constructor(
                 productRepository.getProductByBarcode(barcode)
                     .onSuccess { product ->
                         Log.d("ScanStockViewModel", "SUCCESS: Product data received")
-                        Log.d("ScanStockViewModel", "Product name: ${product.name}")
                         Log.d("ScanStockViewModel", "Product title: ${product.title}")
                         Log.d("ScanStockViewModel", "Product brand: ${product.brand}")
                         Log.d("ScanStockViewModel", "Product category: ${product.category}")
                         Log.d("ScanStockViewModel", "Product description: ${product.description}")
                         
-                        _productName.value = product.name
+                        _productName.value = product.title
+                        _productData.value = product
                         Log.d("ScanStockViewModel", "Updated product name in StateFlow: ${_productName.value}")
                         
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            productData = product,
                             error = null
                         )
                         Log.d("ScanStockViewModel", "UI State updated with product data")
@@ -188,7 +191,6 @@ class ScanStockViewModel @Inject constructor(
 // UI State data class
 data class ScanStockUiState(
     val isLoading: Boolean = false,
-    val productData: ProductResponse? = null,
     val error: String? = null,
     val successMessage: String? = null
 )

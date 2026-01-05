@@ -1,47 +1,68 @@
 package com.lojasocial.app.api
 
 import retrofit2.Response
-import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
+import retrofit2.http.Query
 
-data class ProductResponse(
-    val title: String, // API returns "title" not "name"
-    val alias: String? = null,
-    val description: String? = null,
-    val brand: String? = null,
-    val manufacturer: String? = null,
-    val msrp: String? = null, // Manufacturer suggested retail price
-    val ASIN: String? = null,
+data class BarcodeApiResponse(
+    val products: List<BarcodeProduct>
+)
+
+data class BarcodeProduct(
+    val barcode_number: String,
+    val barcode_formats: String,
+    val mpn: String? = null,
+    val model: String? = null,
+    val asin: String? = null,
+    val title: String,
     val category: String? = null,
-    val categories: String? = null,
-    val stores: List<String>? = null,
-    val barcode: String? = null,
-    val success: Boolean? = null,
-    val timestamp: Long? = null,
+    val manufacturer: String? = null,
+    val brand: String? = null,
+    val contributors: List<String>? = null,
+    val age_group: String? = null,
+    val ingredients: String? = null,
+    val nutrition_facts: String? = null,
+    val energy_efficiency_class: String? = null,
+    val color: String? = null,
+    val gender: String? = null,
+    val material: String? = null,
+    val pattern: String? = null,
+    val format: String? = null,
+    val multipack: String? = null,
+    val size: String? = null,
+    val length: String? = null,
+    val width: String? = null,
+    val height: String? = null,
+    val weight: String? = null,
+    val release_date: String? = null,
+    val description: String? = null,
+    val features: List<String>? = null,
     val images: List<String>? = null,
-    val metadata: Map<String, Any>? = null,
-    val metanutrition: Map<String, Any>? = null
+    val last_update: String? = null,
+    val stores: List<Store>? = null,
+    val reviews: List<Any>? = null
 ) {
-    // Helper property to maintain compatibility with existing code
-    val name: String get() = title
+    // Helper property to get first image or null if no images
+    val imageUrl: String? get() = images?.firstOrNull()
 }
 
-data class ApiResponse<T>(
-    val data: T?,
-    val message: String?,
-    val success: Boolean
+data class Store(
+    val name: String,
+    val country: String,
+    val currency: String,
+    val currency_symbol: String,
+    val price: String,
+    val sale_price: String? = null,
+    val tax: List<String>? = null,
+    val link: String,
+    val item_group_id: String? = null,
+    val availability: String,
+    val condition: String? = null,
+    val shipping: List<String>? = null,
+    val last_update: String? = null
 )
 
 interface ProductApiService {
-    @GET("{barcode}")
-    suspend fun getProductByBarcode(@Path("barcode") barcode: String): Response<ProductResponse>
-    
-    // Optional: Add more endpoints
-    @GET("search/{query}")
-    suspend fun searchProducts(@Path("query") query: String): Response<List<ProductResponse>>
-    
-    @POST("products")
-    suspend fun createProduct(@Body product: ProductResponse): Response<ProductResponse>
+    @GET("api/barcode")
+    suspend fun getProductByBarcode(@Query("barcode") barcode: String): Response<BarcodeApiResponse>
 }

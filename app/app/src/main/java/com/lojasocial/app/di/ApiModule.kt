@@ -32,20 +32,19 @@ object ApiModule {
     fun provideAuthInterceptor(): Interceptor {
         return Interceptor { chain ->
             val originalRequest = chain.request()
-            val url = originalRequest.url.newBuilder()
-                .addQueryParameter("apikey", BuildConfig.API_KEY)
-                .build()
+            val url = originalRequest.url
             
-            Log.d("ApiModule", "Making API request to: $url")
-            Log.d("ApiModule", "Request method: ${originalRequest.method}")
-            Log.d("ApiModule", "API Key: ${BuildConfig.API_KEY.take(10)}...")
+            Log.d("ApiModule", "=== API REQUEST ===")
+            Log.d("ApiModule", "Full URL: $url")
+            Log.d("ApiModule", "Method: ${originalRequest.method}")
+            Log.d("ApiModule", "Headers: ${originalRequest.headers}")
             
             val newRequest = originalRequest.newBuilder()
-                .url(url)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
                 .build()
                 
+            Log.d("ApiModule", "Making request to: ${newRequest.url}")
             chain.proceed(newRequest)
         }
     }
@@ -68,8 +67,10 @@ object ApiModule {
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        val baseUrl = BuildConfig.BACKEND_URL
+        Log.d("ApiModule", "Creating Retrofit with base URL: $baseUrl")
         return Retrofit.Builder()
-            .baseUrl(BuildConfig.API_BASE_URL)
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

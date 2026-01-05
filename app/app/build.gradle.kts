@@ -43,8 +43,13 @@ android {
                     project.findProperty("API_KEY") ?: 
                     "this-is-not-a-production-api-key"
         
+        val backendUrl = localProperties.getProperty("BACKEND_URL") ?: 
+                       project.findProperty("BACKEND_URL") ?: 
+                       "http://localhost:3000"
+        
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "API_KEY", "\"$apiKey\"")
+        buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
         buildConfigField("boolean", "DEBUG", "true")
     }
 

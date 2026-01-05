@@ -27,7 +27,6 @@ import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 import com.lojasocial.app.ui.login.LoginScreen
-import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.employees.EmployeePortalView
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.navigation.compose.NavHost
@@ -35,9 +34,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
-import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.portalselection.PortalSelectionView
 import javax.inject.Inject
 
@@ -53,11 +50,11 @@ class MainActivity : ComponentActivity() {
     // Helper function to determine portal based on user roles
     private fun getDestinationForUser(userProfile: UserProfile?): String {
         return when {
-            userProfile == null -> "login" // No profile means not logged in
+            userProfile == null -> "login"
             userProfile.isAdmin && userProfile.isBeneficiary -> "portalSelection"
             userProfile.isAdmin -> "employeePortal"
             userProfile.isBeneficiary -> "beneficiaryPortal"
-            else -> "login" // No roles means login
+            else -> "login"
         }
     }
 

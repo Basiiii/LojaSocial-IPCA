@@ -1,8 +1,9 @@
 package com.lojasocial.app.repository
 
 import android.util.Log
+import com.lojasocial.app.api.BarcodeApiResponse
+import com.lojasocial.app.api.BarcodeProduct
 import com.lojasocial.app.api.ProductApiService
-import com.lojasocial.app.api.ProductResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import retrofit2.Response
@@ -13,7 +14,7 @@ import javax.inject.Singleton
 data class ProductRepository @Inject constructor(
     private val apiService: ProductApiService
 ) {
-    suspend fun getProductByBarcode(barcode: String): Result<ProductResponse> {
+    suspend fun getProductByBarcode(barcode: String): Result<BarcodeProduct> {
         return try {
             Log.d("ProductRepository", "Making API call for barcode: $barcode")
             val response = apiService.getProductByBarcode(barcode)
@@ -23,10 +24,19 @@ data class ProductRepository @Inject constructor(
             Log.d("ProductRepository", "Response successful: ${response.isSuccessful}")
             
             if (response.isSuccessful) {
-                response.body()?.let { product ->
-                    Log.d("ProductRepository", "SUCCESS: Product data received")
-                    Log.d("ProductRepository", "Product title: ${product.title}")
-                    Result.success(product)
+                response.body()?.let { barcodeApiResponse ->
+                    Log.d("ProductRepository", "SUCCESS: Barcode API data received")
+                    val firstProduct = barcodeApiResponse.products.firstOrNull()
+                    if (firstProduct != null) {
+                        Log.d("ProductRepository", "Product title: ${firstProduct.title}")
+                        Log.d("ProductRepository", "Product brand: ${firstProduct.brand}")
+                        Log.d("ProductRepository", "Product category: ${firstProduct.category}")
+                        Log.d("ProductRepository", "Product imageUrl: ${firstProduct.imageUrl}")
+                        Result.success(firstProduct)
+                    } else {
+                        Log.e("ProductRepository", "ERROR: No products found in response")
+                        Result.failure(Exception("No products found for barcode: $barcode"))
+                    }
                 } ?: run {
                     Log.e("ProductRepository", "ERROR: Empty response body")
                     Result.failure(Exception("Empty response body"))
@@ -45,23 +55,8 @@ data class ProductRepository @Inject constructor(
         }
     }
     
-    suspend fun searchProducts(query: String): Result<List<ProductResponse>> {
-        return try {
-            val response = apiService.searchProducts(query)
-            if (response.isSuccessful) {
-                response.body()?.let { products ->
-                    Result.success(products)
-                } ?: Result.failure(Exception("Empty response body"))
-            } else {
-                Result.failure(Exception("API Error: ${response.code()} - ${response.message()}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-    
     // Optional: Cache products locally
-    suspend fun getCachedProduct(barcode: String): Flow<ProductResponse?> = flow {
+    suspend fun getCachedProduct(barcode: String): Flow<BarcodeProduct?> = flow {
         // Implement local caching if needed
         emit(null)
     }
