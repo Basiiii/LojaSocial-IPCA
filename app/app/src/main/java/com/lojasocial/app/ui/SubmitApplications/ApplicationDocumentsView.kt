@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.applications
+package com.lojasocial.app.ui.SubmitApplications
 
 import android.content.Context
 import androidx.compose.foundation.background
@@ -22,16 +22,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.lojasocial.app.domain.ApplicationDocument
-import com.lojasocial.app.ui.applications.components.ApplicationHeader
-import com.lojasocial.app.ui.applications.components.DocumentUi
-import com.lojasocial.app.ui.applications.components.DocumentUploadCard
+import com.lojasocial.app.ui.SubmitApplications.components.ApplicationHeader
+import com.lojasocial.app.ui.SubmitApplications.components.DocumentUi
+import com.lojasocial.app.ui.SubmitApplications.components.DocumentUploadCard
 import com.lojasocial.app.ui.theme.ButtonGray
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 
 /**
  * Third and final page of the scholarship application form - Document Upload.
- * 
+ *
  * This composable displays the document upload section of the scholarship
  * application form. It handles the collection and management of required
  * supporting documents for the application submission.
@@ -216,7 +216,7 @@ fun CandidaturaDocumentsView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                color = com.lojasocial.app.ui.applications.components.TextGray
+                color = com.lojasocial.app.ui.SubmitApplications.components.TextGray
             )
 
             Spacer(modifier = Modifier.height(24.dp))

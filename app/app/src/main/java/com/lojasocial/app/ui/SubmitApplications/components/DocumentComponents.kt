@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.applications.components
+package com.lojasocial.app.ui.SubmitApplications.components
 
 import android.content.Context
 import android.net.Uri
@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.ui.theme.ButtonGray
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.PurpleIcon
 import com.lojasocial.app.ui.theme.PurpleLight

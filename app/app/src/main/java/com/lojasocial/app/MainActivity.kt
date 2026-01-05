@@ -17,9 +17,9 @@ import androidx.navigation.compose.rememberNavController
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.ui.applications.CandidaturaPersonalInfoView
-import com.lojasocial.app.ui.applications.CandidaturaAcademicDataView
-import com.lojasocial.app.ui.applications.CandidaturaDocumentsView
+import com.lojasocial.app.ui.SubmitApplications.CandidaturaPersonalInfoView
+import com.lojasocial.app.ui.SubmitApplications.CandidaturaAcademicDataView
+import com.lojasocial.app.ui.SubmitApplications.CandidaturaDocumentsView
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
 import com.lojasocial.app.ui.employees.EmployeePortalView
 import com.lojasocial.app.ui.login.LoginScreen
