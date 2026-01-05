@@ -18,8 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
@@ -217,39 +220,63 @@ class MainActivity : ComponentActivity() {
                                     authRepository = authRepository,
                                     userRepository = userRepository,
                                     onNavigateToApplication = {
-                                        navController.navigate("applicationPage1")
+                                        navController.navigate("applicationFlow")
                                     }
                                 )
                             }
-                            composable("applicationPage1") {
-                                CandidaturaStep1View(
-                                    onNavigateNext = {
-                                        navController.navigate("applicationPage2")
+                            navigation(
+                                startDestination = "applicationPage1",
+                                route = "applicationFlow"
+                            ) {
+                                composable("applicationPage1") {
+                                    val parentEntry = remember(navController) {
+                                        navController.getBackStackEntry("applicationFlow")
                                     }
-                                )
-                            }
-                            composable("applicationPage2") {
-                                CandidaturaStep2View(
-                                    onNavigateBack = {
-                                        navController.navigateUp()
-                                    },
-                                    onNavigateNext = {
-                                        navController.navigate("applicationPage3")
+                                    val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
+                                        androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
+                                    CandidaturaStep1View(
+                                        navController = navController,
+                                        onNavigateNext = {
+                                            navController.navigate("applicationPage2")
+                                        },
+                                        viewModel = viewModel
+                                    )
+                                }
+                                composable("applicationPage2") {
+                                    val parentEntry = remember(navController) {
+                                        navController.getBackStackEntry("applicationFlow")
                                     }
-                                )
-                            }
-                            composable("applicationPage3") {
-                                CandidaturaStep3View(
-                                    onNavigateBack = {
-                                        navController.navigateUp()
-                                    },
-                                    onSubmit = {
-                                        // Handle form submission - navigate back to nonBeneficiaryPortal
-                                        navController.navigate("nonBeneficiaryPortal") {
-                                            popUpTo("nonBeneficiaryPortal") { inclusive = false }
-                                        }
+                                    val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
+                                        androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
+                                    CandidaturaStep2View(
+                                        onNavigateBack = {
+                                            navController.navigateUp()
+                                        },
+                                        onNavigateNext = {
+                                            navController.navigate("applicationPage3")
+                                        },
+                                        viewModel = viewModel
+                                    )
+                                }
+                                composable("applicationPage3") {
+                                    val parentEntry = remember(navController) {
+                                        navController.getBackStackEntry("applicationFlow")
                                     }
-                                )
+                                    val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
+                                        androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
+                                    CandidaturaStep3View(
+                                        onNavigateBack = {
+                                            navController.navigateUp()
+                                        },
+                                        onSubmit = {
+                                            // Handle form submission - navigate back to nonBeneficiaryPortal
+                                            navController.navigate("nonBeneficiaryPortal") {
+                                                popUpTo("nonBeneficiaryPortal") { inclusive = false }
+                                            }
+                                        },
+                                        viewModel = viewModel
+                                    )
+                                }
                             }
                             composable("login") {
                                 LoginScreen(

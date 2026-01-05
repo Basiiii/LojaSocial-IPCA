@@ -28,15 +28,15 @@ import com.lojasocial.app.ui.theme.PurpleIcon
 import com.lojasocial.app.ui.theme.PurpleLight
 import com.lojasocial.app.ui.theme.RedDelete
 
-data class DocumentoUi(
+data class DocumentUi(
     val id: Int,
-    val nome: String,
+    val name: String,
     val uri: Uri? = null
 )
 
 @Composable
 fun DocumentUploadCard(
-    document: DocumentoUi,
+    document: DocumentUi,
     onDelete: () -> Unit,
     onUpload: (Uri) -> Unit
 ) {
@@ -70,7 +70,7 @@ fun DocumentUploadCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = document.nome,
+                        text = document.name,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                         color = Color.Black
                     )
@@ -102,7 +102,7 @@ fun DocumentUploadCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Eliminar",
+                            contentDescription = "Remover ficheiro",
                             tint = RedDelete,
                             modifier = Modifier.size(20.dp)
                         )
