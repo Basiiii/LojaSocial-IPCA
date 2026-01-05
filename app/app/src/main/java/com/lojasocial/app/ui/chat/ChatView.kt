@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lojasocial.app.domain.chat.ChatMessage
 import com.lojasocial.app.ui.chat.components.ChatHeader
 import com.lojasocial.app.ui.chat.components.ChatInputBar
 import com.lojasocial.app.ui.chat.components.ChatMessageBubble
