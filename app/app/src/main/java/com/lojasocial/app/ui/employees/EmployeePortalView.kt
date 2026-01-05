@@ -19,6 +19,8 @@ import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.stock.AddStockScreen
 import com.lojasocial.app.ui.employees.QuickActionsSection
 import com.lojasocial.app.ui.employees.RecentActivitySection
+import com.lojasocial.app.ui.support.SupportView
+import com.lojasocial.app.ui.chat.ChatView
 
 @Composable
 fun EmployeePortalView(
@@ -27,10 +29,12 @@ fun EmployeePortalView(
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null,
     authRepository: AuthRepository,
-    userRepository: UserRepository
+    userRepository: UserRepository,
+    onLogout: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf("home") }
     var showAddStockScreen by remember { mutableStateOf(false) }
+    var isChatOpen by remember { mutableStateOf(false) }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -52,6 +56,8 @@ fun EmployeePortalView(
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true }
                     )
+                    onSupportClick = { selectedTab = "support" }
+                )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection()
                     Spacer(modifier = Modifier.height(24.dp))
@@ -63,18 +69,34 @@ fun EmployeePortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    onLogout = { }
+                    onLogout = onLogout
                 )
             }
 
             "support" -> {
                 Box(
                     modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .then(
+                            if (isChatOpen) {
+                                Modifier
+                            } else {
+                                Modifier.padding(paddingValues)
+                            }
+                        )
                 ) {
-                    Text("Suporte (por implementar)")
+                    if (isChatOpen) {
+                        ChatView(
+                            embeddedInAppLayout = true,
+                            onClose = { isChatOpen = false }
+                        )
+                    } else {
+                        SupportView(
+                            showTopBar = false,
+                            showBackButton = false,
+                            onStartChat = { isChatOpen = true }
+                        )
+                    }
                 }
             }
 

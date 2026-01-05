@@ -15,10 +15,30 @@ import androidx.compose.ui.text.font.FontWeight
 import com.lojasocial.app.ui.components.ActionCard
 import com.lojasocial.app.ui.theme.BrandOrange
 
-
+/**
+ * Quick actions section component for the beneficiary portal.
+ * 
+ * This component displays a collection of action cards that provide
+ * quick access to common beneficiary functions including making orders,
+ * accessing support, and managing pickup requests. It serves as the main
+ * navigation hub for beneficiary activities.
+ * 
+ * The section includes:
+ * - Order creation functionality
+ * - Support contact access
+ * - Pickup request management with badge notifications
+ * 
+ * @param onSupportClick Callback when the user wants to access support features.
+ * @param modifier Optional modifier for styling and layout.
+ */
 @Composable
-fun QuickActionsSection() {
-    Column {
+fun QuickActionsSection(
+    onNavigateToOrders: () -> Unit,
+    onNavigateToPickups: () -> Unit,
+    onSupportClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
         Text(
             text = "Ações Rápidas",
             fontSize = 18.sp,
@@ -33,7 +53,7 @@ fun QuickActionsSection() {
             buttonText = "Faz Pedido",
             backgroundColor = com.lojasocial.app.ui.theme.BrandGreen,
             icon = Icons.Default.ShoppingCart,
-            onClick = { /* Navigate to Order */ }
+            onClick = onNavigateToOrders
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -44,7 +64,7 @@ fun QuickActionsSection() {
             buttonText = "Entra em Contacto",
             backgroundColor = BrandOrange,
             icon = Icons.AutoMirrored.Filled.Help,
-            onClick = { /* Navigate to Support */ }
+            onClick = onSupportClick
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -57,13 +77,24 @@ fun QuickActionsSection() {
             icon = Icons.Default.Inventory2,
             badgeCount = 2,
             badgeLabel = "Pendentes",
-            onClick = { /* Navigate to Pickups */ }
+            onClick = onNavigateToPickups
         )
     }
 }
 
+/**
+ * Preview composable for the QuickActionsSection component.
+ * 
+ * This preview shows the quick actions section with all action cards
+ * for design and development purposes. It demonstrates the layout
+ * and styling of the beneficiary navigation options.
+ */
 @Preview(showBackground = true, heightDp = 600)
 @Composable
 fun QuickActionsSectionPreview() {
-    QuickActionsSection()
+    QuickActionsSection(
+        onNavigateToOrders = {},
+        onNavigateToPickups = {},
+        onSupportClick = {}
+    )
 }

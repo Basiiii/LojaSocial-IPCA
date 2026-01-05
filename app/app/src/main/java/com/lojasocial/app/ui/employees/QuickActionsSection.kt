@@ -2,6 +2,7 @@ package com.lojasocial.app.ui.employees
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,12 +15,14 @@ import com.lojasocial.app.ui.components.ActionCard
 import com.lojasocial.app.ui.stock.AddStockScreen
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
+import com.lojasocial.app.ui.theme.BrandOrange
 import com.lojasocial.app.ui.theme.BrandPurple
 import com.lojasocial.app.ui.theme.TextDark
 
 @Composable
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {}
+    onSupportClick: () -> Unit = {}
 ) {
     Column {
         Text(
@@ -55,6 +58,17 @@ fun QuickActionsSection(
         Spacer(modifier = Modifier.height(16.dp))
 
         ActionCard(
+            title = "Precisas de ajuda?",
+            description = "A nossa equipa de suporte está aqui para te ajudar com qualquer pergunta",
+            buttonText = "Entra em Contacto",
+            backgroundColor = BrandOrange,
+            icon = Icons.AutoMirrored.Filled.Help,
+            onClick = onSupportClick
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ActionCard(
             title = "Ver Candidaturas",
             description = "Revê e processa candidaturas pendentes",
             buttonText = "Rever Candidaturas",
@@ -68,8 +82,10 @@ fun QuickActionsSection(
     }
 }
 
-@Preview(showBackground = true, heightDp = 600)
+@Preview(showBackground = true, heightDp = 800)
 @Composable
 fun QuickActionsSectionPreview() {
-    QuickActionsSection()
+    QuickActionsSection(
+        onSupportClick = {}
+    )
 }

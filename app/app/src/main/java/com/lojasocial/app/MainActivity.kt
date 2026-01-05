@@ -5,24 +5,35 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.first
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
+import androidx.navigation.compose.rememberNavController
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
+import com.lojasocial.app.ui.applications.CandidaturaAcademicDataView
+import com.lojasocial.app.ui.applications.CandidaturaDocumentsView
+import com.lojasocial.app.ui.applications.CandidaturaPersonalInfoView
+import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
+import com.lojasocial.app.ui.employees.EmployeePortalView
+import com.lojasocial.app.ui.login.LoginScreen
+import com.lojasocial.app.ui.nonbeneficiaries.NonBeneficiaryPortalView
+import com.lojasocial.app.ui.portalselection.PortalSelectionView
+import com.lojasocial.app.ui.requests.PendingRequestsView
+import com.lojasocial.app.ui.requestitems.RequestItemsView
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
@@ -36,7 +47,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
 import com.lojasocial.app.ui.portalselection.PortalSelectionView
+import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -52,6 +68,7 @@ class MainActivity : ComponentActivity() {
         return when {
             userProfile == null -> "login"
             userProfile.isAdmin && userProfile.isBeneficiary -> "portalSelection"
+            !userProfile.isAdmin && !userProfile.isBeneficiary -> "nonBeneficiaryPortal"
             userProfile.isAdmin -> "employeePortal"
             userProfile.isBeneficiary -> "beneficiaryPortal"
             else -> "login"
@@ -150,7 +167,12 @@ class MainActivity : ComponentActivity() {
                                         navController.navigate("portalSelection")
                                     },
                                     authRepository = authRepository,
-                                    userRepository = userRepository
+                                    userRepository = userRepository,
+                                    onLogout = {
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
                                 )
                             }
                             composable("beneficiaryPortal") {
@@ -168,8 +190,26 @@ class MainActivity : ComponentActivity() {
                                     onPortalSelectionClick = {
                                         navController.navigate("portalSelection")
                                     },
+                                    onNavigateToOrders = {
+                                        navController.navigate("requestItems")
+                                    },
                                     authRepository = authRepository,
-                                    userRepository = userRepository
+                                    userRepository = userRepository,
+                                    onLogout = {
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                )
+                            }
+                            composable("requestItems") {
+                                RequestItemsView(
+                                    onBackClick = { navController.navigateUp() },
+                                    onSubmitClick = {
+                                        navController.navigate("beneficiaryPortal") {
+                                            popUpTo("beneficiaryPortal") { inclusive = false }
+                                        }
+                                    }
                                 )
                             }
                             composable("portalSelection") {
@@ -195,6 +235,84 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 )
+                            }
+                            composable("nonBeneficiaryPortal"){
+                                val profile = lastProfile.value
+                                val displayName = profile?.name
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.substringBefore(" ")
+                                    ?: "Utilizador"
+                                NonBeneficiaryPortalView(
+                                    userName = displayName,
+                                    showPortalSelection = false,
+                                    onPortalSelectionClick = {
+                                        navController.navigate("portalSelection")
+                                    },
+                                    authRepository = authRepository,
+                                    userRepository = userRepository,
+                                    onNavigateToApplication = {
+                                        navController.navigate("applicationFlow")
+                                    },
+                                    onLogout = {
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                )
+                            }
+                            navigation(
+                                startDestination = "applicationPage1", //TODO: Change to the new names
+                                route = "applicationFlow"
+                            ) {
+                                composable("applicationPage1") {
+                                    val parentEntry = remember {
+                                        navController.currentBackStackEntry
+                                    }
+                                    val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
+                                        androidx.hilt.navigation.compose.hiltViewModel(viewModelStoreOwner = parentEntry!!)
+                                    CandidaturaPersonalInfoView(
+                                        navController = navController,
+                                        onNavigateNext = {
+                                            navController.navigate("applicationPage2")
+                                        },
+                                        viewModel = viewModel
+                                    )
+                                }
+                                composable("applicationPage2") {
+                                    val parentEntry = remember {
+                                        navController.currentBackStackEntry
+                                    }
+                                    val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
+                                        androidx.hilt.navigation.compose.hiltViewModel(viewModelStoreOwner = parentEntry!!)
+                                    CandidaturaAcademicDataView(
+                                        onNavigateBack = {
+                                            navController.navigateUp()
+                                        },
+                                        onNavigateNext = {
+                                            navController.navigate("applicationPage3")
+                                        },
+                                        viewModel = viewModel
+                                    )
+                                }
+                                composable("applicationPage3") {
+                                    val parentEntry = remember {
+                                        navController.currentBackStackEntry
+                                    }
+                                    val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
+                                        androidx.hilt.navigation.compose.hiltViewModel(viewModelStoreOwner = parentEntry!!)
+                                    CandidaturaDocumentsView(
+                                        onNavigateBack = {
+                                            navController.navigateUp()
+                                        },
+                                        onSubmit = {
+                                            // Handle form submission - navigate back to nonBeneficiaryPortal
+                                            navController.navigate("nonBeneficiaryPortal") {
+                                                popUpTo("nonBeneficiaryPortal") { inclusive = false }
+                                            }
+                                        },
+                                        viewModel = viewModel
+                                    )
+                                }
                             }
                             composable("login") {
                                 LoginScreen(
@@ -246,38 +364,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
-    }
-
-    @Composable
-    fun SupportView(paddingValues: PaddingValues) {
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Help,
-                contentDescription = "Support",
-                modifier = Modifier.size(64.dp),
-                tint = TextGray
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Suporte",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Em breve disponível",
-                fontSize = 16.sp,
-                color = TextGray
-            )
         }
     }
 
