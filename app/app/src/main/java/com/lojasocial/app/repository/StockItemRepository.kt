@@ -29,7 +29,17 @@ class StockItemRepository @Inject constructor(
 
     suspend fun saveStockItem(stockItem: StockItem): String {
         return try {
-            val docRef = itemsCollection.add(stockItem).await()
+            // Convert to map and exclude id field
+            val stockItemMap = mutableMapOf<String, Any>(
+                "barcode" to stockItem.barcode,
+                "createdAt" to stockItem.createdAt,
+                "quantity" to stockItem.quantity,
+                "productId" to stockItem.productId
+            )
+            stockItem.campaignId?.let { stockItemMap["campaignId"] = it }
+            stockItem.expirationDate?.let { stockItemMap["expirationDate"] = it }
+            
+            val docRef = itemsCollection.add(stockItemMap).await()
             docRef.id
         } catch (e: Exception) {
             throw e

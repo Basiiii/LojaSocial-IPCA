@@ -293,22 +293,46 @@ class AddStockViewModel @Inject constructor(
                 val expiryDate = _expiryDate.value
                 val campaignId = _campaign.value.ifEmpty { null }
 
-                if (currentBarcode.isEmpty() || quantity <= 0 || expiryDate == "mm/dd/aaaa") {
+                if (currentBarcode.isEmpty() || quantity <= 0) {
                     _uiState.value = _uiState.value.copy(
                         error = "Please fill in all required fields"
                     )
                     return@launch
                 }
 
-                // Parse expiry date
-                val parsedExpiryDate = try {
-                    val parts = expiryDate.split("/")
-                    Date(parts[2].toInt() - 1900, parts[1].toInt() - 1, parts[0].toInt())
-                } catch (e: Exception) {
-                    _uiState.value = _uiState.value.copy(
-                        error = "Invalid date format. Use DD/MM/YYYY"
-                    )
-                    return@launch
+                // Parse expiry date - allow null if not applicable ("Sem Validade")
+                // "mm/dd/aaaa" means date is required but not filled, so show error
+                val parsedExpiryDate: Date? = when {
+                    expiryDate == "Sem Validade" -> {
+                        // Expiry date not applicable (toggle is off)
+                        null
+                    }
+                    expiryDate == "mm/dd/aaaa" || expiryDate.isEmpty() -> {
+                        // Date is required but not filled
+                        _uiState.value = _uiState.value.copy(
+                            error = "Por favor, preencha a data de validade ou desative o campo"
+                        )
+                        return@launch
+                    }
+                    else -> {
+                        // Try to parse the date
+                        try {
+                            val parts = expiryDate.split("/")
+                            if (parts.size == 3) {
+                                Date(parts[2].toInt() - 1900, parts[1].toInt() - 1, parts[0].toInt())
+                            } else {
+                                _uiState.value = _uiState.value.copy(
+                                    error = "Formato de data inválido. Use DD/MM/AAAA"
+                                )
+                                return@launch
+                            }
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(
+                                error = "Formato de data inválido. Use DD/MM/AAAA"
+                            )
+                            return@launch
+                        }
+                    }
                 }
 
                 // Save or update product using barcode as document ID

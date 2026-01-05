@@ -109,7 +109,14 @@ class ProductRepository @Inject constructor(
     suspend fun saveOrUpdateProduct(product: Product, barcode: String) {
         try {
             Log.d("ProductRepository", "Saving/updating product with barcode: $barcode")
-            productsCollection.document(barcode).set(product).await()
+            // Convert to map and exclude id field
+            val productMap = mapOf(
+                "name" to product.name,
+                "brand" to product.brand,
+                "category" to product.category,
+                "imageUrl" to product.imageUrl
+            )
+            productsCollection.document(barcode).set(productMap).await()
             Log.d("ProductRepository", "Product saved/updated successfully with ID: $barcode")
         } catch (e: Exception) {
             Log.e("ProductRepository", "Error saving/updating product", e)
@@ -121,7 +128,17 @@ class ProductRepository @Inject constructor(
     suspend fun saveStockItem(stockItem: StockItem): String {
         return try {
             Log.d("ProductRepository", "Saving stock item for barcode: ${stockItem.barcode}")
-            val docRef = itemsCollection.add(stockItem).await()
+            // Convert to map and exclude id field
+            val stockItemMap = mutableMapOf<String, Any>(
+                "barcode" to stockItem.barcode,
+                "createdAt" to stockItem.createdAt,
+                "quantity" to stockItem.quantity,
+                "productId" to stockItem.productId
+            )
+            stockItem.campaignId?.let { stockItemMap["campaignId"] = it }
+            stockItem.expirationDate?.let { stockItemMap["expirationDate"] = it }
+            
+            val docRef = itemsCollection.add(stockItemMap).await()
             Log.d("ProductRepository", "Stock item saved with ID: ${docRef.id}")
             docRef.id
         } catch (e: Exception) {

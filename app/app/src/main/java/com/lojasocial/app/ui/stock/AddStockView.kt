@@ -55,6 +55,7 @@ import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
+import com.lojasocial.app.data.model.ProductCategory
 
 @Composable
 fun AddStockScreen(
@@ -271,13 +272,7 @@ fun ScanStepScreen(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Adicionar manualmente",
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                
+            ) {                
                 Button(
                     onClick = { onBarcodeScanned("MANUAL") },
                     colors = ButtonDefaults.buttonColors(
@@ -313,6 +308,9 @@ fun FormStepScreen(
     // Form fields
     val barcode by viewModel.barcode.collectAsState()
     val productName by viewModel.productName.collectAsState()
+    val productBrand by viewModel.productBrand.collectAsState()
+    val productCategory by viewModel.productCategory.collectAsState()
+    val productImageUrl by viewModel.productImageUrl.collectAsState()
     val quantity by viewModel.quantity.collectAsState()
     val expiryDate by viewModel.expiryDate.collectAsState()
     val campaign by viewModel.campaign.collectAsState()
@@ -327,6 +325,9 @@ fun FormStepScreen(
     
     // Campaign dropdown state
     var campaignExpanded by remember { mutableStateOf(false) }
+    
+    // Category dropdown state
+    var categoryExpanded by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -356,7 +357,7 @@ fun FormStepScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Product info card with editable name
+        // Product info card with editable fields
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = ScanBlue.copy(alpha = 0.1f))
@@ -441,6 +442,64 @@ fun FormStepScreen(
                 }
             }
         }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Brand field
+        OutlinedTextField(
+            value = productBrand,
+            onValueChange = { viewModel.onProductBrandChanged(it) },
+            label = { Text("Marca") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Category dropdown
+        ExposedDropdownMenuBox(
+            expanded = categoryExpanded,
+            onExpandedChange = { categoryExpanded = !categoryExpanded }
+        ) {
+            OutlinedTextField(
+                value = ProductCategory.fromId(productCategory)?.displayName ?: "Alimentar",
+                onValueChange = {},
+                label = { Text("Categoria") },
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isLoading
+            )
+            
+            ExposedDropdownMenu(
+                expanded = categoryExpanded,
+                onDismissRequest = { categoryExpanded = false }
+            ) {
+                ProductCategory.getAllCategories().forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.displayName) },
+                        onClick = {
+                            viewModel.onProductCategoryChanged(category.id)
+                            categoryExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Image URL field
+        OutlinedTextField(
+            value = productImageUrl,
+            onValueChange = { viewModel.onProductImageUrlChanged(it) },
+            label = { Text("URL da Imagem") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading,
+            placeholder = { Text("https://exemplo.com/imagem.jpg") }
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Quantity field
         OutlinedTextField(
