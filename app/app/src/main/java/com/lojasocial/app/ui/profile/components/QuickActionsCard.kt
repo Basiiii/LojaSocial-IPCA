@@ -1,0 +1,75 @@
+package com.lojasocial.app.ui.profile.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.SupportAgent
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.lojasocial.app.repository.UserProfile
+import com.lojasocial.app.ui.theme.BrandBlue
+import com.lojasocial.app.ui.theme.BrandPurple
+
+/**
+ * Quick actions card containing support, calendar, and applications options.
+ * 
+ * This component displays the main navigation options from the profile screen
+ * in a single card with dividers between options. It provides quick access
+ * to support, calendar, and applications functionality (for beneficiaries).
+ * 
+ * @param userProfile The user profile data to determine if applications should be shown
+ * @param onSupportClick Callback invoked when support option is clicked
+ * @param onCalendarClick Callback invoked when calendar option is clicked
+ * @param onApplicationsClick Callback invoked when applications option is clicked
+ */
+@Composable
+fun QuickActionsCard(
+    userProfile: UserProfile?,
+    onSupportClick: () -> Unit,
+    onCalendarClick: () -> Unit,
+    onApplicationsClick: () -> Unit = {}
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            ProfileOption(
+                icon = Icons.Default.SupportAgent,
+                title = "Suporte",
+                subtitle = "FAQs e chat de ajuda",
+                iconColor = BrandBlue,
+                onClick = onSupportClick
+            )
+            
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+            
+            ProfileOption(
+                icon = Icons.Default.DateRange,
+                title = "Calendário",
+                subtitle = "Ver eventos e atividades",
+                iconColor = BrandPurple,
+                onClick = onCalendarClick
+            )
+            
+            if (userProfile?.isBeneficiary == true) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+                
+                ProfileOption(
+                    icon = Icons.Default.Assignment,
+                    title = "Minhas Candidaturas",
+                    subtitle = "Ver e gerir as tuas candidaturas",
+                    iconColor = Color(0xFF10B981),
+                    onClick = onApplicationsClick
+                )
+            }
+        }
+    }
+}

@@ -19,6 +19,7 @@ import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.stock.AddStockScreen
 import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
+import kotlinx.coroutines.flow.flow
 
 @Composable
 fun EmployeePortalView(
@@ -65,7 +66,8 @@ fun EmployeePortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onTabSelected = { selectedTab = it }
                 )
             }
 
@@ -143,7 +145,7 @@ fun EmployeeScreenPreview() {
         }
 
         val mockUserRepository = object : UserRepository {
-            override suspend fun getUserProfile(uid: String) = kotlinx.coroutines.flow.flow {
+            override suspend fun getUserProfile(uid: String) = flow {
                 emit(
                     UserProfile(
                         uid = "preview",
@@ -155,7 +157,7 @@ fun EmployeeScreenPreview() {
                 )
             }
 
-            override suspend fun getCurrentUserProfile() = kotlinx.coroutines.flow.flow {
+            override suspend fun getCurrentUserProfile() = flow {
                 emit(
                     UserProfile(
                         uid = "preview",

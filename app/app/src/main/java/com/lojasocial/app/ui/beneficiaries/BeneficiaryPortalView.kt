@@ -11,12 +11,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
+import kotlinx.coroutines.flow.flow
 
 @Composable
 fun BeneficiaryPortalView(
@@ -72,7 +74,8 @@ fun BeneficiaryPortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    onLogout = onLogout
+                    onLogout = onLogout,
+                    onTabSelected = { selectedTab = it }
                 )
             }
 
@@ -141,7 +144,7 @@ fun BeneficiaryPortalView(
 @Composable
 fun BeneficiaryPreview() {
     MaterialTheme {
-        val mockAuthRepository = object : com.lojasocial.app.repository.AuthRepository {
+        val mockAuthRepository = object : AuthRepository {
             override suspend fun signIn(email: String, password: String) = TODO()
             override suspend fun signUp(email: String, password: String) = TODO()
             override suspend fun signOut() = TODO()
@@ -149,10 +152,10 @@ fun BeneficiaryPreview() {
             override fun isUserLoggedIn() = TODO()
         }
 
-        val mockUserRepository = object : com.lojasocial.app.repository.UserRepository {
-            override suspend fun getUserProfile(uid: String) = kotlinx.coroutines.flow.flow {
+        val mockUserRepository = object : UserRepository {
+            override suspend fun getUserProfile(uid: String) = flow {
                 emit(
-                    com.lojasocial.app.repository.UserProfile(
+                    UserProfile(
                         uid = "preview",
                         email = "preview@lojasocial.pt",
                         name = "Preview User",
@@ -162,9 +165,9 @@ fun BeneficiaryPreview() {
                 )
             }
 
-            override suspend fun getCurrentUserProfile() = kotlinx.coroutines.flow.flow {
+            override suspend fun getCurrentUserProfile() = flow {
                 emit(
-                    com.lojasocial.app.repository.UserProfile(
+                    UserProfile(
                         uid = "preview",
                         email = "preview@lojasocial.pt",
                         name = "Preview User",
@@ -174,8 +177,8 @@ fun BeneficiaryPreview() {
                 )
             }
 
-            override suspend fun updateProfile(profile: com.lojasocial.app.repository.UserProfile) = TODO()
-            override suspend fun createProfile(profile: com.lojasocial.app.repository.UserProfile) = TODO()
+            override suspend fun updateProfile(profile: UserProfile) = TODO()
+            override suspend fun createProfile(profile: UserProfile) = TODO()
         }
 
         BeneficiaryPortalView(
