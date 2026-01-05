@@ -15,6 +15,8 @@ import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
+import com.lojasocial.app.ui.support.SupportView
+import com.lojasocial.app.ui.chat.ChatView
 
 @Composable
 fun BeneficiaryPortalView(
@@ -26,6 +28,7 @@ fun BeneficiaryPortalView(
     userRepository: UserRepository
 ) {
     var selectedTab by remember { mutableStateOf("home") }
+    var isChatOpen by remember { mutableStateOf(false) }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -46,7 +49,9 @@ fun BeneficiaryPortalView(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    QuickActionsSection()
+                    QuickActionsSection(
+                    onSupportClick = { selectedTab = "support" }
+                )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -68,11 +73,26 @@ fun BeneficiaryPortalView(
             "support" -> {
                 Box(
                     modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .then(
+                            if (isChatOpen) {
+                                Modifier
+                            } else {
+                                Modifier.padding(paddingValues)
+                            }
+                        )
                 ) {
-                    Text("Suporte (por implementar)")
+                    if (isChatOpen) {
+                        ChatView(
+                            embeddedInAppLayout = false,
+                            onClose = { isChatOpen = false }
+                        )
+                    } else {
+                        SupportView(
+                            onStartChat = { isChatOpen = true },
+                            showTopBar = false
+                        )
+                    }
                 }
             }
 
@@ -92,8 +112,15 @@ fun BeneficiaryPortalView(
     if (useAppLayout) {
         AppLayout(
             selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
+            onTabSelected = {
+                selectedTab = it
+                if (it != "support") {
+                    isChatOpen = false
+                }
+            },
             subtitle = "Portal Beneficiários",
+            showTopBar = !(selectedTab == "support" && isChatOpen),
+            showBottomBar = !(selectedTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
             onPortalSelectionClick = onPortalSelectionClick
         ) { paddingValues ->
