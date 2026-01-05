@@ -8,7 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.lojasocial.app.ui.theme.BrandGreen
+import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
 @Composable
 fun BottomNavigationBar(
@@ -25,8 +25,8 @@ fun BottomNavigationBar(
             selected = selectedTab == "home",
             onClick = { onTabSelected("home") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = BrandGreen,
-                selectedTextColor = BrandGreen,
+                selectedIconColor = LojaSocialPrimary,
+                selectedTextColor = LojaSocialPrimary,
                 indicatorColor = Color(0xFFDCFCE7)
             )
         )
@@ -36,8 +36,8 @@ fun BottomNavigationBar(
             selected = selectedTab == "support",
             onClick = { onTabSelected("support") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = BrandGreen,
-                selectedTextColor = BrandGreen,
+                selectedIconColor = LojaSocialPrimary,
+                selectedTextColor = LojaSocialPrimary,
                 indicatorColor = Color(0xFFDCFCE7)
             )
         )
@@ -47,8 +47,8 @@ fun BottomNavigationBar(
             selected = selectedTab == "calendar",
             onClick = { onTabSelected("calendar") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = BrandGreen,
-                selectedTextColor = BrandGreen,
+                selectedIconColor = LojaSocialPrimary,
+                selectedTextColor = LojaSocialPrimary,
                 indicatorColor = Color(0xFFDCFCE7)
             )
         )
@@ -58,8 +58,8 @@ fun BottomNavigationBar(
             selected = selectedTab == "profile",
             onClick = { onTabSelected("profile") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = BrandGreen,
-                selectedTextColor = BrandGreen,
+                selectedIconColor = LojaSocialPrimary,
+                selectedTextColor = LojaSocialPrimary,
                 indicatorColor = Color(0xFFDCFCE7)
             )
         )
