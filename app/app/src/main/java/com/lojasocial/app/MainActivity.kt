@@ -60,8 +60,8 @@ class MainActivity : ComponentActivity() {
             userProfile.isAdmin && userProfile.isBeneficiary -> "portalSelection"
             !userProfile.isAdmin && !userProfile.isBeneficiary -> "nonBeneficiaryPortal"
             userProfile.isAdmin -> "employeePortal"
-            // No roles means login
-            else -> "beneficiaryPortal"
+            userProfile.isBeneficiary -> "beneficiaryPortal"
+            else -> "login" // No roles means login
         }
     }
 
@@ -227,11 +227,11 @@ class MainActivity : ComponentActivity() {
                                 route = "applicationFlow"
                             ) {
                                 composable("applicationPage1") {
-                                    val parentEntry = remember(navController) {
-                                        navController.getBackStackEntry("applicationFlow")
+                                    val parentEntry = remember {
+                                        navController.currentBackStackEntry
                                     }
                                     val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
-                                        androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
+                                        androidx.hilt.navigation.compose.hiltViewModel(viewModelStoreOwner = parentEntry!!)
                                     CandidaturaPersonalInfoView(
                                         navController = navController,
                                         onNavigateNext = {
@@ -241,11 +241,11 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable("applicationPage2") {
-                                    val parentEntry = remember(navController) {
-                                        navController.getBackStackEntry("applicationFlow")
+                                    val parentEntry = remember {
+                                        navController.currentBackStackEntry
                                     }
                                     val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
-                                        androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
+                                        androidx.hilt.navigation.compose.hiltViewModel(viewModelStoreOwner = parentEntry!!)
                                     CandidaturaAcademicDataView(
                                         onNavigateBack = {
                                             navController.navigateUp()
@@ -257,11 +257,11 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable("applicationPage3") {
-                                    val parentEntry = remember(navController) {
-                                        navController.getBackStackEntry("applicationFlow")
+                                    val parentEntry = remember {
+                                        navController.currentBackStackEntry
                                     }
                                     val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
-                                        androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
+                                        androidx.hilt.navigation.compose.hiltViewModel(viewModelStoreOwner = parentEntry!!)
                                     CandidaturaDocumentsView(
                                         onNavigateBack = {
                                             navController.navigateUp()
