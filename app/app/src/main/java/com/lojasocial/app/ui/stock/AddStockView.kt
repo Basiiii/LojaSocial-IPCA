@@ -11,7 +11,6 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,8 +19,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -34,14 +33,11 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,9 +46,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import com.lojasocial.app.R
 import java.util.Calendar
-import java.util.Date
 import java.util.concurrent.Executors
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
@@ -61,16 +55,13 @@ import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
-import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddStockScreen(
     onNavigateBack: () -> Unit,
     viewModel: AddStockViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     
     // State for step navigation
     var currentStep by remember { mutableStateOf("scan") } // "scan" or "form"
@@ -81,13 +72,6 @@ fun AddStockScreen(
     // UI State
     val uiState by viewModel.uiState.collectAsState()
     val productData by viewModel.productData.collectAsState()
-    
-    // Debug isLoading changes
-    LaunchedEffect(uiState.isLoading) {
-        Log.e("AddStockView_DEBUG", "=== ISLOADING STATE CHANGED ===")
-        Log.e("AddStockView_DEBUG", "New isLoading: ${uiState.isLoading}")
-        Log.e("AddStockView_DEBUG", "Manual mode: ${viewModel.isManualMode.value}")
-    }
     
     // Auto-advance to form when product is successfully loaded or manual entry 
     LaunchedEffect(productData, isManualAddition) {
@@ -170,8 +154,7 @@ fun AddStockScreen(
             onNavigateBack = { 
                 currentStep = "scan"
                 isManualAddition = false
-            },
-            onBackToHome = onNavigateBack
+            }
         )
     }
 }
@@ -182,7 +165,6 @@ fun ScanStepScreen(
     onBarcodeScanned: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     
     // Camera and barcode scanning state
     var hasCameraPermission by remember { mutableStateOf(false) }
@@ -216,7 +198,6 @@ fun ScanStepScreen(
             CameraPreview(
                 onBarcodeDetected = onBarcodeScanned,
                 isFlashOn = isFlashOn,
-                onFlashToggle = { isFlashOn = !isFlashOn }
             )
         } else {
             Box(
@@ -256,7 +237,7 @@ fun ScanStepScreen(
                     .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White
                 )
@@ -324,14 +305,10 @@ fun FormStepScreen(
     uiState: AddStockUiState,
     productData: com.lojasocial.app.data.model.Product?,
     onNavigateBack: () -> Unit,
-    onBackToHome: () -> Unit
 ) {
     Log.e("AddStockView_DEBUG", "=== FORM STEP SCREEN CALLED ===")
     Log.e("AddStockView_DEBUG", "isLoading: ${uiState.isLoading}")
-    Log.e("AddStockView_DEBUG", "isManualMode: ${viewModel.isManualMode.value}")
-    
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    Log.e("AddStockView_DEBUG", "isManualMode: ${viewModel.isManualMode.collectAsState().value}")
     
     // Form fields
     val barcode by viewModel.barcode.collectAsState()
@@ -364,7 +341,7 @@ fun FormStepScreen(
         ) {
             IconButton(onClick = onNavigateBack) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back to Scanner"
                 )
             }
@@ -584,7 +561,8 @@ fun FormStepScreen(
                 viewModel.addToStock() 
             },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading && quantity.isNotEmpty() && quantity.toIntOrNull() ?: 0 > 0
+            enabled = !uiState.isLoading && quantity.isNotEmpty() && (quantity.toIntOrNull()
+                ?: 0) > 0
         ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(
@@ -629,7 +607,6 @@ fun FormStepScreen(
 fun CameraPreview(
     onBarcodeDetected: (String) -> Unit,
     isFlashOn: Boolean,
-    onFlashToggle: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -693,6 +670,7 @@ fun CameraPreview(
     )
 }
 
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
 private fun processImageProxy(
     imageProxy: ImageProxy,
     barcodeScanner: BarcodeScanner,
@@ -809,9 +787,9 @@ fun DatePickerDialog(
     onDismiss: () -> Unit
 ) {
     val calendar = Calendar.getInstance()
-    var currentYear by remember { mutableStateOf(calendar.get(Calendar.YEAR)) }
-    var currentMonth by remember { mutableStateOf(calendar.get(Calendar.MONTH)) } // 0-based
-    var currentDay by remember { mutableStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
+    var currentYear by remember { mutableIntStateOf(calendar.get(Calendar.YEAR)) }
+    var currentMonth by remember { mutableIntStateOf(calendar.get(Calendar.MONTH)) } // 0-based
+    var currentDay by remember { mutableIntStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -845,7 +823,7 @@ fun DatePickerDialog(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Mês Anterior",
                             tint = Color.White
                         )
@@ -869,7 +847,7 @@ fun DatePickerDialog(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Próximo Mês",
                             tint = Color.White
                         )
@@ -902,7 +880,7 @@ fun DatePickerDialog(
                 
                 // Generate calendar weeks
                 val calendarDays = mutableListOf<List<Int>>()
-                var currentWeek = mutableListOf<Int>()
+                val currentWeek = mutableListOf<Int>()
                 
                 // Add empty cells for days before month starts
                 repeat(firstDayOfWeek) {
