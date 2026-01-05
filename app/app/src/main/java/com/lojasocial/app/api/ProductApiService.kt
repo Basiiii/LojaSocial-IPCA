@@ -5,7 +5,7 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 data class BarcodeApiResponse(
-    val products: List<BarcodeProduct>
+    val products: List<BarcodeProduct>? = null
 )
 
 data class BarcodeProduct(
