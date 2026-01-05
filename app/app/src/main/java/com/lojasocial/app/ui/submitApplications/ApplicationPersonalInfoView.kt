@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.SubmitApplications
+package com.lojasocial.app.ui.submitApplications
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,9 +22,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.lojasocial.app.ui.SubmitApplications.components.ApplicationHeader
-import com.lojasocial.app.ui.SubmitApplications.components.CustomLabelInput
-import com.lojasocial.app.ui.SubmitApplications.components.PhoneInputField
+import com.lojasocial.app.ui.submitApplications.components.ApplicationHeader
+import com.lojasocial.app.ui.submitApplications.components.CustomLabelInput
+import com.lojasocial.app.ui.submitApplications.components.PhoneInputField
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 import java.text.SimpleDateFormat

@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.SubmitApplications.components
+package com.lojasocial.app.ui.submitApplications.components
 
 import android.content.Context
 import android.net.Uri

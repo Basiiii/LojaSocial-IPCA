@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.SubmitApplications
+package com.lojasocial.app.ui.submitApplications
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,9 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
-import com.lojasocial.app.ui.SubmitApplications.components.ApplicationHeader
-import com.lojasocial.app.ui.SubmitApplications.components.CustomLabelInput
-import com.lojasocial.app.ui.SubmitApplications.components.DropdownInputField
+import com.lojasocial.app.ui.submitApplications.components.ApplicationHeader
+import com.lojasocial.app.ui.submitApplications.components.CustomLabelInput
+import com.lojasocial.app.ui.submitApplications.components.DropdownInputField
 import com.lojasocial.app.ui.theme.ButtonGray
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel

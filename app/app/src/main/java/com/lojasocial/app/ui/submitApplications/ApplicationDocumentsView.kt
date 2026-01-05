@@ -1,4 +1,4 @@
-package com.lojasocial.app.ui.SubmitApplications
+package com.lojasocial.app.ui.submitApplications
 
 import android.content.Context
 import androidx.compose.foundation.background
@@ -22,9 +22,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.lojasocial.app.domain.ApplicationDocument
-import com.lojasocial.app.ui.SubmitApplications.components.ApplicationHeader
-import com.lojasocial.app.ui.SubmitApplications.components.DocumentUi
-import com.lojasocial.app.ui.SubmitApplications.components.DocumentUploadCard
+import com.lojasocial.app.ui.submitApplications.components.ApplicationHeader
+import com.lojasocial.app.ui.submitApplications.components.DocumentUi
+import com.lojasocial.app.ui.submitApplications.components.DocumentUploadCard
 import com.lojasocial.app.ui.theme.ButtonGray
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
@@ -216,7 +216,7 @@ fun CandidaturaDocumentsView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                color = com.lojasocial.app.ui.SubmitApplications.components.TextGray
+                color = com.lojasocial.app.ui.submitApplications.components.TextGray
             )
 
             Spacer(modifier = Modifier.height(24.dp))
