@@ -238,7 +238,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             navigation(
-                                startDestination = "applicationPage1",
+                                startDestination = "applicationPage1", //TODO: Change to the new names
                                 route = "applicationFlow"
                             ) {
                                 composable("applicationPage1") {
@@ -341,38 +341,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
-    }
-
-    @Composable
-    fun SupportView(paddingValues: PaddingValues) {
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Help,
-                contentDescription = "Support",
-                modifier = Modifier.size(64.dp),
-                tint = TextGray
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Suporte",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Em breve disponível",
-                fontSize = 16.sp,
-                color = TextGray
-            )
         }
     }
 
