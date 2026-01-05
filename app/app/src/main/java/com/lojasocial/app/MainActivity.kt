@@ -38,6 +38,16 @@ import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 import dagger.hilt.android.AndroidEntryPoint
+import com.lojasocial.app.ui.login.LoginScreen
+import com.lojasocial.app.ui.employees.EmployeePortalView
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
+import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
+import com.lojasocial.app.ui.portalselection.PortalSelectionView
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineScope
