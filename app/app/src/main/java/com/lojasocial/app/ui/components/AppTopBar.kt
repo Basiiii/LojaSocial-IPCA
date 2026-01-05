@@ -1,6 +1,8 @@
 package com.lojasocial.app.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -13,12 +15,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.outlined.Apps
+import com.lojasocial.app.R
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
@@ -38,10 +43,16 @@ fun AppTopBar(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF064E3B)),
+                        .background(Color(0xFF064E3B))
+                        .let { if (showPortalSelection && onPortalSelectionClick != null) it.clickable { onPortalSelectionClick() } else it },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Favorite, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Image(
+                        painter = painterResource(R.drawable.loja_social_small),
+                        contentDescription = "Logo",
+                        modifier = Modifier.size(40.dp),
+                        contentScale = ContentScale.Crop
+                    )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
 
@@ -52,15 +63,6 @@ fun AppTopBar(
             }
         },
         actions = {
-            if (showPortalSelection && onPortalSelectionClick != null) {
-                IconButton(onClick = onPortalSelectionClick) {
-                    Icon(
-                        Icons.Outlined.Apps,
-                        contentDescription = "Mudar de portal",
-                        tint = TextDark
-                    )
-                }
-            }
             if (notifications) {
                 Box(modifier = Modifier.padding(end = 8.dp)) {
                     IconButton(onClick = { }) {
