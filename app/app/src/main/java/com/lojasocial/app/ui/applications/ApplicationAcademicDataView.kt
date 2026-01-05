@@ -24,24 +24,67 @@ import com.lojasocial.app.ui.theme.ButtonGray
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 
+/**
+ * Second page of the scholarship application form - Academic Information.
+ * 
+ * This composable displays the academic information section of the scholarship
+ * application form. It collects details about the applicant's academic pursuits,
+ * including degree program, student identification, and financial support status.
+ * 
+ * Features:
+ * - Collects academic information (degree, course, student number)
+ * - Captures financial support details (FAES support, other scholarships)
+ * - Provides dropdown selections for standardized options
+ * - Maintains form state using ViewModel with StateFlow
+ * - Supports bidirectional navigation between form pages
+ * - Uses Portuguese labels and options for user interface
+ * - Handles Boolean to String conversion for dropdown compatibility
+ * 
+ * @param onNavigateBack Callback for navigating to previous form page
+ * @param onNavigateNext Callback for navigating to next form page
+ * @param viewModel ViewModel for managing form state and business logic
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CandidaturaStep2View(
+fun CandidaturaAcademicDataView(
     onNavigateBack: () -> Unit = {},
     onNavigateNext: () -> Unit = {},
     viewModel: ApplicationViewModel = hiltViewModel()
 ) {
-    // Observe form data from ViewModel
+    /**
+     * Collects the current form data from the ViewModel.
+     */
     val formData by viewModel.formData.collectAsState()
 
-    // Initialize state from ViewModel formData
+    /**
+     * Local state for storing the selected academic degree.
+     */
     var academicDegree by remember { mutableStateOf(formData.academicDegree) }
+
+    /**
+     * Local state for storing the selected course.
+     */
     var course by remember { mutableStateOf(formData.course) }
+
+    /**
+     * Local state for storing the student number.
+     */
     var studentNumber by remember { mutableStateOf(formData.studentNumber) }
+
+    /**
+     * Local state for storing FAES support status (converted from Boolean to "Sim"/"Não").
+     */
     var faesSupport by remember { mutableStateOf(formData.faesSupport?.let { if (it) "Sim" else "Não" } ?: "") }
+
+    /**
+     * Local state for storing scholarship status (converted from Boolean to "Sim"/"Não").
+     */
     var hasScholarship by remember { mutableStateOf(formData.hasScholarship?.let { if (it) "Sim" else "Não" } ?: "") }
 
-    // Sync local state with ViewModel formData when it changes
+    /**
+     * Synchronizes local state with ViewModel data when form data changes.
+     * This ensures consistency between UI state and ViewModel state.
+     */
     LaunchedEffect(formData) {
         academicDegree = formData.academicDegree
         course = formData.course
@@ -50,8 +93,19 @@ fun CandidaturaStep2View(
         hasScholarship = formData.hasScholarship?.let { if (it) "Sim" else "Não" } ?: ""
     }
 
+    /**
+     * Available academic degree options for the dropdown.
+     */
     val degreesList = listOf("Licenciatura", "Mestrado", "CTeSP", "Pós-Graduação")
+
+    /**
+     * Available course options for the dropdown.
+     */
     val coursesList = listOf("Engenharia Informática", "Design Gráfico", "Gestão", "Solicitadoria")
+
+    /**
+     * Standard yes/no options for boolean questions.
+     */
     val yesNoList = listOf("Sim", "Não")
 
     Scaffold(
@@ -185,6 +239,6 @@ fun CandidaturaStep2View(
 @Composable
 fun CandidaturaStep2Preview() {
     MaterialTheme {
-        CandidaturaStep2View( onNavigateBack = {}, onNavigateNext = {}, viewModel = hiltViewModel())
+        CandidaturaAcademicDataView( onNavigateBack = {}, onNavigateNext = {}, viewModel = hiltViewModel())
     }
 }

@@ -18,8 +18,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
+/**
+ * Gray color used for text elements in the application form.
+ * 
+ * This color provides better readability and visual hierarchy
+ * for labels and secondary text elements.
+ */
 val TextGray = Color(0xFF455A64)
 
+/**
+ * Custom text input field with label for the application form.
+ * 
+ * This composable provides a standardized input field with a label,
+ * placeholder text, and consistent styling across the application.
+ * It supports different keyboard types and maintains the app's visual theme.
+ * 
+ * @param label The descriptive label displayed above the input field
+ * @param value The current value of the input field
+ * @param onValueChange Callback invoked when the input value changes
+ * @param placeholder The placeholder text displayed when the field is empty
+ * @param keyboardType The type of keyboard to show for this input field
+ */
 @Composable
 fun CustomLabelInput(
     label: String,
@@ -51,6 +70,17 @@ fun CustomLabelInput(
     }
 }
 
+/**
+ * Phone number input field with Portuguese country code prefix.
+ * 
+ * This composable provides a specialized input field for phone numbers
+ * with the Portuguese country code (+351) pre-fixed. It uses phone keyboard
+ * type for better user experience on mobile devices.
+ * 
+ * @param value The current phone number value (without country code)
+ * @param onValueChange Callback invoked when the phone number changes
+ * @param placeholder Placeholder text for the phone input field
+ */
 @Composable
 fun PhoneInputField(
     value: String,
@@ -85,6 +115,16 @@ fun PhoneInputField(
     )
 }
 
+/**
+ * Header component for application form pages.
+ * 
+ * This composable provides a consistent header layout for all pages
+ * of the scholarship application form, displaying the page title
+ * and current page number for user orientation.
+ * 
+ * @param title The title of the current application page
+ * @param pageNumber The current page number (e.g., "Página 1 de 3")
+ */
 @Composable
 fun ApplicationHeader(
     title: String,

@@ -28,12 +28,41 @@ import com.lojasocial.app.ui.theme.PurpleIcon
 import com.lojasocial.app.ui.theme.PurpleLight
 import com.lojasocial.app.ui.theme.RedDelete
 
+/**
+ * UI representation of a document in the application form.
+ * 
+ * This data class represents a document that can be uploaded as part
+ * of the scholarship application. It contains the document's display name
+ * and the URI of the selected file (null if not yet uploaded).
+ * 
+ * @property id Unique identifier for the document within the application
+ * @property name Display name of the document (e.g., "Comprovativo de Inscrição no IPCA")
+ * @property uri URI of the selected file (null if no file has been selected)
+ */
 data class DocumentUi(
     val id: Int,
     val name: String,
     val uri: Uri? = null
 )
 
+/**
+ * Card component for document upload in the application form.
+ * 
+ * This composable provides a card interface for uploading and managing
+ * documents required for the scholarship application. It handles file selection,
+ * display of uploaded files, and deletion of uploaded files.
+ * 
+ * Features:
+ * - Shows document name and upload status
+ * - Allows file selection through system file picker
+ * - Displays uploaded file name when available
+ * - Provides delete functionality for uploaded files
+ * - Uses consistent styling with the application theme
+ * 
+ * @param document The document data to display and manage
+ * @param onDelete Callback invoked when the user wants to delete the uploaded file
+ * @param onUpload Callback invoked with the selected file URI when a file is chosen
+ */
 @Composable
 fun DocumentUploadCard(
     document: DocumentUi,

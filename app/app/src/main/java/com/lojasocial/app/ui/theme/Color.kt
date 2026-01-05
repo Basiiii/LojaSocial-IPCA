@@ -26,8 +26,8 @@ val BrandBlue = Color(0xFF2563EB)
 val TextDark = Color(0xFF1F2937)
 val TextGray = Color(0xFF6B7280)
 val ButtonGray = Color(0xFFCFD8DC)
-val PurpleLight = Color(0xFFF3E5F5) // Fundo lilás claro
-val PurpleIcon = Color(0xFF7B1FA2)  // Ícone/Texto lilás escuro
-val RedDelete = Color(0xFFE53935)   // Vermelho para o lixo
+val PurpleLight = Color(0xFFF3E5F5)
+val PurpleIcon = Color(0xFF7B1FA2)
+val RedDelete = Color(0xFFE53935)
 
 val BrandOrange = Color(0xFFD97706)

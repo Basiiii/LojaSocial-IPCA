@@ -15,6 +15,18 @@ import kotlinx.coroutines.launch
 import java.util.Date
 import javax.inject.Inject
 
+/**
+ * UI state for the scholarship application screen.
+ * 
+ * This data class represents the current state of the application UI,
+ * including loading states, submission status, and any error messages.
+ * 
+ * @property isLoading Whether the application is currently loading data
+ * @property isSubmitting Whether the application is currently being submitted
+ * @property submissionSuccess Whether the last submission was successful
+ * @property submissionError Error message from the last submission attempt
+ * @property applications List of applications for the current user
+ */
 data class ApplicationUiState(
     val isLoading: Boolean = false,
     val isSubmitting: Boolean = false,
@@ -23,6 +35,25 @@ data class ApplicationUiState(
     val applications: List<Application> = emptyList()
 )
 
+/**
+ * Form data for the scholarship application.
+ * 
+ * This data class contains all the field values for the application form.
+ * It is stored in a StateFlow to persist data across navigation between
+ * different pages of the application form.
+ * 
+ * @property name Applicant's full name
+ * @property dateOfBirth Applicant's date of birth
+ * @property idPassport ID card or passport number
+ * @property email Applicant's email address
+ * @property phone Applicant's phone number
+ * @property academicDegree Academic degree being pursued
+ * @property course Specific course or program
+ * @property studentNumber Student identification number
+ * @property faesSupport Whether applicant receives FAES support
+ * @property hasScholarship Whether applicant has other scholarships
+ * @property documents List of supporting documents
+ */
 data class FormData(
     val name: String = "",
     val dateOfBirth: Date? = null,
@@ -37,6 +68,27 @@ data class FormData(
     val documents: List<ApplicationDocument> = emptyList()
 )
 
+/**
+ * ViewModel for managing scholarship application state and operations.
+ * 
+ * This ViewModel handles the business logic for the scholarship application
+ * process, including form data management, validation, submission, and state
+ * persistence across navigation. It uses StateFlow to provide reactive updates
+ * to the UI and integrates with the ApplicationRepository for data operations.
+ * 
+ * Key features:
+ * - Manages form data across multiple pages using StateFlow
+ * - Provides delegated properties for easy UI binding
+ * - Handles form validation with Portuguese error messages
+ * - Manages document upload and file operations
+ * - Provides loading and submission states
+ * 
+ * @param applicationRepository Repository for application data operations
+ * 
+ * @see ApplicationRepository The repository used for data operations
+ * @see FormData The form data structure
+ * @see ApplicationUiState The UI state structure
+ */
 @HiltViewModel
 class ApplicationViewModel @Inject constructor(
     private val applicationRepository: ApplicationRepository

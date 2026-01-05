@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.remember
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
@@ -27,11 +26,10 @@ import androidx.navigation.compose.rememberNavController
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.ui.applications.CandidaturaStep1View
-import com.lojasocial.app.ui.applications.CandidaturaStep2View
-import com.lojasocial.app.ui.applications.CandidaturaStep3View
+import com.lojasocial.app.ui.applications.CandidaturaPersonalInfoView
+import com.lojasocial.app.ui.applications.CandidaturaAcademicDataView
+import com.lojasocial.app.ui.applications.CandidaturaDocumentsView
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
-import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.employees.EmployeePortalView
 import com.lojasocial.app.ui.login.LoginScreen
 import com.lojasocial.app.ui.nonbeneficiaries.NonBeneficiaryPortalView
@@ -234,7 +232,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
                                         androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
-                                    CandidaturaStep1View(
+                                    CandidaturaPersonalInfoView(
                                         navController = navController,
                                         onNavigateNext = {
                                             navController.navigate("applicationPage2")
@@ -248,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
                                         androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
-                                    CandidaturaStep2View(
+                                    CandidaturaAcademicDataView(
                                         onNavigateBack = {
                                             navController.navigateUp()
                                         },
@@ -264,7 +262,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                     val viewModel: com.lojasocial.app.ui.viewmodel.ApplicationViewModel = 
                                         androidx.hilt.navigation.compose.hiltViewModel(parentEntry)
-                                    CandidaturaStep3View(
+                                    CandidaturaDocumentsView(
                                         onNavigateBack = {
                                             navController.navigateUp()
                                         },

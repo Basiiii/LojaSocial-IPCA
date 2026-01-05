@@ -30,19 +30,57 @@ import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * First page of the scholarship application form - Personal Information.
+ * 
+ * This composable displays the personal information section of the scholarship
+ * application form. It collects essential personal details including name,
+ * date of birth, identification documents, and contact information.
+ * 
+ * Features:
+ * - Collects personal information (name, date of birth, ID/Passport)
+ * - Captures contact details (email, phone)
+ * - Provides date picker for date of birth selection
+ * - Maintains form state using ViewModel with StateFlow
+ * - Supports navigation between form pages
+ * - Uses Portuguese labels and placeholders for user interface
+ * 
+ * @param navController Navigation controller for app navigation
+ * @param onNavigateBack Callback for navigating to previous screen
+ * @param onNavigateNext Callback for navigating to next form page
+ * @param viewModel ViewModel for managing form state and business logic
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CandidaturaStep1View(
+fun CandidaturaPersonalInfoView(
     navController: NavController = rememberNavController(),
     onNavigateBack: () -> Unit = {},
     onNavigateNext: () -> Unit = {},
     viewModel: ApplicationViewModel = hiltViewModel()
 ) {
+    /**
+     * Collects the current form data from the ViewModel.
+     */
     val formData by viewModel.formData.collectAsState()
 
+    /**
+     * Local state for storing the user's name.
+     */
     var name by remember { mutableStateOf(formData.name) }
+
+    /**
+     * Local state for storing the user's date of birth.
+     */
     var dateOfBirth by remember { mutableStateOf(formData.dateOfBirth) }
+
+    /**
+     * Local state for storing the user's ID or Passport number.
+     */
     var idPassport by remember { mutableStateOf(formData.idPassport) }
+
+    /**
+     * Local state for storing the user's email address.
+     */
     var email by remember { mutableStateOf(formData.email) }
     var phone by remember { mutableStateOf(formData.phone) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -224,7 +262,7 @@ fun CandidaturaStep1View(
 @Composable
 fun CandidaturaStep1Preview() {
     MaterialTheme {
-        CandidaturaStep1View(
+        CandidaturaPersonalInfoView(
             navController = rememberNavController(),
             onNavigateBack = {},
             onNavigateNext = {}

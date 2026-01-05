@@ -16,18 +16,59 @@ import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Firebase Firestore implementation of the ApplicationRepository interface.
+ * 
+ * This class handles all scholarship application data operations using Firebase Firestore
+ * as the backend data store. It manages document storage, retrieval, and file conversion
+ * operations for the scholarship application system.
+ * 
+ * Key features:
+ * - Stores applications in a hierarchical structure: users/{userId}/applications/{applicationId}
+ * - Converts document files to Base64 format for Firestore storage
+ * - Provides real-time updates using Kotlin Flow
+ * - Handles authentication and user-specific data isolation
+ * 
+ * @param firestore Firebase Firestore instance for database operations
+ * @param auth Firebase Auth instance for user authentication
+ * 
+ * @see ApplicationRepository The interface this class implements
+ * @see FileUtils Utility class for file operations
+ */
 @Singleton
 class ApplicationRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth
 ) : ApplicationRepository {
 
+    /** Android context for file operations */
     private var context: Context? = null
     
+    /**
+     * Sets the Android context required for file operations.
+     * 
+     * This context is needed to access the ContentResolver for reading
+     * file URIs and converting them to Base64 format.
+     * 
+     * @param context The Android application context
+     */
     override fun setContext(context: Context) {
         this.context = context
     }
 
+    /**
+     * Submits a new scholarship application to Firestore.
+     * 
+     * This method performs the complete submission process:
+     * 1. Validates user authentication
+     * 2. Generates a unique application ID
+     * 3. Converts all document files to Base64 format
+     * 4. Stores the application data in Firestore
+     * 5. Returns the application ID on success
+     * 
+     * @param application The complete application to submit
+     * @return Result containing the application ID if successful, or error if failed
+     */
     override suspend fun submitApplication(application: Application): Result<String> {
         return try {
             val userId = auth.currentUser?.uid
@@ -91,6 +132,15 @@ class ApplicationRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Converts a file URI to Base64 encoded string.
+     * 
+     * This method uses the FileUtils class to convert local file URIs
+     * to Base64 strings that can be stored in Firestore documents.
+     * 
+     * @param uri The URI of the file to convert
+     * @return Result containing the Base64 string if successful, or error if failed
+     */
     override suspend fun convertFileToBase64(uri: Uri): Result<String> {
         return try {
             context?.let { ctx ->
@@ -101,6 +151,17 @@ class ApplicationRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Retrieves all applications for the current authenticated user.
+     * 
+     * This method fetches all applications from the user's applications subcollection
+     * in Firestore and converts them to domain objects. The data is mapped from the
+     * Firestore document structure to the Application domain model.
+     * 
+     * Firestore structure: users/{userId}/applications/{applicationId}
+     * 
+     * @return Flow emitting a list of applications for the current user
+     */
     override fun getApplications(): Flow<List<Application>> = flow {
         try {
             val userId = auth.currentUser?.uid ?: return@flow
@@ -147,7 +208,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                             ApplicationDocument(
                                 id = (docData["id"] as? Long)?.toInt() ?: 0,
                                 name = docData["name"] as? String ?: "",
-                                uri = null, // We'll store base64 data instead
+                                uri = null, // Stored as base64
                                 fileName = docData["fileName"] as? String
                             )
                         } ?: emptyList(),
@@ -169,6 +230,15 @@ class ApplicationRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Retrieves a specific application by its unique identifier.
+     * 
+     * This method fetches a single application document from Firestore
+     * using the provided ID and converts it to the Application domain model.
+     * 
+     * @param id The unique identifier of the application
+     * @return Result containing the application if found, or error if not found
+     */
     override suspend fun getApplicationById(id: String): Result<Application> {
         return try {
             val userId = auth.currentUser?.uid
@@ -219,7 +289,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                     ApplicationDocument(
                         id = (docData["id"] as? Long)?.toInt() ?: 0,
                         name = docData["name"] as? String ?: "",
-                        uri = null, // We'll store base64 data instead
+                        uri = null, // Stored as base64
                         fileName = docData["fileName"] as? String
                     )
                 } ?: emptyList(),

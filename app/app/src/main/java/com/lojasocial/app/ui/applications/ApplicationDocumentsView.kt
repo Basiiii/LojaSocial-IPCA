@@ -1,8 +1,6 @@
 package com.lojasocial.app.ui.applications
 
 import android.content.Context
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +22,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.lojasocial.app.domain.ApplicationDocument
-import com.lojasocial.app.repository.ApplicationRepositoryImpl
 import com.lojasocial.app.ui.applications.components.ApplicationHeader
 import com.lojasocial.app.ui.applications.components.DocumentUi
 import com.lojasocial.app.ui.applications.components.DocumentUploadCard
@@ -32,23 +29,66 @@ import com.lojasocial.app.ui.theme.ButtonGray
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 
+/**
+ * Third and final page of the scholarship application form - Document Upload.
+ * 
+ * This composable displays the document upload section of the scholarship
+ * application form. It handles the collection and management of required
+ * supporting documents for the application submission.
+ * 
+ * Features:
+ * - Manages required document uploads (enrollment proof, FAES support, scholarship documents)
+ * - Provides file selection through system file picker
+ * - Displays upload status and file names
+ * - Handles document deletion and replacement
+ * - Manages form submission with loading states
+ * - Shows submission errors and success feedback
+ * - Maintains form state using ViewModel with StateFlow
+ * - Uses Portuguese labels and messages for user interface
+ * 
+ * @param onNavigateBack Callback for navigating to previous form page
+ * @param onSubmit Callback invoked when application is successfully submitted
+ * @param viewModel ViewModel for managing form state and business logic
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CandidaturaStep3View(
+fun CandidaturaDocumentsView(
     onNavigateBack: () -> Unit = {},
     onSubmit: () -> Unit = {},
     viewModel: ApplicationViewModel = hiltViewModel()
 ) {
+    /**
+     * Android context for file operations.
+     */
     val context = LocalContext.current
+    
+    /**
+     * Current UI state including loading, submission status, and errors.
+     */
     val uiState by viewModel.uiState.collectAsState()
+    
+    /**
+     * Current form data from the ViewModel.
+     */
     val formData by viewModel.formData.collectAsState()
 
-    // Set context in repository for file operations
+    /**
+     * Sets the Android context in the repository for file operations.
+     * This is required for the repository to access the ContentResolver
+     * for reading file URIs and converting them to Base64 format.
+     */
     LaunchedEffect(Unit) {
         viewModel.setContext(context)
     }
 
-    // Fixed list of required documents
+    /**
+     * Fixed list of required documents for the scholarship application.
+     * 
+     * These documents are mandatory for all scholarship applications:
+     * 1. Proof of IPCA enrollment
+     * 2. FAES support documentation
+     * 3. Scholarship documentation
+     */
     var documents by remember {
         mutableStateOf(
             listOf(
@@ -59,7 +99,12 @@ fun CandidaturaStep3View(
         )
     }
 
-    // Sync documents with ViewModel
+    /**
+     * Synchronizes the local documents state with the ViewModel.
+     * 
+     * This ensures that any changes to document URIs are reflected
+     * in the ViewModel's form data for submission.
+     */
     LaunchedEffect(documents) {
         val applicationDocuments = documents.map { doc ->
             ApplicationDocument(
@@ -71,7 +116,12 @@ fun CandidaturaStep3View(
         viewModel.documents = applicationDocuments
     }
 
-    // Handle submission success/error
+    /**
+     * Handles successful application submission.
+     * 
+     * When the submission is successful, this effect clears the submission
+     * state and invokes the onSubmit callback to navigate away from the form.
+     */
     LaunchedEffect(uiState.submissionSuccess) {
         if (uiState.submissionSuccess) {
             viewModel.clearSubmissionState()
@@ -215,6 +265,18 @@ fun CandidaturaStep3View(
     }
 }
 
+/**
+ * Utility function to extract the filename from a URI.
+ * 
+ * This function attempts to retrieve the display name of a file from its URI.
+ * It first tries to get the filename from the ContentResolver using the
+ * OpenableColumns.DISPLAY_NAME column. If that fails, it falls back to
+ * extracting the filename from the URI path.
+ * 
+ * @param context Android context for accessing ContentResolver
+ * @param uri The URI of the file to get the filename from
+ * @return The filename if found, or "Ficheiro sem nome" as a fallback
+ */
 fun getFileName(context: Context, uri: Uri): String {
     var result: String? = null
     if (uri.scheme == "content") {
@@ -245,6 +307,6 @@ fun getFileName(context: Context, uri: Uri): String {
 fun CandidaturaStep3Preview(
 ) {
     MaterialTheme {
-        CandidaturaStep3View(onNavigateBack = {}, onSubmit = {}, viewModel = hiltViewModel())
+        CandidaturaDocumentsView(onNavigateBack = {}, onSubmit = {}, viewModel = hiltViewModel())
     }
 }
