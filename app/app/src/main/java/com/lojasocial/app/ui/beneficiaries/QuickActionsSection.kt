@@ -15,14 +15,28 @@ import androidx.compose.ui.text.font.FontWeight
 import com.lojasocial.app.ui.components.ActionCard
 import com.lojasocial.app.ui.theme.BrandOrange
 
-
+/**
+ * Quick actions section component for the beneficiary portal.
+ * 
+ * This component displays a collection of action cards that provide
+ * quick access to common beneficiary functions including making orders,
+ * accessing support, and managing pickup requests. It serves as the main
+ * navigation hub for beneficiary activities.
+ * 
+ * The section includes:
+ * - Order creation functionality
+ * - Support contact access
+ * - Pickup request management with badge notifications
+ * 
+ * @param onSupportClick Callback when the user wants to access support features.
+ * @param modifier Optional modifier for styling and layout.
+ */
 @Composable
 fun QuickActionsSection(
-    onNavigateToOrders: (() -> Unit)? = null,
-    onNavigateToSupport: (() -> Unit)? = null,
-    onNavigateToPickups: (() -> Unit)? = null
+    onSupportClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = "Ações Rápidas",
             fontSize = 18.sp,
@@ -48,7 +62,7 @@ fun QuickActionsSection(
             buttonText = "Entra em Contacto",
             backgroundColor = BrandOrange,
             icon = Icons.AutoMirrored.Filled.Help,
-            onClick = { onNavigateToSupport?.invoke() }
+            onClick = onSupportClick
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -66,8 +80,17 @@ fun QuickActionsSection(
     }
 }
 
+/**
+ * Preview composable for the QuickActionsSection component.
+ * 
+ * This preview shows the quick actions section with all action cards
+ * for design and development purposes. It demonstrates the layout
+ * and styling of the beneficiary navigation options.
+ */
 @Preview(showBackground = true, heightDp = 600)
 @Composable
 fun QuickActionsSectionPreview() {
-    QuickActionsSection()
+    QuickActionsSection(
+        onSupportClick = {}
+    )
 }

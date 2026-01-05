@@ -16,6 +16,7 @@ val LojaSocialPrimary = Color(0xFF145F40)
 val LojaSocialOnPrimary = Color.White
 val LojaSocialBackground = Color(0xFFF9FAFB)
 val LojaSocialSurface = Color.White
+val LojaSocialHeaderBlue = Color(0xFFE3F2FD)
 val LojaSocialOnBackground = Color.Black
 val LojaSocialOnSurface = Color(0xFF6B7280)
 val LojaSocialOnSurfaceVariant = Color(0xFF6B7280)
@@ -41,3 +42,15 @@ val LightBlue = Color(0xFFEFF5FF)
 val ProgressFull = Color(0xFFBFFEC3)
 val BorderColor = Color(0xFFE5E7EB)
 val InactiveFilterBackground = Color(0xFFF3F4F6)
+val ButtonGray = Color(0xFFCFD8DC)
+val PurpleLight = Color(0xFFF3E5F5)
+val PurpleIcon = Color(0xFF7B1FA2)
+val CardBlue = Color(0xFF2979FF)
+val LightBorder = Color(0xFFE0E0E0)
+val TextGrey = Color(0xFF757575)
+val RedDelete = Color(0xFFE53935)
+
+// --- Chat theme colors ---
+val ChatBrandGreen = Color(0xFF1B5E46)
+val ChatBubbleGray = Color(0xFFF5F5F5)
+val ChatTextDark = Color(0xFF1A1A1A)
