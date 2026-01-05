@@ -53,8 +53,10 @@ fun BeneficiaryPortalView(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     QuickActionsSection(
-                    onSupportClick = { selectedTab = "support" }
-                )
+                        onNavigateToOrders = onNavigateToOrders ?: {},
+                        onNavigateToPickups = onNavigateToPickups ?: {},
+                        onSupportClick = { selectedTab = "support" }
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -177,7 +179,9 @@ fun BeneficiaryPreview() {
 
         BeneficiaryPortalView(
             authRepository = mockAuthRepository,
-            userRepository = mockUserRepository
+            userRepository = mockUserRepository,
+            onNavigateToOrders = {},
+            onNavigateToPickups = {}
         )
     }
 }

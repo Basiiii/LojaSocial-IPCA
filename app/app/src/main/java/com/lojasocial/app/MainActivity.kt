@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
@@ -18,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
@@ -26,33 +24,24 @@ import androidx.navigation.compose.rememberNavController
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.ui.applications.CandidaturaPersonalInfoView
 import com.lojasocial.app.ui.applications.CandidaturaAcademicDataView
 import com.lojasocial.app.ui.applications.CandidaturaDocumentsView
+import com.lojasocial.app.ui.applications.CandidaturaPersonalInfoView
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
 import com.lojasocial.app.ui.employees.EmployeePortalView
 import com.lojasocial.app.ui.login.LoginScreen
 import com.lojasocial.app.ui.nonbeneficiaries.NonBeneficiaryPortalView
 import com.lojasocial.app.ui.portalselection.PortalSelectionView
+import com.lojasocial.app.ui.requests.PendingRequestsView
+import com.lojasocial.app.ui.requestitems.RequestItemsView
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 import dagger.hilt.android.AndroidEntryPoint
-import com.lojasocial.app.ui.login.LoginScreen
-import com.lojasocial.app.ui.employees.EmployeePortalView
-import dagger.hilt.android.AndroidEntryPoint
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
-import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
-import com.lojasocial.app.ui.portalselection.PortalSelectionView
-import com.lojasocial.app.ui.requestitems.RequestItemsView
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -189,14 +178,18 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToOrders = {
                                         navController.navigate("requestItems")
                                     },
-                                    onNavigateToSupport = {
-                                        // TODO: Navigate to support screen when implemented
-                                    },
-                                    onNavigateToPickups = {
-                                        // TODO: Navigate to pickups screen when implemented
-                                    },
                                     authRepository = authRepository,
                                     userRepository = userRepository
+                                )
+                            }
+                            composable("requestItems") {
+                                RequestItemsView(
+                                    onBackClick = { navController.navigateUp() },
+                                    onSubmitClick = {
+                                        navController.navigate("beneficiaryPortal") {
+                                            popUpTo("beneficiaryPortal") { inclusive = false }
+                                        }
+                                    }
                                 )
                             }
                             composable("portalSelection") {
