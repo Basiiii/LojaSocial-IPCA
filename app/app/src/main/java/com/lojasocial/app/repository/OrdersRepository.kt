@@ -21,15 +21,15 @@ class OrdersRepositoryImpl @Inject constructor(
         return try {
             val currentUser = auth.currentUser ?: return Result.failure(Exception("User not authenticated"))
 
-            val applicationData = hashMapOf(
+            val requestsData = hashMapOf(
                 "userId" to currentUser.uid,
                 "status" to 0,
                 "submissionDate" to FieldValue.serverTimestamp(),
                 "totalItems" to selectedItems.values.sum()
             )
 
-            val documentRef = firestore.collection("applications")
-                .add(applicationData)
+            val documentRef = firestore.collection("requests")
+                .add(requestsData)
                 .await()
 
 
