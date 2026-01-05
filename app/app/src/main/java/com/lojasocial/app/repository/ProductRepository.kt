@@ -1,19 +1,60 @@
 package com.lojasocial.app.repository
 
 import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
 import com.lojasocial.app.api.BarcodeApiResponse
 import com.lojasocial.app.api.BarcodeProduct
 import com.lojasocial.app.api.ProductApiService
+import com.lojasocial.app.data.model.Product
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.tasks.await
 import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 data class ProductRepository @Inject constructor(
-    private val apiService: ProductApiService
+    private val apiService: ProductApiService,
+    private val firestore: FirebaseFirestore
 ) {
+    // Firestore operations
+    suspend fun getProductFromFirestore(barcode: String): Product? {
+        return try {
+            Log.d("ProductRepository", "Checking Firestore for barcode: $barcode")
+            val document = firestore.collection("products")
+                .document(barcode)
+                .get()
+                .await()
+            
+            if (document.exists()) {
+                Log.d("ProductRepository", "Product found in Firestore: $barcode")
+                document.toObject(Product::class.java)
+            } else {
+                Log.d("ProductRepository", "Product not found in Firestore: $barcode")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Error fetching product from Firestore", e)
+            null
+        }
+    }
+    
+    suspend fun saveProductToFirestore(barcode: String, product: Product) {
+        try {
+            Log.d("ProductRepository", "Saving product to Firestore: $barcode")
+            firestore.collection("products")
+                .document(barcode)
+                .set(product)
+                .await()
+            Log.d("ProductRepository", "Product saved successfully: $barcode")
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Error saving product to Firestore", e)
+            throw e
+        }
+    }
+    
+    // External API operations
     suspend fun getProductByBarcode(barcode: String): Result<BarcodeProduct> {
         return try {
             Log.d("ProductRepository", "Making API call for barcode: $barcode")

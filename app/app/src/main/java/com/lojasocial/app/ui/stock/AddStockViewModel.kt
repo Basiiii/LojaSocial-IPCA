@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.api.BarcodeProduct
 import com.lojasocial.app.data.model.Campaign
+import com.lojasocial.app.data.model.Product
 import com.lojasocial.app.repository.CampaignRepository
 import com.lojasocial.app.repository.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,8 +26,8 @@ class ScanStockViewModel @Inject constructor(
     val uiState: StateFlow<ScanStockUiState> = _uiState.asStateFlow()
     
     // Product data
-    private val _productData = MutableStateFlow<BarcodeProduct?>(null)
-    val productData: StateFlow<BarcodeProduct?> = _productData.asStateFlow()
+    private val _productData = MutableStateFlow<Product?>(null)
+    val productData: StateFlow<Product?> = _productData.asStateFlow()
     
     // Form fields
     private val _barcode = MutableStateFlow("")
@@ -127,37 +128,66 @@ class ScanStockViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                Log.d("ScanStockViewModel", "Making API call to repository...")
-                productRepository.getProductByBarcode(barcode)
-                    .onSuccess { product ->
-                        Log.d("ScanStockViewModel", "SUCCESS: Product data received")
-                        Log.d("ScanStockViewModel", "Product title: ${product.title}")
-                        Log.d("ScanStockViewModel", "Product brand: ${product.brand}")
-                        Log.d("ScanStockViewModel", "Product category: ${product.category}")
-                        Log.d("ScanStockViewModel", "Product description: ${product.description}")
-                        
-                        _productName.value = product.title
-                        _productData.value = product
-                        Log.d("ScanStockViewModel", "Updated product name in StateFlow: ${_productName.value}")
-                        
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = null
-                        )
-                        Log.d("ScanStockViewModel", "UI State updated with product data")
-                    }
-                    .onFailure { error ->
-                        Log.e("ScanStockViewModel", "FAILURE: Failed to fetch product data")
-                        Log.e("ScanStockViewModel", "Error message: ${error.message}")
-                        Log.e("ScanStockViewModel", "Error type: ${error::class.java.simpleName}")
-                        
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = "Product not found: ${error.message}"
-                        )
-                    }
+                Log.d("ScanStockViewModel", "First checking Firestore for barcode...")
+                
+                // First try to get from Firestore
+                val firestoreProduct = productRepository.getProductFromFirestore(barcode)
+                
+                if (firestoreProduct != null) {
+                    Log.d("ScanStockViewModel", "SUCCESS: Product found in Firestore")
+                    _productName.value = firestoreProduct.name
+                    _productData.value = firestoreProduct
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = null
+                    )
+                } else {
+                    Log.d("ScanStockViewModel", "Product not found in Firestore, calling external API...")
+                    
+                    // If not found in Firestore, call external API
+                    productRepository.getProductByBarcode(barcode)
+                        .onSuccess { apiProduct ->
+                            Log.d("ScanStockViewModel", "SUCCESS: Product data received from API")
+                            Log.d("ScanStockViewModel", "Product title: ${apiProduct.title}")
+                            Log.d("ScanStockViewModel", "Product brand: ${apiProduct.brand}")
+                            Log.d("ScanStockViewModel", "Product category: ${apiProduct.category}")
+                            Log.d("ScanStockViewModel", "Product description: ${apiProduct.description}")
+                            
+                            _productName.value = apiProduct.title
+                            
+                            // Convert API product to Firestore product format
+                            val firestoreProduct = Product(
+                                name = apiProduct.title,
+                                brand = apiProduct.brand ?: "",
+                                category = apiProduct.category ?: "",
+                                imageUrl = apiProduct.imageUrl ?: "",
+                                quantity = 0, // Will be set by user
+                                campaignId = null, // Will be set by user
+                                stockBatches = emptyMap() // Will be set when adding to stock
+                            )
+                            
+                            _productData.value = firestoreProduct
+                            Log.d("ScanStockViewModel", "Updated product name in StateFlow: ${_productName.value}")
+                            
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = null
+                            )
+                            Log.d("ScanStockViewModel", "UI State updated with product data")
+                        }
+                        .onFailure { error ->
+                            Log.e("ScanStockViewModel", "FAILURE: Failed to fetch product data from API")
+                            Log.e("ScanStockViewModel", "Error message: ${error.message}")
+                            Log.e("ScanStockViewModel", "Error type: ${error::class.java.simpleName}")
+                            
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                error = "Product not found: ${error.message}"
+                            )
+                        }
+                }
             } catch (e: Exception) {
-                Log.e("ScanStockViewModel", "EXCEPTION: Exception during API call")
+                Log.e("ScanStockViewModel", "EXCEPTION: Exception during product fetch", e)
                 Log.e("ScanStockViewModel", "Exception message: ${e.message}")
                 Log.e("ScanStockViewModel", "Exception stack trace: ${e.stackTraceToString()}")
                 
@@ -179,11 +209,52 @@ class ScanStockViewModel @Inject constructor(
     
     fun addToStock() {
         viewModelScope.launch {
-            // Implement stock addition logic
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                successMessage = "Produto adicionado com sucesso!"
-            )
+            try {
+                val currentProduct = _productData.value
+                val currentBarcode = _barcode.value
+                val quantity = _quantity.value.toIntOrNull() ?: 0
+                val expiryDate = _expiryDate.value
+                val campaignId = _campaign.value
+                
+                if (currentProduct == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "No product data available"
+                    )
+                    return@launch
+                }
+                
+                if (currentBarcode.isEmpty() || quantity <= 0 || expiryDate == "mm/dd/aaaa") {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Please fill in all required fields"
+                    )
+                    return@launch
+                }
+                
+                // Create or update product in Firestore
+                val updatedProduct = currentProduct.copy(
+                    quantity = currentProduct.quantity + quantity,
+                    campaignId = campaignId.ifEmpty { null },
+                    stockBatches = currentProduct.stockBatches + (expiryDate to quantity)
+                )
+                
+                productRepository.saveProductToFirestore(currentBarcode, updatedProduct)
+                
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    successMessage = "Produto adicionado com sucesso!"
+                )
+                
+                // Reset form
+                _quantity.value = "0"
+                _expiryDate.value = "mm/dd/aaaa"
+                _campaign.value = ""
+                
+            } catch (e: Exception) {
+                Log.e("ScanStockViewModel", "Error adding to stock", e)
+                _uiState.value = _uiState.value.copy(
+                    error = "Error adding to stock: ${e.message}"
+                )
+            }
         }
     }
 }
