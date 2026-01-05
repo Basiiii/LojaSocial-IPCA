@@ -25,7 +25,8 @@ fun BeneficiaryPortalView(
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null,
     authRepository: AuthRepository,
-    userRepository: UserRepository
+    userRepository: UserRepository,
+    onLogout: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf("home") }
     var isChatOpen by remember { mutableStateOf(false) }
@@ -66,7 +67,7 @@ fun BeneficiaryPortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    onLogout = { }
+                    onLogout = onLogout
                 )
             }
 

@@ -52,6 +52,7 @@ import com.lojasocial.app.ui.theme.CardBlue
  * @param userRepository Repository for user profile operations
  * @param onCandidaturaClick Callback for scholarship application navigation
  * @param onNavigateToApplication Callback for application form navigation
+ * @param onLogout Callback for logout navigation
  */
 @Composable
 fun NonBeneficiaryPortalView(
@@ -62,7 +63,8 @@ fun NonBeneficiaryPortalView(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     onCandidaturaClick: () -> Unit = {},
-    onNavigateToApplication: () -> Unit = {}
+    onNavigateToApplication: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     /**
      * Current selected tab state for navigation.
@@ -113,7 +115,7 @@ fun NonBeneficiaryPortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    onLogout = { }
+                    onLogout = onLogout
                 )
             }
 
