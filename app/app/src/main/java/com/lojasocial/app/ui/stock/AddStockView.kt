@@ -3,6 +3,8 @@ package com.lojasocial.app.ui.stock
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Log
+import android.view.Gravity
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
@@ -19,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -130,10 +133,17 @@ fun AddStockScreen(
         }
     }
     
-    // Show success/error messages
+    // Show success message and return to scan screen after adding product
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let { message ->
             Log.d("ScanStock", message)
+            // Show toast slightly higher than the very bottom
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).apply {
+                setGravity(Gravity.BOTTOM, 0, 150)
+            }.show()
+            currentStep = "scan"
+            isManualAddition = false
+            viewModel.setManualMode(false)
         }
     }
     
@@ -818,7 +828,9 @@ fun DatePickerDialog(
             ) {
                 // Month/Year selector
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(LojaSocialPrimary),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -832,15 +844,20 @@ fun DatePickerDialog(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Mês Anterior")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Mês Anterior",
+                            tint = Color.White
+                        )
                     }
-                    
+
                     Text(
                         text = "${getMonthName(currentMonth)} $currentYear",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
-                    
+
                     IconButton(
                         onClick = {
                             if (currentMonth == 11) {
@@ -851,7 +868,11 @@ fun DatePickerDialog(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Próximo Mês")
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = "Próximo Mês",
+                            tint = Color.White
+                        )
                     }
                 }
                 
@@ -912,33 +933,28 @@ fun DatePickerDialog(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         week.forEach { day ->
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .padding(2.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (day == 0) {
-                                    // Empty cell
-                                    Spacer(modifier = Modifier.size(32.dp))
-                                } else {
-                                    TextButton(
-                                        onClick = {
-                                            currentDay = day
-                                        },
-                                        modifier = Modifier.size(32.dp),
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = if (day == currentDay) 
-                                                MaterialTheme.colorScheme.primary 
-                                            else 
-                                                MaterialTheme.colorScheme.onSurface
-                                        )
-                                    ) {
-                                        Text(
-                                            text = day.toString(),
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
+                            if (day == 0) {
+                                // Empty cell to align days
+                                Spacer(modifier = Modifier.size(40.dp))
+                            } else {
+                                TextButton(
+                                    onClick = { currentDay = day },
+                                    modifier = Modifier.size(40.dp),
+                                    colors = ButtonDefaults.textButtonColors(
+                                        containerColor = if (day == currentDay)
+                                            LojaSocialPrimary.copy(alpha = 0.2f)
+                                        else
+                                            Color.Transparent,
+                                        contentColor = if (day == currentDay)
+                                            LojaSocialPrimary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface
+                                    )
+                                ) {
+                                    Text(
+                                        text = day.toString(),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
                             }
                         }
