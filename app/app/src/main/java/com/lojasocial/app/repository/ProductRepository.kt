@@ -19,31 +19,34 @@ data class ProductRepository @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
     // Firestore operations
-    suspend fun getProductFromFirestore(barcode: String): Product? {
-        return try {
-            Log.d("ProductRepository", "Checking Firestore for barcode: $barcode")
-            val document = firestore.collection("products")
-                .document(barcode)
-                .get()
-                .await()
-            
-            if (document.exists()) {
-                Log.d("ProductRepository", "Product found in Firestore: $barcode")
-                document.toObject(Product::class.java)
-            } else {
-                Log.d("ProductRepository", "Product not found in Firestore: $barcode")
-                null
-            }
-        } catch (e: Exception) {
-            Log.e("ProductRepository", "Error fetching product from Firestore", e)
+suspend fun getProductFromFirestore(barcode: String): Product? {
+    return try {
+        Log.d("ProductRepository", "Checking Firestore for barcode: $barcode")
+        val document = firestore.collection("items")
+            .document(barcode)
+            .get()
+            .await()
+        
+        if (document.exists()) {
+            Log.d("ProductRepository", "Product found in Firestore: $barcode")
+            Log.d("ProductRepository", "Firestore document data: ${document.data}")
+            val product = document.toObject(Product::class.java)
+            Log.d("ProductRepository", "Mapped Product object: $product")
+            product
+        } else {
+            Log.d("ProductRepository", "Product not found in Firestore: $barcode")
             null
         }
+    } catch (e: Exception) {
+        Log.e("ProductRepository", "Error fetching product from Firestore", e)
+        null
     }
+}
     
     suspend fun saveProductToFirestore(barcode: String, product: Product) {
         try {
             Log.d("ProductRepository", "Saving product to Firestore: $barcode")
-            firestore.collection("products")
+            firestore.collection("items")
                 .document(barcode)
                 .set(product)
                 .await()

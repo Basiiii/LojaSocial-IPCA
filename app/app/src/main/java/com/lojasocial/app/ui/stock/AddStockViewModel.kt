@@ -36,6 +36,10 @@ class AddStockViewModel @Inject constructor(
     private val _productName = MutableStateFlow("")
     val productName: StateFlow<String> = _productName.asStateFlow()
     
+    // Manual mode flag
+    private val _isManualMode = MutableStateFlow(false)
+    val isManualMode: StateFlow<Boolean> = _isManualMode.asStateFlow()
+    
     private val _quantity = MutableStateFlow("0")
     val quantity: StateFlow<String> = _quantity.asStateFlow()
     
@@ -75,7 +79,10 @@ class AddStockViewModel @Inject constructor(
         try {
             Log.d("AddStockViewModel", "Barcode scanned: $barcode")
             _barcode.value = barcode
-            fetchProductData(barcode)
+            // Only fetch product data if not in manual mode
+            if (!_isManualMode.value) {
+                fetchProductData(barcode)
+            }
         } catch (e: Exception) {
             Log.e("AddStockViewModel", "Error processing barcode", e)
             _uiState.value = _uiState.value.copy(
@@ -87,15 +94,25 @@ class AddStockViewModel @Inject constructor(
     
     fun onBarcodeChanged(barcode: String) {
         _barcode.value = barcode
-        // Auto-fetch when barcode is typed (minimum length for valid barcode)
-        if (barcode.length >= 8) { // Most barcodes are 8+ digits
-            fetchProductData(barcode)
+    }
+    
+    fun setManualMode(isManual: Boolean) {
+        Log.d("AddStockViewModel", "setManualMode called with: $isManual")
+        Log.d("AddStockViewModel", "Previous manual mode: ${_isManualMode.value}")
+        _isManualMode.value = isManual
+        Log.d("AddStockViewModel", "New manual mode: ${_isManualMode.value}")
+        if (isManual) {
+            // Clear product data when entering manual mode
+            Log.d("AddStockViewModel", "Clearing product data for manual mode")
+            _productData.value = null
+            // Also clear any loading state
+            _uiState.value = _uiState.value.copy(isLoading = false)
         }
     }
     
     fun fetchProductDataForCurrentBarcode() {
         val currentBarcode = _barcode.value
-        if (currentBarcode.isNotEmpty()) {
+        if (currentBarcode.isNotEmpty() && !_isManualMode.value) {
             fetchProductData(currentBarcode)
         }
     }
@@ -119,6 +136,15 @@ class AddStockViewModel @Inject constructor(
     private fun fetchProductData(barcode: String) {
         if (barcode.isEmpty()) {
             Log.w("AddStockViewModel", "Empty barcode, skipping API call")
+            return
+        }
+        
+        Log.d("AddStockViewModel", "fetchProductData called for barcode: $barcode")
+        Log.d("AddStockViewModel", "Current manual mode: ${_isManualMode.value}")
+        Log.d("AddStockViewModel", "Current loading state: ${_uiState.value.isLoading}")
+        
+        if (_isManualMode.value) {
+            Log.d("AddStockViewModel", "Skipping fetchProductData - in manual mode")
             return
         }
         
