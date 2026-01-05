@@ -14,6 +14,7 @@ val LojaSocialPrimary = Color(0xFF145F40)
 val LojaSocialOnPrimary = Color.White
 val LojaSocialBackground = Color(0xFFF9FAFB)
 val LojaSocialSurface = Color.White
+val LojaSocialHeaderBlue = Color(0xFFE3F2FD)
 val LojaSocialOnBackground = Color.Black
 val LojaSocialOnSurface = Color(0xFF6B7280)
 val LojaSocialOnSurfaceVariant = Color(0xFF6B7280)
@@ -24,5 +25,9 @@ val BrandPurple = Color(0xFF9333EA)
 val BrandBlue = Color(0xFF2563EB)
 val TextDark = Color(0xFF1F2937)
 val TextGray = Color(0xFF6B7280)
+val ButtonGray = Color(0xFFCFD8DC)
+val PurpleLight = Color(0xFFF3E5F5) // Fundo lilás claro
+val PurpleIcon = Color(0xFF7B1FA2)  // Ícone/Texto lilás escuro
+val RedDelete = Color(0xFFE53935)   // Vermelho para o lixo
 
 val BrandOrange = Color(0xFFD97706)
