@@ -5,17 +5,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
 import com.lojasocial.app.ui.profile.ProfileView
-import com.lojasocial.app.ui.stock.ScanStockScreen
+import com.lojasocial.app.ui.stock.AddStockScreen
+import com.lojasocial.app.ui.employees.QuickActionsSection
+import com.lojasocial.app.ui.employees.RecentActivitySection
 
 @Composable
 fun EmployeePortalView(
@@ -27,7 +30,7 @@ fun EmployeePortalView(
     userRepository: UserRepository
 ) {
     var selectedTab by remember { mutableStateOf("home") }
-    var showScanStockScreen by remember { mutableStateOf(false) }
+    var showAddStockScreen by remember { mutableStateOf(false) }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -47,7 +50,7 @@ fun EmployeePortalView(
                     StatsSection()
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
-                        onNavigateToScanStock = { showScanStockScreen = true }
+                        onNavigateToScanStock = { showAddStockScreen = true }
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection()
@@ -88,9 +91,9 @@ fun EmployeePortalView(
         }
     }
 
-    if (showScanStockScreen) {
-        ScanStockScreen(
-            onNavigateBack = { showScanStockScreen = false }
+    if (showAddStockScreen) {
+        AddStockScreen(
+            onNavigateBack = { showAddStockScreen = false }
         )
     } else {
         if (useAppLayout) {
@@ -113,7 +116,7 @@ fun EmployeePortalView(
 @Composable
 fun EmployeeScreenPreview() {
     MaterialTheme {
-        val mockAuthRepository = object : com.lojasocial.app.repository.AuthRepository {
+        val mockAuthRepository = object : AuthRepository {
             override suspend fun signIn(email: String, password: String) = TODO()
             override suspend fun signUp(email: String, password: String) = TODO()
             override suspend fun signOut() = TODO()
@@ -121,10 +124,10 @@ fun EmployeeScreenPreview() {
             override fun isUserLoggedIn() = TODO()
         }
 
-        val mockUserRepository = object : com.lojasocial.app.repository.UserRepository {
+        val mockUserRepository = object : UserRepository {
             override suspend fun getUserProfile(uid: String) = kotlinx.coroutines.flow.flow {
                 emit(
-                    com.lojasocial.app.repository.UserProfile(
+                    UserProfile(
                         uid = "preview",
                         email = "preview@lojasocial.pt",
                         name = "Preview User",
@@ -136,7 +139,7 @@ fun EmployeeScreenPreview() {
 
             override suspend fun getCurrentUserProfile() = kotlinx.coroutines.flow.flow {
                 emit(
-                    com.lojasocial.app.repository.UserProfile(
+                    UserProfile(
                         uid = "preview",
                         email = "preview@lojasocial.pt",
                         name = "Preview User",
@@ -146,13 +149,13 @@ fun EmployeeScreenPreview() {
                 )
             }
 
-            override suspend fun updateProfile(profile: com.lojasocial.app.repository.UserProfile) = TODO()
-            override suspend fun createProfile(profile: com.lojasocial.app.repository.UserProfile) = TODO()
+            override suspend fun updateProfile(profile: UserProfile) = TODO()
+            override suspend fun createProfile(profile: UserProfile) = TODO()
         }
 
         AppLayout(
             selectedTab = "home",
-            onTabSelected = {},
+            onTabSelected = { },
             subtitle = "Portal Funcionários"
         ) { paddingValues ->
             EmployeePortalView(

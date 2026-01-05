@@ -95,7 +95,6 @@ data class ProductRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
     // Optional: Cache products locally
     suspend fun getCachedProduct(barcode: String): Flow<BarcodeProduct?> = flow {
         // Implement local caching if needed

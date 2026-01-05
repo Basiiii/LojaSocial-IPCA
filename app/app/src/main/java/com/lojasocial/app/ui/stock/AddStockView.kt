@@ -51,8 +51,8 @@ import com.lojasocial.app.ui.theme.TextGray
 import com.lojasocial.app.ui.theme.ScanBlue
 import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
-import com.lojasocial.app.viewmodel.ScanStockViewModel
-import com.lojasocial.app.viewmodel.ScanStockUiState
+import com.lojasocial.app.viewmodel.AddStockViewModel
+import com.lojasocial.app.viewmodel.AddStockUiState
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -100,18 +100,18 @@ private fun processImageProxy(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScanStockScreen(
+fun AddStockScreen(
     onNavigateBack: () -> Unit,
-    viewModel: ScanStockViewModel = hiltViewModel()
+    viewModel: AddStockViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     
     // Global exception handler to catch silent crashes
     LaunchedEffect(Unit) {
         try {
-            Log.d("ScanStockScreen", "Screen initialized successfully")
+            Log.d("AddStockScreen", "Screen initialized successfully")
         } catch (e: Exception) {
-            Log.e("ScanStockScreen", "Screen initialization failed", e)
+            Log.e("AddStockScreen", "Screen initialization failed", e)
         }
     }
     
@@ -143,14 +143,14 @@ fun ScanStockScreen(
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let { message ->
             // Show success message (you can use Snackbar, Toast, etc.)
-            Log.d("ScanStock", message)
+            Log.d("AddStock", message)
         }
     }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
             // Show error message
-            Log.e("ScanStock", error)
+            Log.e("AddStock", error)
         }
     }
 
@@ -404,8 +404,8 @@ fun CameraSection(
 
 @Composable
 fun FormSection(
-    viewModel: ScanStockViewModel,
-    uiState: ScanStockUiState
+    viewModel: AddStockViewModel,
+    uiState: AddStockUiState
 ) {
     Log.d("AddStockView", "FormSection is being composed!")
     val barcode by viewModel.barcode.collectAsState()
