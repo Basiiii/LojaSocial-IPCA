@@ -1,13 +1,16 @@
 package com.lojasocial.app.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.lojasocial.app.domain.RequestItem
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val PAGINATION = 5
+
 interface ItemsRepository {
-    suspend fun getProducts(): List<RequestItem>
+    suspend fun getProducts(pageSize: Int = PAGINATION, lastVisibleId: String? = null): List<RequestItem>
 }
 
 @Singleton
@@ -15,13 +18,24 @@ class ItemsRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : ItemsRepository {
 
-    override suspend fun getProducts(): List<RequestItem> {
+    override suspend fun getProducts(pageSize: Int, lastVisibleId: String?): List<RequestItem> {
         return try {
-            val snapshot = firestore.collection("items")
+            var query: Query = firestore.collection("items")
                 .whereGreaterThan("quantity", 0)
-                .get()
-                .await()
-            snapshot.toObjects(RequestItem::class.java)
+                .orderBy("quantity")
+                .limit(pageSize.toLong())
+
+            if (lastVisibleId != null) {
+                val lastVisible = firestore.collection("items").document(lastVisibleId).get().await()
+                query = query.startAfter(lastVisible)
+            }
+
+            val snapshot = query.get().await()
+            snapshot.documents.mapNotNull { document ->
+                document.toObject(RequestItem::class.java)?.apply {
+                    docId = document.id
+                }
+            }
         } catch (e: Exception) {
             emptyList()
         }

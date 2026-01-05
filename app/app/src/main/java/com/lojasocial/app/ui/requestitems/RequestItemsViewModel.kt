@@ -2,6 +2,7 @@ package com.lojasocial.app.ui.requestitems
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lojasocial.app.domain.RequestItem
 import com.lojasocial.app.repository.ItemsRepository
 import com.lojasocial.app.repository.OrdersRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,23 +27,48 @@ class RequestItemsViewModel @Inject constructor(
     private val _submissionState = MutableStateFlow<SubmissionState>(SubmissionState.Idle)
     val submissionState: StateFlow<SubmissionState> = _submissionState.asStateFlow()
 
+    private var lastVisibleId: String? = null
+    private var isLoading = false
+    private var isEndOfList = false
+
     init {
         fetchProducts()
     }
 
-    private fun fetchProducts() {
+    fun fetchProducts(isLoadMore: Boolean = false) {
+        if (isLoading || (isLoadMore && isEndOfList)) return
+
         viewModelScope.launch {
-            _uiState.value = RequestItemsUiState.Loading
+            isLoading = true
+            if (!isLoadMore) {
+                _uiState.value = RequestItemsUiState.Loading
+            }
+
             try {
-                val products = itemsRepository.getProducts()
-                if (products.isEmpty()) {
+                val newProducts = itemsRepository.getProducts(lastVisibleId = lastVisibleId)
+
+                if (newProducts.isNotEmpty()) {
+                    lastVisibleId = newProducts.last().docId
+
+                    val currentProducts = if (isLoadMore && _uiState.value is RequestItemsUiState.Success) {
+                        (_uiState.value as RequestItemsUiState.Success).products
+                    } else {
+                        emptyList()
+                    }
+
+                    _uiState.value = RequestItemsUiState.Success(currentProducts + newProducts)
+                } else if (!isLoadMore) {
                     _uiState.value = RequestItemsUiState.Success(emptyList())
                 } else {
-                    _uiState.value = RequestItemsUiState.Success(products)
+                    isEndOfList = true
                 }
+
             } catch (e: Exception) {
-                _uiState.value = RequestItemsUiState.Error
+                if (!isLoadMore) {
+                    _uiState.value = RequestItemsUiState.Error
+                }
             }
+            isLoading = false
         }
     }
 

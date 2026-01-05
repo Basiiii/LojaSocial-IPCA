@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,10 +58,12 @@ fun RequestItemsView(
                 viewModel.resetSubmissionState()
                 onSubmitClick()
             }
+
             is SubmissionState.Error -> {
                 viewModel.resetSubmissionState()
                 onSubmitClick()
             }
+
             else -> {}
         }
     }
@@ -85,7 +89,8 @@ fun RequestItemsView(
             if (!isSubmitting) {
                 viewModel.submitRequest()
             }
-        }
+        },
+        onLoadMore = { viewModel.fetchProducts(isLoadMore = true) }
     )
 }
 
@@ -103,7 +108,8 @@ fun RequestItemsContent(
     onClearQuantities: () -> Unit,
     onBackClick: () -> Unit,
     onSubmitClick: () -> Unit,
-    isSubmitting: Boolean = false
+    isSubmitting: Boolean = false,
+    onLoadMore: () -> Unit
 ) {
     val totalItemsSelected = productQuantities.values.sum()
     val maxItems = RequestItemsConstants.MAX_ITEMS
@@ -146,18 +152,27 @@ fun RequestItemsContent(
 
                 when (uiState) {
                     is RequestItemsUiState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(color = LojaSocialPrimary)
                         }
                     }
+
                     is RequestItemsUiState.Success -> {
+                        val listState = rememberLazyListState()
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                             contentPadding = PaddingValues(bottom = 16.dp)
                         ) {
                             val filteredProducts = uiState.products.filter { product ->
                                 (selectedCategory == RequestItemsConstants.DEFAULT_CATEGORY || product.category == selectedCategory) &&
-                                        (searchQuery.isBlank() || product.name.contains(searchQuery, ignoreCase = true))
+                                        (searchQuery.isBlank() || product.name.contains(
+                                            searchQuery,
+                                            ignoreCase = true
+                                        ))
                             }
 
                             items(filteredProducts) { product ->
@@ -179,9 +194,32 @@ fun RequestItemsContent(
                                 )
                             }
                         }
+
+                        val isScrolledToEnd by remember {
+                            derivedStateOf {
+                                val layoutInfo = listState.layoutInfo
+                                val visibleItemsInfo = layoutInfo.visibleItemsInfo
+                                if (layoutInfo.totalItemsCount == 0) {
+                                    false
+                                } else {
+                                    val lastVisibleItem = visibleItemsInfo.last()
+                                    lastVisibleItem.index + 1 == layoutInfo.totalItemsCount
+                                }
+                            }
+                        }
+
+                        LaunchedEffect(isScrolledToEnd) {
+                            if (isScrolledToEnd) {
+                                onLoadMore()
+                            }
+                        }
                     }
+
                     is RequestItemsUiState.Error -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text("Erro ao carregar produtos", color = TextGray)
                         }
                     }
@@ -210,7 +248,13 @@ val previewCategories = RequestItemsConstants.PRODUCT_CATEGORIES
 @Composable
 fun RequestItemsViewPreview() {
     val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(1.toString(), 1, "Arroz Agulha", "Alimentar", 50),
+        com.lojasocial.app.domain.RequestItem(
+            docId = 1.toString(),
+            id = 1,
+            name = "Arroz Agulha",
+            category = "Alimentar",
+            quantity = 50
+        ),
     )
 
     RequestItemsContent(
@@ -226,7 +270,8 @@ fun RequestItemsViewPreview() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = false
+        isSubmitting = false,
+        onLoadMore = {}
     )
 }
 
@@ -246,7 +291,8 @@ fun PreviewLoading() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = false
+        isSubmitting = false,
+        onLoadMore = {}
     )
 }
 
@@ -254,7 +300,13 @@ fun PreviewLoading() {
 @Composable
 fun PreviewSubmitting() {
     val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(1.toString(), 1, "Arroz Agulha", "Alimentar", 50),
+        com.lojasocial.app.domain.RequestItem(
+            docId = 1.toString(),
+            id = 1,
+            name = "Arroz Agulha",
+            category = "Alimentar",
+            quantity = 50
+        ),
     )
     RequestItemsContent(
         uiState = RequestItemsUiState.Success(mockProducts),
@@ -269,7 +321,8 @@ fun PreviewSubmitting() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = true
+        isSubmitting = true,
+        onLoadMore = {}
     )
 }
 
@@ -289,7 +342,8 @@ fun PreviewError() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = false
+        isSubmitting = false,
+        onLoadMore = {}
     )
 }
 
@@ -309,7 +363,8 @@ fun PreviewEmptyList() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = false
+        isSubmitting = false,
+        onLoadMore = {}
     )
 }
 
@@ -317,8 +372,20 @@ fun PreviewEmptyList() {
 @Composable
 fun PreviewLimitReached() {
     val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(1.toString(), 1, "Arroz", "Alimentar", 50),
-        com.lojasocial.app.domain.RequestItem(2.toString(), 2, "Massa", "Alimentar", 50)
+        com.lojasocial.app.domain.RequestItem(
+            docId = 1.toString(),
+            id = 1,
+            name = "Arroz",
+            category = "Alimentar",
+            quantity = 50
+        ),
+        com.lojasocial.app.domain.RequestItem(
+            docId = 2.toString(),
+            id = 2,
+            name = "Massa",
+            category = "Alimentar",
+            quantity = 50
+        )
     )
 
     val quantities = mapOf("1" to 5, "2" to 5)
@@ -336,6 +403,7 @@ fun PreviewLimitReached() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = false
+        isSubmitting = false,
+        onLoadMore = {}
     )
 }

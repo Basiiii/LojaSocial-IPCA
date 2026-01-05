@@ -5,7 +5,7 @@ import com.google.firebase.firestore.DocumentId
 
 data class RequestItem(
     @DocumentId
-    val docId: String = "",
+    var docId: String = "",
     val id: Int = 0,
     val name: String = "",
     val category: String = "Geral",
