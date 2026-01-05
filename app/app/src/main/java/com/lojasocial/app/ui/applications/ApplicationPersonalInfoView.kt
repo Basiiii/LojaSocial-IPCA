@@ -103,7 +103,7 @@ fun CandidaturaPersonalInfoView(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigate("nonBeneficiaryPortal") }) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 }
