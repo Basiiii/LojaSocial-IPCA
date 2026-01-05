@@ -142,16 +142,40 @@ fun DocumentUploadCard(
     }
 }
 
+/**
+ * File upload button component for document selection.
+ * 
+ * This composable provides a button that opens the system file picker
+ * to allow users to select PDF files for upload. It uses the ActivityResultContracts
+ * to handle file selection and provides visual feedback with a purple-themed button.
+ * 
+ * Features:
+ * - Opens system file picker filtered for PDF files
+ * - Provides visual feedback with purple styling
+ * - Handles file selection through callback
+ * - Uses rounded corners and consistent theming
+ * 
+ * @param onFileSelected Callback invoked when a file is selected, receives the file URI
+ */
 @Composable
 fun FileUploadButton(
     onFileSelected: (Uri) -> Unit
 ) {
+    /**
+     * Activity result launcher for file selection.
+     * 
+     * This launcher opens the system file picker and filters for PDF files.
+     * When a file is selected, it invokes the onFileSelected callback with the URI.
+     */
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { onFileSelected(it) }
     }
     
+    /**
+     * Upload button with purple styling and add icon.
+     */
     IconButton(
         onClick = { launcher.launch("application/pdf") },
         modifier = Modifier
@@ -167,6 +191,21 @@ fun FileUploadButton(
     }
 }
 
+/**
+ * Button component for adding additional documents.
+ * 
+ * This composable provides an outlined button for adding new documents
+ * to the application form. It features a consistent design with the app theme
+ * and includes an add icon with descriptive text.
+ * 
+ * Features:
+ * - Outlined button style with primary color border
+ * - Add icon and descriptive text
+ * - Consistent sizing and theming
+ * - Full width layout for better accessibility
+ * 
+ * @param onAddDocument Callback invoked when the button is clicked
+ */
 @Composable
 fun AddDocumentButton(
     onAddDocument: () -> Unit
@@ -196,6 +235,17 @@ fun AddDocumentButton(
     }
 }
 
+/**
+ * Utility function to extract the filename from a URI.
+ * 
+ * This function retrieves the display name of a file from its URI using
+ * the ContentResolver and OpenableColumns. It provides a fallback
+ * filename if the display name cannot be retrieved.
+ * 
+ * @param context Android context for accessing ContentResolver
+ * @param uri The URI of the file to extract the filename from
+ * @return The filename if found, or "unknown" as a fallback
+ */
 fun getFileName(context: Context, uri: Uri): String {
     var fileName = "unknown"
     uri.let { returnUri ->

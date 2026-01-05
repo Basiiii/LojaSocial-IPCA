@@ -29,5 +29,5 @@ val ButtonGray = Color(0xFFCFD8DC)
 val PurpleLight = Color(0xFFF3E5F5)
 val PurpleIcon = Color(0xFF7B1FA2)
 val RedDelete = Color(0xFFE53935)
-
+val CardBlue = Color(0xFF2979FF)
 val BrandOrange = Color(0xFFD97706)

@@ -22,7 +22,34 @@ import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
+import com.lojasocial.app.ui.theme.CardBlue
 
+/**
+ * Main portal view for non-beneficiary users of the Loja Social application.
+ * 
+ * This composable provides the main interface for users who are not beneficiaries
+ * of the social support program. It offers access to scholarship applications,
+ * profile management, and portal selection functionality. The view uses a tab-based
+ * navigation system and can be displayed with or without the app layout wrapper.
+ * 
+ * Features:
+ * - Tab-based navigation (Home, Profile)
+ * - Scholarship application access
+ * - Profile management integration
+ * - Portal selection for user type switching
+ * - Responsive design with scrollable content
+ * - Portuguese user interface
+ * - Optional app layout wrapper
+ * 
+ * @param useAppLayout Whether to use the AppLayout wrapper (default: true)
+ * @param userName Optional user name for personalized greeting
+ * @param showPortalSelection Whether to show portal selection options
+ * @param onPortalSelectionClick Callback for portal selection interaction
+ * @param authRepository Repository for authentication operations
+ * @param userRepository Repository for user profile operations
+ * @param onCandidaturaClick Callback for scholarship application navigation
+ * @param onNavigateToApplication Callback for application form navigation
+ */
 @Composable
 fun NonBeneficiaryPortalView(
     useAppLayout: Boolean = true,
@@ -34,8 +61,22 @@ fun NonBeneficiaryPortalView(
     onCandidaturaClick: () -> Unit = {},
     onNavigateToApplication: () -> Unit = {}
 ) {
+    /**
+     * Current selected tab state for navigation.
+     * 
+     * Possible values:
+     * - "home": Home tab with main options
+     * - "profile": User profile tab
+     */
     var selectedTab by remember { mutableStateOf("home") }
 
+    /**
+     * Main content composable based on selected tab.
+     * 
+     * This composable renders different content based on the currently
+     * selected tab, providing a clean separation of concerns for each
+     * section of the portal.
+     */
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
             "home" -> {
@@ -109,6 +150,16 @@ fun NonBeneficiaryPortalView(
     }
 }
 
+/**
+ * Quick actions section for the non-beneficiary portal.
+ * 
+ * This composable provides a section containing quick action cards
+ * for common user tasks, currently focused on scholarship application access.
+ * It serves as a container for action cards that provide direct access
+ * to important features.
+ * 
+ * @param onCandidaturaClick Callback invoked when the scholarship application card is clicked
+ */
 @Composable
 fun QuickActionsSection(
     onCandidaturaClick: () -> Unit
@@ -116,6 +167,24 @@ fun QuickActionsSection(
     CandidaturaCard(onClick = onCandidaturaClick)
 }
 
+/**
+ * Scholarship application card component.
+ * 
+ * This composable displays a prominent card for scholarship application
+ * access. It features a blue gradient background, descriptive text,
+ * and a call-to-action button. The card is designed to be visually
+ * appealing and encourage user engagement with the application process.
+ * 
+ * Design features:
+ * - Rounded corners with large radius (24dp)
+ * - Blue gradient background (CardBlue)
+ * - White icon with semi-transparent background
+ * - Hierarchical text layout
+ * - White button with blue text
+ * - Forward arrow icon for navigation indication
+ * 
+ * @param onClick Callback invoked when the card or button is clicked
+ */
 @Composable
 fun CandidaturaCard(
     onClick: () -> Unit
@@ -129,6 +198,9 @@ fun CandidaturaCard(
         Column(
             modifier = Modifier.padding(24.dp)
         ) {
+            /**
+             * Icon container with semi-transparent white background.
+             */
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -148,6 +220,9 @@ fun CandidaturaCard(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            /**
+             * Main title for the scholarship application.
+             */
             Text(
                 text = "Realizar Candidatura",
                 style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
@@ -157,6 +232,9 @@ fun CandidaturaCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            /**
+             * Descriptive text explaining the purpose.
+             */
             Text(
                 text = "Realiza a tua candidatura para aceder aos benefícios disponíveis",
                 style = MaterialTheme.typography.bodyMedium,
@@ -166,6 +244,9 @@ fun CandidaturaCard(
 
             Spacer(modifier = Modifier.height(28.dp))
 
+            /**
+             * Call-to-action button with navigation arrow.
+             */
             Button(
                 onClick = onClick,
                 colors = ButtonDefaults.buttonColors(
@@ -199,9 +280,16 @@ fun CandidaturaCard(
     }
 }
 
-// Cor Azul Vibrante (Baseada no print)
-val CardBlue = Color(0xFF2979FF)
-
+/**
+ * Preview composable for the NonBeneficiaryPortalView.
+ * 
+ * This preview demonstrates the non-beneficiary portal with mock repositories
+ * for development and design purposes. It shows the complete interface
+ * with the scholarship application card and navigation structure.
+ * 
+ * The preview uses mock implementations of AuthRepository and UserRepository
+ * to provide realistic data without requiring actual authentication.
+ */
 @Preview(showBackground = true, heightDp = 1100)
 @Composable
 fun NonBeneficiaryPreview() {
