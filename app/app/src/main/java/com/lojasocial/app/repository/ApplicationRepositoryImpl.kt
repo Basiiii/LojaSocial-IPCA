@@ -164,7 +164,11 @@ class ApplicationRepositoryImpl @Inject constructor(
      */
     override fun getApplications(): Flow<List<Application>> = flow {
         try {
-            val userId = auth.currentUser?.uid ?: return@flow
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                emit(emptyList())
+                return@flow
+            }
             
             val snapshot = firestore.collection("users")
                 .document(userId)
@@ -180,11 +184,37 @@ class ApplicationRepositoryImpl @Inject constructor(
                     val academicInfoData = data["academicInfo"] as? Map<String, Any>
                     val documentsData = data["documents"] as? List<Map<String, Any>>
                     
+                    // Helper function to convert Firestore date to Date
+                    fun convertToDate(value: Any?): Date? {
+                        return when {
+                            value is Date -> value
+                            value != null && value.javaClass.name == "com.google.firebase.Timestamp" -> {
+                                // Use reflection to call toDate() method
+                                try {
+                                    val toDateMethod = value.javaClass.getMethod("toDate")
+                                    toDateMethod.invoke(value) as? Date
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            value != null && value.javaClass.name == "com.google.firebase.firestore.Timestamp" -> {
+                                // Use reflection to call toDate() method
+                                try {
+                                    val toDateMethod = value.javaClass.getMethod("toDate")
+                                    toDateMethod.invoke(value) as? Date
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            else -> null
+                        }
+                    }
+                    
                     Application(
                         id = data["id"] as? String ?: doc.id,
                         personalInfo = com.lojasocial.app.domain.PersonalInfo(
                             name = personalInfoData?.get("name") as? String ?: "",
-                            dateOfBirth = personalInfoData?.get("dateOfBirth") as? Date,
+                            dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
                             idPassport = personalInfoData?.get("idPassport") as? String ?: "",
                             email = personalInfoData?.get("email") as? String ?: "",
                             phone = personalInfoData?.get("phone") as? String ?: ""
@@ -204,15 +234,36 @@ class ApplicationRepositoryImpl @Inject constructor(
                                 else -> false
                             }
                         ),
-                        documents = documentsData?.map { docData ->
-                            ApplicationDocument(
-                                id = (docData["id"] as? Long)?.toInt() ?: 0,
-                                name = docData["name"] as? String ?: "",
-                                uri = null, // Stored as base64
-                                fileName = docData["fileName"] as? String
-                            )
-                        } ?: emptyList(),
-                        submissionDate = data["submissionDate"] as? Date ?: Date(),
+                documents = documentsData?.map { docData ->
+                    ApplicationDocument(
+                        id = (docData["id"] as? Long)?.toInt() ?: 0,
+                        name = docData["name"] as? String ?: "",
+                        uri = null, // Stored as base64
+                        fileName = docData["fileName"] as? String,
+                        base64Data = docData["base64Data"] as? String // Store base64 for viewing
+                    )
+                } ?: emptyList(),
+                submissionDate = when (val dateValue = data["submissionDate"]) {
+                    is Date -> dateValue
+                    else -> {
+                        // Try to convert Firestore Timestamp to Date using reflection
+                        if (dateValue != null) {
+                            val className = dateValue.javaClass.name
+                            if (className == "com.google.firebase.Timestamp" || className == "com.google.firebase.firestore.Timestamp") {
+                                try {
+                                    val toDateMethod = dateValue.javaClass.getMethod("toDate")
+                                    (toDateMethod.invoke(dateValue) as? Date) ?: Date()
+                                } catch (e: Exception) {
+                                    Date()
+                                }
+                            } else {
+                                Date()
+                            }
+                        } else {
+                            Date()
+                        }
+                    }
+                },
                         status = try {
                             ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
                         } catch (e: Exception) {
@@ -261,11 +312,37 @@ class ApplicationRepositoryImpl @Inject constructor(
             val academicInfoData = data["academicInfo"] as? Map<String, Any>
             val documentsData = data["documents"] as? List<Map<String, Any>>
             
+            // Helper function to convert Firestore date to Date
+            fun convertToDate(value: Any?): Date? {
+                return when {
+                    value is Date -> value
+                    value != null && value.javaClass.name == "com.google.firebase.Timestamp" -> {
+                        // Use reflection to call toDate() method
+                        try {
+                            val toDateMethod = value.javaClass.getMethod("toDate")
+                            toDateMethod.invoke(value) as? Date
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    value != null && value.javaClass.name == "com.google.firebase.firestore.Timestamp" -> {
+                        // Use reflection to call toDate() method
+                        try {
+                            val toDateMethod = value.javaClass.getMethod("toDate")
+                            toDateMethod.invoke(value) as? Date
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    else -> null
+                }
+            }
+            
             val application = Application(
                 id = data["id"] as? String ?: doc.id,
                 personalInfo = com.lojasocial.app.domain.PersonalInfo(
                     name = personalInfoData?.get("name") as? String ?: "",
-                    dateOfBirth = personalInfoData?.get("dateOfBirth") as? Date,
+                    dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
                     idPassport = personalInfoData?.get("idPassport") as? String ?: "",
                     email = personalInfoData?.get("email") as? String ?: "",
                     phone = personalInfoData?.get("phone") as? String ?: ""
@@ -290,10 +367,31 @@ class ApplicationRepositoryImpl @Inject constructor(
                         id = (docData["id"] as? Long)?.toInt() ?: 0,
                         name = docData["name"] as? String ?: "",
                         uri = null, // Stored as base64
-                        fileName = docData["fileName"] as? String
+                        fileName = docData["fileName"] as? String,
+                        base64Data = docData["base64Data"] as? String
                     )
                 } ?: emptyList(),
-                submissionDate = data["submissionDate"] as? Date ?: Date(),
+                submissionDate = when (val dateValue = data["submissionDate"]) {
+                    is Date -> dateValue
+                    else -> {
+                        // Try to convert Firestore Timestamp to Date using reflection
+                        if (dateValue != null) {
+                            val className = dateValue.javaClass.name
+                            if (className == "com.google.firebase.Timestamp" || className == "com.google.firebase.firestore.Timestamp") {
+                                try {
+                                    val toDateMethod = dateValue.javaClass.getMethod("toDate")
+                                    (toDateMethod.invoke(dateValue) as? Date) ?: Date()
+                                } catch (e: Exception) {
+                                    Date()
+                                }
+                            } else {
+                                Date()
+                            }
+                        } else {
+                            Date()
+                        }
+                    }
+                },
                 status = try {
                     ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
                 } catch (e: Exception) {

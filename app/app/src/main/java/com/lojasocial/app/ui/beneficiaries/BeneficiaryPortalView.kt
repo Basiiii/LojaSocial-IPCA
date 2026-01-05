@@ -31,7 +31,8 @@ fun BeneficiaryPortalView(
     onNavigateToPickups: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf("home") }
     var isChatOpen by remember { mutableStateOf(false) }
@@ -75,7 +76,8 @@ fun BeneficiaryPortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     onLogout = onLogout,
-                    onTabSelected = { selectedTab = it }
+                    onTabSelected = { selectedTab = it },
+                    onNavigateToApplications = onNavigateToApplications
                 )
             }
 

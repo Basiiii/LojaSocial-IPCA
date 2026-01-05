@@ -3,33 +3,21 @@ package com.lojasocial.app.ui.profile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
-import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.profile.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
-import com.lojasocial.app.ui.theme.TextGray
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.flow
-import javax.inject.Inject
 import kotlinx.coroutines.launch
 
 /**
@@ -51,11 +39,11 @@ fun ProfileView(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     onLogout: () -> Unit,
-    onTabSelected: (String) -> Unit
+    onTabSelected: (String) -> Unit,
+    onNavigateToApplications: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
-    var showApplicationsNotImplemented by remember { mutableStateOf(false) }
     val userProfile = remember { mutableStateOf<UserProfile?>(null) }
     val currentUser = authRepository.getCurrentUser()
 
@@ -83,7 +71,7 @@ fun ProfileView(
             userProfile = userProfile.value,
             onSupportClick = { onTabSelected("support") },
             onCalendarClick = { onTabSelected("calendar") },
-            onApplicationsClick = { showApplicationsNotImplemented = true }
+            onApplicationsClick = onNavigateToApplications
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -101,8 +89,11 @@ fun ProfileView(
             }
         )
 
+        Spacer(modifier = Modifier.height(24.dp))
+
         AppVersion()
     }
+
     
     if (showLogoutError) {
         AlertDialog(
@@ -116,25 +107,6 @@ fun ProfileView(
             confirmButton = {
                 TextButton(
                     onClick = { showLogoutError = false }
-                ) {
-                    Text("OK")
-                }
-            }
-        )
-    }
-    
-    if (showApplicationsNotImplemented) {
-        AlertDialog(
-            onDismissRequest = { showApplicationsNotImplemented = false },
-            title = {
-                Text("Em Desenvolvimento")
-            },
-            text = {
-                Text("A funcionalidade de candidaturas está em desenvolvimento. Em breve estará disponível!")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showApplicationsNotImplemented = false }
                 ) {
                     Text("OK")
                 }

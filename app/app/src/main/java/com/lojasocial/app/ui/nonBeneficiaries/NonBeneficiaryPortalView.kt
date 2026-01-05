@@ -66,7 +66,8 @@ fun NonBeneficiaryPortalView(
     userRepository: UserRepository,
     onCandidaturaClick: () -> Unit = {},
     onNavigateToApplication: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}
 ) {
     /**
      * Current selected tab state for navigation.
@@ -118,7 +119,8 @@ fun NonBeneficiaryPortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     onLogout = onLogout,
-                    onTabSelected = { selectedTab = it }
+                    onTabSelected = { selectedTab = it },
+                    onNavigateToApplications = onNavigateToApplications
                 )
             }
 

@@ -14,9 +14,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
+import com.lojasocial.app.ui.applications.ApplicationsListView
+import com.lojasocial.app.ui.applications.ApplicationDetailView
 import com.lojasocial.app.ui.submitApplications.CandidaturaPersonalInfoView
 import com.lojasocial.app.ui.submitApplications.CandidaturaAcademicDataView
 import com.lojasocial.app.ui.submitApplications.CandidaturaDocumentsView
@@ -43,6 +46,9 @@ import javax.inject.Inject
 
     @Inject
     lateinit var userRepository: UserRepository
+
+    @Inject
+    lateinit var applicationRepository: ApplicationRepository
 
     private fun getDestinationForUser(userProfile: UserProfile?): String {
         return when {
@@ -114,6 +120,9 @@ import javax.inject.Inject
                                     userRepository = userRepository,
                                     onLogout = {
                                         navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                                    },
+                                    onNavigateToApplications = {
+                                        navController.navigate("applicationsList")
                                     }
                                 )
                             }
@@ -131,6 +140,9 @@ import javax.inject.Inject
                                     userRepository = userRepository,
                                     onLogout = {
                                         navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                                    },
+                                    onNavigateToApplications = {
+                                        navController.navigate("applicationsList")
                                     }
                                 )
                             }
@@ -176,6 +188,9 @@ import javax.inject.Inject
                                     },
                                     onLogout = {
                                         navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                                    },
+                                    onNavigateToApplications = {
+                                        navController.navigate("applicationsList")
                                     }
                                 )
                             }
@@ -226,6 +241,29 @@ import javax.inject.Inject
                                         viewModel = viewModel
                                     )
                                 }
+                            }
+
+                            composable("applicationsList") {
+                                ApplicationsListView(
+                                    applicationRepository = applicationRepository,
+                                    onNavigateBack = { navController.navigateUp() },
+                                    onAddClick = {
+                                        // Navigate to application flow if user is non-beneficiary
+                                        navController.navigate("applicationFlow")
+                                    },
+                                    onItemClick = { applicationId ->
+                                        navController.navigate("applicationDetail/$applicationId")
+                                    }
+                                )
+                            }
+
+                            composable("applicationDetail/{applicationId}") { backStackEntry ->
+                                val applicationId = backStackEntry.arguments?.getString("applicationId") ?: ""
+                                ApplicationDetailView(
+                                    applicationId = applicationId,
+                                    applicationRepository = applicationRepository,
+                                    onNavigateBack = { navController.navigateUp() }
+                                )
                             }
 
                             composable("login") {

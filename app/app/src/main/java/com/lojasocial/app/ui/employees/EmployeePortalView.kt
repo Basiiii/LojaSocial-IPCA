@@ -29,7 +29,8 @@ fun EmployeePortalView(
     onPortalSelectionClick: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf("home") }
     var showAddStockScreen by remember { mutableStateOf(false) }
@@ -67,7 +68,8 @@ fun EmployeePortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     onLogout = onLogout,
-                    onTabSelected = { selectedTab = it }
+                    onTabSelected = { selectedTab = it },
+                    onNavigateToApplications = onNavigateToApplications
                 )
             }
 

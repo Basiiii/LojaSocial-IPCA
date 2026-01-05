@@ -87,7 +87,8 @@ data class ApplicationDocument(
     val id: Int,
     val name: String,
     val uri: Uri?,
-    val fileName: String? = null
+    val fileName: String? = null,
+    val base64Data: String? = null // Base64 encoded file data from Firestore
 )
 
 /**

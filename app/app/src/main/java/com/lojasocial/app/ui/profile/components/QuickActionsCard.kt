@@ -59,17 +59,15 @@ fun QuickActionsCard(
                 onClick = onCalendarClick
             )
             
-            if (userProfile?.isBeneficiary == true) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.Assignment,
-                    title = "Minhas Candidaturas",
-                    subtitle = "Ver e gerir as tuas candidaturas",
-                    iconColor = Color(0xFF10B981),
-                    onClick = onApplicationsClick
-                )
-            }
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+            
+            ProfileOption(
+                icon = Icons.Default.Assignment,
+                title = "As minhas Candidaturas",
+                subtitle = "Ver e gerir as tuas candidaturas",
+                iconColor = Color(0xFF10B981),
+                onClick = onApplicationsClick
+            )
         }
     }
 }
