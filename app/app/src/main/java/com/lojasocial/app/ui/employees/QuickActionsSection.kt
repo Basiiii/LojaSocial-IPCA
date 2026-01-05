@@ -12,7 +12,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.components.ActionCard
-import com.lojasocial.app.ui.stock.AddStockScreen
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
 import com.lojasocial.app.ui.theme.BrandOrange
@@ -21,7 +20,7 @@ import com.lojasocial.app.ui.theme.TextDark
 
 @Composable
 fun QuickActionsSection(
-    onNavigateToScanStock: () -> Unit = {}
+    onNavigateToScanStock: () -> Unit = {},
     onSupportClick: () -> Unit = {}
 ) {
     Column {

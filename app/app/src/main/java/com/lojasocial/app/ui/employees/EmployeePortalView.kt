@@ -17,8 +17,6 @@ import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
 import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.stock.AddStockScreen
-import com.lojasocial.app.ui.employees.QuickActionsSection
-import com.lojasocial.app.ui.employees.RecentActivitySection
 import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
 
@@ -56,8 +54,6 @@ fun EmployeePortalView(
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true }
                     )
-                    onSupportClick = { selectedTab = "support" }
-                )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection()
                     Spacer(modifier = Modifier.height(24.dp))
@@ -115,7 +111,7 @@ fun EmployeePortalView(
 
     if (showAddStockScreen) {
         AddStockScreen(
-            onNavigateBack = { showAddStockScreen = false }
+            onNavigateBack = {}
         )
     } else {
         if (useAppLayout) {
@@ -179,7 +175,7 @@ fun EmployeeScreenPreview() {
             selectedTab = "home",
             onTabSelected = { },
             subtitle = "Portal Funcionários"
-        ) { paddingValues ->
+        ) {
             EmployeePortalView(
                 useAppLayout = false,
                 authRepository = mockAuthRepository,
