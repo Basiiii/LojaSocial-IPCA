@@ -65,6 +65,39 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+app.get('/api/barcode', async (req, res) => {
+  const apiUrl = process.env.BARCODE_API_URL;
+  const apiKey = process.env.BARCODE_API_KEY;
+  
+  if (!apiUrl || !apiKey) {
+    return res.status(500).json({ error: 'Barcode API configuration missing' });
+  }
+
+  try {
+    const { barcode } = req.query;
+    
+    if (!barcode) {
+      return res.status(400).json({ error: 'Barcode parameter is required' });
+    }
+
+    const response = await axios.get(`${apiUrl}/v3/products`, {
+      params: {
+        barcode: barcode,
+        formatted: 'y',
+        key: apiKey
+      }
+    });
+    
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching barcode data:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: 'Failed to fetch barcode data',
+      details: error.response?.data || error.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LLM API server running on port ${PORT}`);
 });
