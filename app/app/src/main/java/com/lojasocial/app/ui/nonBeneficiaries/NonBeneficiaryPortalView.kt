@@ -22,6 +22,8 @@ import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
+import com.lojasocial.app.ui.support.SupportView
+import com.lojasocial.app.ui.chat.ChatView
 import com.lojasocial.app.ui.theme.CardBlue
 
 /**
@@ -33,9 +35,10 @@ import com.lojasocial.app.ui.theme.CardBlue
  * navigation system and can be displayed with or without the app layout wrapper.
  * 
  * Features:
- * - Tab-based navigation (Home, Profile)
+ * - Tab-based navigation (Home, Support, Calendar, Profile)
  * - Scholarship application access
  * - Profile management integration
+ * - Full support functionality with chat integration
  * - Portal selection for user type switching
  * - Responsive design with scrollable content
  * - Portuguese user interface
@@ -67,8 +70,11 @@ fun NonBeneficiaryPortalView(
      * Possible values:
      * - "home": Home tab with main options
      * - "profile": User profile tab
+     * - "support": Support tab with chat functionality
+     * - "calendar": Calendar tab (placeholder)
      */
     var selectedTab by remember { mutableStateOf("home") }
+    var isChatOpen by remember { mutableStateOf(false) }
 
     /**
      * Main content composable based on selected tab.
@@ -114,11 +120,26 @@ fun NonBeneficiaryPortalView(
             "support" -> {
                 Box(
                     modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .then(
+                            if (isChatOpen) {
+                                Modifier
+                            } else {
+                                Modifier.padding(paddingValues)
+                            }
+                        )
                 ) {
-                    Text("Suporte (por implementar)")
+                    if (isChatOpen) {
+                        ChatView(
+                            embeddedInAppLayout = false,
+                            onClose = { isChatOpen = false }
+                        )
+                    } else {
+                        SupportView(
+                            onStartChat = { isChatOpen = true },
+                            showTopBar = false
+                        )
+                    }
                 }
             }
 
@@ -138,8 +159,15 @@ fun NonBeneficiaryPortalView(
     if (useAppLayout) {
         AppLayout(
             selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
+            onTabSelected = {
+                selectedTab = it
+                if (it != "support") {
+                    isChatOpen = false
+                }
+            },
             subtitle = "Portal Candidatos",
+            showTopBar = !(selectedTab == "support" && isChatOpen),
+            showBottomBar = !(selectedTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
             onPortalSelectionClick = onPortalSelectionClick
         ) { paddingValues ->
