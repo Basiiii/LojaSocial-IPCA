@@ -24,11 +24,11 @@ import com.lojasocial.app.ui.theme.*
 import com.lojasocial.app.domain.support.FaqItem
 
 /**
- * An expandable accordion component for displaying FAQ items.
+ * Individual FAQ accordion item component.
  * 
- * This component shows a question that can be clicked to reveal the answer.
- * It features smooth animations for the expand/collapse action and includes
- * a rotating arrow indicator.
+ * This component displays a single FAQ item with expandable functionality.
+ * When clicked, it reveals the answer with a smooth animation and rotates
+ * the chevron icon to indicate the expanded state.
  * 
  * @param data The FAQ item containing question and answer.
  * @param modifier Optional modifier for styling and layout.
@@ -39,57 +39,41 @@ fun FaqAccordionItem(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val rotationState by animateFloatAsState(targetValue = if (expanded) 180f else 0f)
 
-    // Rotation animation for the arrow indicator
-    val rotationState by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        label = "Arrow Rotation"
-    )
-
-    Column(
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (expanded) Color(0xFFF8F9FA) else Color.White
+        ),
+        border = if (expanded) null else BorderStroke(1.dp, Color(0xFFEEEEEE)),
         modifier = modifier
             .fillMaxWidth()
-            .border(
-                border = BorderStroke(1.dp, LightBorder),
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
             .clickable { expanded = !expanded }
-            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
-        // Question header with expand/collapse indicator
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = data.question,
-                fontWeight = FontWeight.Medium,
-                color = TextGrey,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
-                tint = TextGrey,
-                modifier = Modifier.rotate(rotationState)
-            )
-        }
-
-        // Animated answer content
-        AnimatedVisibility(visible = expanded) {
-            Column {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    thickness = 1.dp,
-                    color = LightBorder.copy(alpha = 0.5f)
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = data.question,
+                    fontWeight = if (expanded) FontWeight.Bold else FontWeight.Medium,
+                    color = if (expanded) LojaSocialPrimary else TextDark,
+                    modifier = Modifier.weight(1f)
                 )
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.rotate(rotationState),
+                    tint = if (expanded) LojaSocialPrimary else Color.Gray
+                )
+            }
+
+            AnimatedVisibility(visible = expanded) {
                 Text(
                     text = data.answer,
                     fontSize = 14.sp,
-                    color = TextDark,
-                    lineHeight = 20.sp
+                    color = TextGrey,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(top = 12.dp)
                 )
             }
         }

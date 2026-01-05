@@ -1,19 +1,24 @@
 package com.lojasocial.app.ui.support
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.support.components.ContactSection
 import com.lojasocial.app.ui.support.components.FaqSection
 import com.lojasocial.app.ui.support.components.SupportTopBar
 import com.lojasocial.app.domain.support.FaqRepository
+import com.lojasocial.app.ui.theme.TextDark
 
 /**
  * Main support screen view.
@@ -60,13 +65,14 @@ fun SupportView(
 }
 
 /**
- * Main content layout for the support screen.
+ * Private composable function that renders the main content of the support screen.
  * 
- * This component contains the FAQ section and contact section
- * with proper scrolling and spacing.
+ * This function handles the layout and organization of the support content,
+ * including the FAQ section and contact options. It provides a scrollable
+ * container with proper spacing and styling.
  * 
- * @param paddingValues Padding values from the scaffold.
- * @param onStartChat Callback when the user wants to start a chat.
+ * @param paddingValues The padding values to apply to the content.
+ * @param onStartChat Callback when the user wants to start a chat session.
  */
 @Composable
 private fun SupportContent(
@@ -76,21 +82,29 @@ private fun SupportContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFFCFCFC))
             .padding(paddingValues)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp)
+            .padding(horizontal = 20.dp)
     ) {
-        // Contact Section (moved to top)
-        ContactSection(
-            onStartChat = onStartChat,
-            modifier = Modifier.padding(bottom = 32.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Perguntas Frequentes",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextDark
         )
 
-        // FAQ Section (moved below chat button)
-        FaqSection(
-            faqList = FaqRepository.getFaqItems(),
-            modifier = Modifier.padding(bottom = 40.dp)
-        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        FaqSection(faqList = FaqRepository.getFaqItems())
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        ContactSection(onStartChat = onStartChat)
+
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
