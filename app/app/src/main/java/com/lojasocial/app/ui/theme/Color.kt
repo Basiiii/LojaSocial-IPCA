@@ -33,6 +33,9 @@ val BrandOrange = Color(0xFFD97706)
 // --- Typography Colors ---
 val TextDark = Color(0xFF1F2937)
 val TextGray = Color(0xFF6B7280)
+val ScanBlue = Color(0xFF3B82F6)
+val ScanRed = Color(0xFFEF4444)
+
 val TextDarkGray = Color(0xFF4B5563)
 
 // --- UI Elements & States ---
