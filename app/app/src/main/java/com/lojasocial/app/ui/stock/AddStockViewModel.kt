@@ -6,18 +6,22 @@ import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.api.BarcodeProduct
 import com.lojasocial.app.data.model.Campaign
 import com.lojasocial.app.data.model.Product
+import com.lojasocial.app.data.model.StockItem
 import com.lojasocial.app.repository.CampaignRepository
 import com.lojasocial.app.repository.ProductRepository
+import com.lojasocial.app.repository.StockItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
 
 @HiltViewModel
 class AddStockViewModel @Inject constructor(
     private val productRepository: ProductRepository,
+    private val stockItemRepository: StockItemRepository,
     private val campaignRepository: CampaignRepository
 ) : ViewModel() {
     
@@ -29,12 +33,25 @@ class AddStockViewModel @Inject constructor(
     private val _productData = MutableStateFlow<Product?>(null)
     val productData: StateFlow<Product?> = _productData.asStateFlow()
     
+    // Stock item data
+    private val _stockItemData = MutableStateFlow<StockItem?>(null)
+    val stockItemData: StateFlow<StockItem?> = _stockItemData.asStateFlow()
+    
     // Form fields
     private val _barcode = MutableStateFlow("")
     val barcode: StateFlow<String> = _barcode.asStateFlow()
     
     private val _productName = MutableStateFlow("")
     val productName: StateFlow<String> = _productName.asStateFlow()
+    
+    private val _productBrand = MutableStateFlow("")
+    val productBrand: StateFlow<String> = _productBrand.asStateFlow()
+    
+    private val _productCategory = MutableStateFlow(1) // Default to Alimentar
+    val productCategory: StateFlow<Int> = _productCategory.asStateFlow()
+    
+    private val _productImageUrl = MutableStateFlow("")
+    val productImageUrl: StateFlow<String> = _productImageUrl.asStateFlow()
     
     // Manual mode flag
     private val _isManualMode = MutableStateFlow(false)
@@ -105,6 +122,14 @@ class AddStockViewModel @Inject constructor(
             // Clear product data when entering manual mode
             Log.d("AddStockViewModel", "Clearing product data for manual mode")
             _productData.value = null
+            _stockItemData.value = null
+            
+            // Clear all product fields
+            _productName.value = ""
+            _productBrand.value = ""
+            _productCategory.value = 1 // Default to Alimentar
+            _productImageUrl.value = ""
+            
             // Also clear any loading state
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
@@ -121,6 +146,18 @@ class AddStockViewModel @Inject constructor(
         _productName.value = name
     }
     
+    fun onProductBrandChanged(brand: String) {
+        _productBrand.value = brand
+    }
+    
+    fun onProductCategoryChanged(category: Int) {
+        _productCategory.value = category
+    }
+    
+    fun onProductImageUrlChanged(imageUrl: String) {
+        _productImageUrl.value = imageUrl
+    }
+    
     fun onQuantityChanged(quantity: String) {
         _quantity.value = quantity
     }
@@ -134,6 +171,8 @@ class AddStockViewModel @Inject constructor(
     }
     
     private fun fetchProductData(barcode: String) {
+        Log.d("AddStockViewModel", "!!! fetchProductData ENTRY !!! barcode: $barcode")
+        
         if (barcode.isEmpty()) {
             Log.w("AddStockViewModel", "Empty barcode, skipping API call")
             return
@@ -148,26 +187,40 @@ class AddStockViewModel @Inject constructor(
             return
         }
         
+        Log.d("AddStockViewModel", "=== STARTING FETCH PROCESS FOR BARCODE: $barcode ===")
         Log.d("AddStockViewModel", "Fetching product data for barcode: $barcode")
-        Log.d("AddStockViewModel", "Current product name before API call: ${_productName.value}")
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         
         viewModelScope.launch {
             try {
-                Log.d("AddStockViewModel", "First checking Firestore for barcode...")
+                Log.d("AddStockViewModel", "=== ABOUT TO CALL FIRESTORE ===")
+                Log.d("AddStockViewModel", "Getting product from Firestore using barcode as document ID...")
+                Log.d("AddStockViewModel", "Barcode to lookup: $barcode")
+                
+                // First try to get product from Firestore using barcode as document ID
+                val product = productRepository.getProductByBarcodeId(barcode)
+                
+                Log.d("AddStockViewModel", "=== FIRESTORE CALL COMPLETED ===")
+                Log.d("AddStockViewModel", "Firestore lookup completed. Product result: $product")
 
-                // First try to get from Firestore
-                val firestoreProduct = productRepository.getProductFromFirestore(barcode)
-
-                if (firestoreProduct != null) {
+                if (product != null) {
                     Log.d("AddStockViewModel", "SUCCESS: Product found in Firestore")
-                    _productName.value = firestoreProduct.name
-                    _productData.value = firestoreProduct
+                    Log.d("AddStockViewModel", "Product: ${product.name}, Brand: ${product.brand}")
+                    
+                    _productData.value = product
+                    
+                    // Populate all product fields
+                    _productName.value = product.name
+                    _productBrand.value = product.brand
+                    _productCategory.value = product.category
+                    _productImageUrl.value = product.imageUrl
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = null
                     )
                 } else {
+                    Log.d("AddStockViewModel", "=== FIRESTORE FAILED, CALLING API ===")
                     Log.d("AddStockViewModel", "Product not found in Firestore, calling external API...")
 
                     // If not found in Firestore, call external API
@@ -177,22 +230,23 @@ class AddStockViewModel @Inject constructor(
                             Log.d("AddStockViewModel", "Product title: ${apiProduct.title}")
                             Log.d("AddStockViewModel", "Product brand: ${apiProduct.brand}")
                             Log.d("AddStockViewModel", "Product category: ${apiProduct.category}")
-                            Log.d("AddStockViewModel", "Product description: ${apiProduct.description}")
 
                             _productName.value = apiProduct.title
 
-                            // Convert API product to Firestore product format
-                            val firestoreProduct = Product(
+                            // Convert API product to Product format
+                            val newProduct = Product(
                                 name = apiProduct.title,
                                 brand = apiProduct.brand ?: "",
-                                category = apiProduct.category ?: "",
-                                imageUrl = apiProduct.imageUrl ?: "",
-                                quantity = 0, // Will be set by user
-                                campaignId = null, // Will be set by user
-                                stockBatches = emptyMap() // Will be set when adding to stock
+                                category = 1, // Default to Alimentar
+                                imageUrl = apiProduct.imageUrl ?: ""
                             )
 
-                            _productData.value = firestoreProduct
+                            _productData.value = newProduct
+                            
+                            // Populate all product fields from API data
+                            _productBrand.value = apiProduct.brand ?: ""
+                            _productCategory.value = 1 // Default to Alimentar
+                            _productImageUrl.value = apiProduct.imageUrl ?: ""
                             Log.d("AddStockViewModel", "Updated product name in StateFlow: ${_productName.value}")
 
                             _uiState.value = _uiState.value.copy(
@@ -204,7 +258,6 @@ class AddStockViewModel @Inject constructor(
                         .onFailure { error ->
                             Log.e("AddStockViewModel", "FAILURE: Failed to fetch product data from API")
                             Log.e("AddStockViewModel", "Error message: ${error.message}")
-                            Log.e("AddStockViewModel", "Error type: ${error::class.java.simpleName}")
 
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
@@ -214,8 +267,6 @@ class AddStockViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("AddStockViewModel", "EXCEPTION: Exception during product fetch", e)
-                Log.e("AddStockViewModel", "Exception message: ${e.message}")
-                Log.e("AddStockViewModel", "Exception stack trace: ${e.stackTraceToString()}")
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -240,30 +291,70 @@ class AddStockViewModel @Inject constructor(
                 val currentBarcode = _barcode.value
                 val quantity = _quantity.value.toIntOrNull() ?: 0
                 val expiryDate = _expiryDate.value
-                val campaignId = _campaign.value
+                val campaignId = _campaign.value.ifEmpty { null }
 
-                if (currentProduct == null) {
-                    _uiState.value = _uiState.value.copy(
-                        error = "No product data available"
-                    )
-                    return@launch
-                }
-
-                if (currentBarcode.isEmpty() || quantity <= 0 || expiryDate == "mm/dd/aaaa") {
+                if (currentBarcode.isEmpty() || quantity <= 0) {
                     _uiState.value = _uiState.value.copy(
                         error = "Please fill in all required fields"
                     )
                     return@launch
                 }
 
-                // Create or update product in Firestore
-                val updatedProduct = currentProduct.copy(
-                    quantity = currentProduct.quantity + quantity,
-                    campaignId = campaignId.ifEmpty { null },
-                    stockBatches = currentProduct.stockBatches + (expiryDate to quantity)
+                // Parse expiry date - allow null if not applicable ("Sem Validade")
+                // "mm/dd/aaaa" means date is required but not filled, so show error
+                val parsedExpiryDate: Date? = when {
+                    expiryDate == "Sem Validade" -> {
+                        // Expiry date not applicable (toggle is off)
+                        null
+                    }
+                    expiryDate == "mm/dd/aaaa" || expiryDate.isEmpty() -> {
+                        // Date is required but not filled
+                        _uiState.value = _uiState.value.copy(
+                            error = "Por favor, preencha a data de validade ou desative o campo"
+                        )
+                        return@launch
+                    }
+                    else -> {
+                        // Try to parse the date
+                        try {
+                            val parts = expiryDate.split("/")
+                            if (parts.size == 3) {
+                                Date(parts[2].toInt() - 1900, parts[1].toInt() - 1, parts[0].toInt())
+                            } else {
+                                _uiState.value = _uiState.value.copy(
+                                    error = "Formato de data inválido. Use DD/MM/AAAA"
+                                )
+                                return@launch
+                            }
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(
+                                error = "Formato de data inválido. Use DD/MM/AAAA"
+                            )
+                            return@launch
+                        }
+                    }
+                }
+
+                // Save or update product using barcode as document ID
+                val productToSave = Product(
+                    name = _productName.value,
+                    brand = _productBrand.value,
+                    category = _productCategory.value,
+                    imageUrl = _productImageUrl.value
+                )
+                productRepository.saveOrUpdateProduct(productToSave, currentBarcode)
+
+                // Create stock item
+                val stockItem = StockItem(
+                    barcode = currentBarcode,
+                    campaignId = campaignId,
+                    createdAt = Date(),
+                    expirationDate = parsedExpiryDate,
+                    quantity = quantity,
+                    productId = currentBarcode // Use barcode as product ID reference
                 )
 
-                productRepository.saveProductToFirestore(currentBarcode, updatedProduct)
+                productRepository.saveStockItem(stockItem)
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -274,6 +365,14 @@ class AddStockViewModel @Inject constructor(
                 _quantity.value = "0"
                 _expiryDate.value = "mm/dd/aaaa"
                 _campaign.value = ""
+                _productData.value = null
+                _stockItemData.value = null
+                
+                // Clear product fields
+                _productName.value = ""
+                _productBrand.value = ""
+                _productCategory.value = 1 // Default to Alimentar
+                _productImageUrl.value = ""
 
             } catch (e: Exception) {
                 Log.e("AddStockViewModel", "Error adding to stock", e)

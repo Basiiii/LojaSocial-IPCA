@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.mlkit.vision.barcode.BarcodeScanner
@@ -55,6 +57,9 @@ import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
+import com.lojasocial.app.data.model.ProductCategory
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun AddStockScreen(
@@ -223,16 +228,21 @@ fun ScanStepScreen(
             }
         }
         
-        // Header with back button
+        // Scanning overlay
+        ScanningOverlay()
+        
+        // Header with back button 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+                .padding(top = 50.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(
-                onClick = onNavigateBack,
+                onClick = {
+                    Log.d("ScanStepScreen", "Back button clicked")
+                    onNavigateBack()
+                },
                 modifier = Modifier
                     .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
             ) {
@@ -256,9 +266,6 @@ fun ScanStepScreen(
             }
         }
         
-        // Scanning overlay
-        ScanningOverlay()
-        
         // Manual Entry Button
         Box(
             modifier = Modifier
@@ -271,13 +278,7 @@ fun ScanStepScreen(
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Adicionar manualmente",
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                
+            ) {                
                 Button(
                     onClick = { onBarcodeScanned("MANUAL") },
                     colors = ButtonDefaults.buttonColors(
@@ -313,6 +314,9 @@ fun FormStepScreen(
     // Form fields
     val barcode by viewModel.barcode.collectAsState()
     val productName by viewModel.productName.collectAsState()
+    val productBrand by viewModel.productBrand.collectAsState()
+    val productCategory by viewModel.productCategory.collectAsState()
+    val productImageUrl by viewModel.productImageUrl.collectAsState()
     val quantity by viewModel.quantity.collectAsState()
     val expiryDate by viewModel.expiryDate.collectAsState()
     val campaign by viewModel.campaign.collectAsState()
@@ -327,6 +331,9 @@ fun FormStepScreen(
     
     // Campaign dropdown state
     var campaignExpanded by remember { mutableStateOf(false) }
+    
+    // Category dropdown state
+    var categoryExpanded by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -356,7 +363,7 @@ fun FormStepScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Product info card with editable name
+        // Product info card with editable fields
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = ScanBlue.copy(alpha = 0.1f))
@@ -371,24 +378,24 @@ fun FormStepScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Product image placeholder (will be replaced with actual image later)
-                if (productData?.imageUrl?.isNotEmpty() == true) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Imagem do Produto",
-                            color = TextGray,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
+                // Product image - always show, use default if no URL available
+                val defaultImageUrl = "https://drive.google.com/uc?export=view&id=1pFBQEmEMZOnUoDeQxus054ezCihRywPQ"
+                val imageUrlToShow = when {
+                    productImageUrl.isNotEmpty() -> productImageUrl
+                    !productData?.imageUrl.isNullOrEmpty() -> productData?.imageUrl
+                    else -> defaultImageUrl
                 }
+                
+                AsyncImage(
+                    model = imageUrlToShow,
+                    contentDescription = "Imagem do Produto",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Editable product name
                 OutlinedTextField(
@@ -441,6 +448,66 @@ fun FormStepScreen(
                 }
             }
         }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Brand field
+        OutlinedTextField(
+            value = productBrand,
+            onValueChange = { viewModel.onProductBrandChanged(it) },
+            label = { Text("Marca") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Category dropdown
+        ExposedDropdownMenuBox(
+            expanded = categoryExpanded,
+            onExpandedChange = { categoryExpanded = !categoryExpanded }
+        ) {
+            OutlinedTextField(
+                value = ProductCategory.fromId(productCategory)?.displayName ?: "Alimentar",
+                onValueChange = {},
+                label = { Text("Categoria") },
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(),
+                enabled = !uiState.isLoading
+            )
+            
+            ExposedDropdownMenu(
+                expanded = categoryExpanded,
+                onDismissRequest = { categoryExpanded = false }
+            ) {
+                ProductCategory.getAllCategories().forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.displayName) },
+                        onClick = {
+                            viewModel.onProductCategoryChanged(category.id)
+                            categoryExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Image URL field
+        OutlinedTextField(
+            value = productImageUrl,
+            onValueChange = { viewModel.onProductImageUrlChanged(it) },
+            label = { Text("URL da Imagem") },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading,
+            placeholder = { Text("https://exemplo.com/imagem.jpg") }
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Quantity field
         OutlinedTextField(
@@ -520,8 +587,8 @@ fun FormStepScreen(
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campaignExpanded) },
                 modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .menuAnchor(),
                 enabled = !uiState.isLoading
             )
             

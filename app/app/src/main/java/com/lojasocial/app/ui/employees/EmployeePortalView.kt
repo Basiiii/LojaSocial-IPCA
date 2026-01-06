@@ -115,7 +115,7 @@ fun EmployeePortalView(
 
     if (showAddStockScreen) {
         AddStockScreen(
-            onNavigateBack = {}
+            onNavigateBack = { showAddStockScreen = false }
         )
     } else {
         if (useAppLayout) {
