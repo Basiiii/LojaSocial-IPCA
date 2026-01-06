@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.mlkit.vision.barcode.BarcodeScanner
@@ -56,6 +58,8 @@ import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
 import com.lojasocial.app.data.model.ProductCategory
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun AddStockScreen(
@@ -224,16 +228,21 @@ fun ScanStepScreen(
             }
         }
         
-        // Header with back button
+        // Scanning overlay
+        ScanningOverlay()
+        
+        // Header with back button 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+                .padding(top = 50.dp, start = 16.dp, end = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(
-                onClick = onNavigateBack,
+                onClick = {
+                    Log.d("ScanStepScreen", "Back button clicked")
+                    onNavigateBack()
+                },
                 modifier = Modifier
                     .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
             ) {
@@ -256,9 +265,6 @@ fun ScanStepScreen(
                 )
             }
         }
-        
-        // Scanning overlay
-        ScanningOverlay()
         
         // Manual Entry Button
         Box(
@@ -372,24 +378,24 @@ fun FormStepScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Product image placeholder (will be replaced with actual image later)
-                if (productData?.imageUrl?.isNotEmpty() == true) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Imagem do Produto",
-                            color = TextGray,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
+                // Product image - always show, use default if no URL available
+                val defaultImageUrl = "https://drive.google.com/uc?export=view&id=1pFBQEmEMZOnUoDeQxus054ezCihRywPQ"
+                val imageUrlToShow = when {
+                    productImageUrl.isNotEmpty() -> productImageUrl
+                    !productData?.imageUrl.isNullOrEmpty() -> productData?.imageUrl
+                    else -> defaultImageUrl
                 }
+                
+                AsyncImage(
+                    model = imageUrlToShow,
+                    contentDescription = "Imagem do Produto",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 // Editable product name
                 OutlinedTextField(
@@ -467,7 +473,9 @@ fun FormStepScreen(
                 label = { Text("Categoria") },
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(),
                 enabled = !uiState.isLoading
             )
             
@@ -579,8 +587,8 @@ fun FormStepScreen(
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campaignExpanded) },
                 modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .menuAnchor(),
                 enabled = !uiState.isLoading
             )
             
