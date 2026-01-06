@@ -32,6 +32,7 @@ fun BeneficiaryPortalView(
     userRepository: UserRepository,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
+    onNavigateToActivityList: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -64,7 +65,9 @@ fun BeneficiaryPortalView(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    ActivitySection()
+                    ActivitySection(
+                        onViewAllClick = onNavigateToActivityList
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }

@@ -53,4 +53,7 @@ sealed class Screen(val route: String) {
     
     // Stock
     object ExpiringItems : Screen("expiringItems")
+    
+    // Activity
+    object ActivityList : Screen("activityList")
 }

@@ -32,6 +32,7 @@ fun EmployeePortalView(
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
+    onNavigateToActivityList: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -60,7 +61,9 @@ fun EmployeePortalView(
                         onNavigateToScanStock = { showAddStockScreen = true }
                     )
                     Spacer(modifier = Modifier.height(24.dp))
-                    RecentActivitySection()
+                    RecentActivitySection(
+                        onViewAllClick = onNavigateToActivityList
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
             }

@@ -338,6 +338,17 @@ fun NavigationGraph(
                 }
             )
         }
+
+        // Activity List
+        composable(Screen.ActivityList.route) {
+            // Determine if user is employee based on current profile
+            val isEmployee = lastProfile?.isAdmin == true && !lastProfile.isBeneficiary
+            
+            com.lojasocial.app.ui.activity.ActivityListView(
+                isEmployee = isEmployee,
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
     }
 }
 
@@ -372,6 +383,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToExpiringItems = {
             navController.navigate(Screen.ExpiringItems.route)
+        },
+        onNavigateToActivityList = {
+            navController.navigate(Screen.ActivityList.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->
@@ -417,6 +431,9 @@ private fun BeneficiaryPortalTabContent(
         },
         onNavigateToApplications = {
             navController.navigate(Screen.ApplicationsList.route)
+        },
+        onNavigateToActivityList = {
+            navController.navigate(Screen.ActivityList.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->
