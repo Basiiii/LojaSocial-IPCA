@@ -761,87 +761,87 @@ private fun processImageProxy(
 
 @Composable
 fun ScanningOverlay() {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val canvasWidth = size.width
-        val canvasHeight = size.height
-        val scanBoxSize = minOf(canvasWidth, canvasHeight) * 0.6f
-        val left = (canvasWidth - scanBoxSize) / 2
-        val top = (canvasHeight - scanBoxSize) / 2
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        // Semi-transparent dark overlay background
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(
+                color = Color.Black.copy(alpha = 0.5f),
+                size = size
+            )
+        }
         
-        // Draw semi-transparent overlay
-        drawRect(
-            color = Color.Black.copy(alpha = 0.5f),
-            size = size
-        )
-        
-        // Draw transparent scan box
-        drawRoundRect(
-            color = Color.Transparent,
-            topLeft = Offset(left, top),
-            size = androidx.compose.ui.geometry.Size(scanBoxSize, scanBoxSize),
-            cornerRadius = CornerRadius(16.dp.toPx()),
-            style = Stroke(width = 2.dp.toPx())
-        )
-        
-        // Draw corner brackets
-        val bracketLength = 32.dp.toPx()
-        val bracketWidth = 4.dp.toPx()
-        
-        // Top-left corner
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left, top),
-            size = androidx.compose.ui.geometry.Size(bracketLength, bracketWidth),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left, top),
-            size = androidx.compose.ui.geometry.Size(bracketWidth, bracketLength),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        
-        // Top-right corner
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left + scanBoxSize - bracketLength, top),
-            size = androidx.compose.ui.geometry.Size(bracketLength, bracketWidth),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left + scanBoxSize - bracketWidth, top),
-            size = androidx.compose.ui.geometry.Size(bracketWidth, bracketLength),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        
-        // Bottom-left corner
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left, top + scanBoxSize - bracketWidth),
-            size = androidx.compose.ui.geometry.Size(bracketLength, bracketWidth),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left, top + scanBoxSize - bracketLength),
-            size = androidx.compose.ui.geometry.Size(bracketWidth, bracketLength),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        
-        // Bottom-right corner
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left + scanBoxSize - bracketLength, top + scanBoxSize - bracketWidth),
-            size = androidx.compose.ui.geometry.Size(bracketLength, bracketWidth),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
-        drawRoundRect(
-            color = ScanBlue,
-            topLeft = Offset(left + scanBoxSize - bracketWidth, top + scanBoxSize - bracketLength),
-            size = androidx.compose.ui.geometry.Size(bracketWidth, bracketLength),
-            cornerRadius = CornerRadius(2.dp.toPx())
-        )
+        // Scan box in center
+        Box(
+            modifier = Modifier.size(280.dp, 160.dp)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 4.dp.toPx()
+                val cornerSize = 20.dp.toPx()
+
+                // Blue Corners
+                val blueColor = ScanBlue
+
+                // Top Left Corner
+                drawLine(
+                    color = blueColor,
+                    start = Offset(0f, 0f),
+                    end = Offset(cornerSize, 0f),
+                    strokeWidth = strokeWidth
+                )
+                drawLine(
+                    color = blueColor,
+                    start = Offset(0f, 0f),
+                    end = Offset(0f, cornerSize),
+                    strokeWidth = strokeWidth
+                )
+
+                // Top Right Corner
+                drawLine(
+                    color = blueColor,
+                    start = Offset(size.width, 0f),
+                    end = Offset(size.width - cornerSize, 0f),
+                    strokeWidth = strokeWidth
+                )
+                drawLine(
+                    color = blueColor,
+                    start = Offset(size.width, 0f),
+                    end = Offset(size.width, cornerSize),
+                    strokeWidth = strokeWidth
+                )
+
+                // Bottom Left Corner
+                drawLine(
+                    color = blueColor,
+                    start = Offset(0f, size.height),
+                    end = Offset(0f, size.height - cornerSize),
+                    strokeWidth = strokeWidth
+                )
+                drawLine(
+                    color = blueColor,
+                    start = Offset(0f, size.height),
+                    end = Offset(cornerSize, size.height),
+                    strokeWidth = strokeWidth
+                )
+
+                // Bottom Right Corner
+                drawLine(
+                    color = blueColor,
+                    start = Offset(size.width, size.height),
+                    end = Offset(size.width - cornerSize, size.height),
+                    strokeWidth = strokeWidth
+                )
+                drawLine(
+                    color = blueColor,
+                    start = Offset(size.width, size.height),
+                    end = Offset(size.width, size.height - cornerSize),
+                    strokeWidth = strokeWidth
+                )
+
+            }
+        }
     }
 }
 
