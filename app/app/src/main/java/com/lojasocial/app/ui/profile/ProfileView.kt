@@ -19,6 +19,7 @@ import com.lojasocial.app.ui.profile.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
 /**
  * Main profile view component.
@@ -41,7 +42,8 @@ fun ProfileView(
     onLogout: () -> Unit,
     onTabSelected: (String) -> Unit,
     onNavigateToApplications: () -> Unit = {},
-    onNavigateToExpiringItems: () -> Unit = {}
+    onNavigateToExpiringItems: () -> Unit = {},
+    onNavigateToCampaigns: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
@@ -73,7 +75,8 @@ fun ProfileView(
             onSupportClick = { onTabSelected("support") },
             onCalendarClick = { onTabSelected("calendar") },
             onApplicationsClick = onNavigateToApplications,
-            onExpiringItemsClick = onNavigateToExpiringItems
+            onExpiringItemsClick = onNavigateToExpiringItems,
+            onCampaignsClick = onNavigateToCampaigns
         )
 
         Spacer(modifier = Modifier.height(40.dp))

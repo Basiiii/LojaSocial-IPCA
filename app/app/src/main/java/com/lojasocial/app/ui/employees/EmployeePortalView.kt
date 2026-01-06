@@ -36,6 +36,7 @@ fun EmployeePortalView(
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToActivityList: () -> Unit = {},
+    onNavigateToCampaigns: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -79,7 +80,8 @@ fun EmployeePortalView(
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,
-                    onNavigateToExpiringItems = onNavigateToExpiringItems
+                    onNavigateToExpiringItems = onNavigateToExpiringItems,
+                    onNavigateToCampaigns = onNavigateToCampaigns
                 )
             }
 
