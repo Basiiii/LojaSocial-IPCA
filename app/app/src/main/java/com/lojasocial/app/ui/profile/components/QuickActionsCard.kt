@@ -69,8 +69,9 @@ fun QuickActionsCard(
                 onClick = onCalendarClick
             )
             
-            // Show applications option only for beneficiaries
-            if (userProfile?.isBeneficiary == true) {
+            // Show applications option only for beneficiaries and non beneficiaries
+            val nonBeneficiary = (userProfile?.isBeneficiary == false && !userProfile.isAdmin)
+            if (userProfile?.isBeneficiary == true || nonBeneficiary) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
                 
                 ProfileOption(
