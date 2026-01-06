@@ -215,7 +215,7 @@ class ActivityRepositoryImpl @Inject constructor(
                         null
                     }
 
-                    val personalInfoData = data["personalInfo"] as? Map<String, Any>
+                    val personalInfoData = data["personalInfo"] as? Map<*, *>
                     val userName = personalInfoData?.get("name") as? String
 
                     val activityType = when (status) {
