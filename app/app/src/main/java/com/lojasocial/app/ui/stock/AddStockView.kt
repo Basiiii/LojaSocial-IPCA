@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -29,10 +28,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +43,6 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import java.util.Calendar
 import java.util.concurrent.Executors
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.ScanBlue
@@ -58,6 +54,7 @@ import com.lojasocial.app.viewmodel.AddStockUiState
 import com.lojasocial.app.data.model.ProductCategory
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
+import com.lojasocial.app.ui.components.CustomDatePickerDialog
 
 @Composable
 fun AddStockScreen(
@@ -537,7 +534,7 @@ fun FormStepScreen(
                 enabled = !uiState.isLoading
             )
         }
-        
+
         if (expiryDateEnabled) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -556,18 +553,17 @@ fun FormStepScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isLoading
             )
-            
+
             // Date Picker Dialog
-            if (showDatePicker) {
-                DatePickerDialog(
-                    onDateSelected = { day, month, year ->
-                        val formattedDate = String.format("%02d/%02d/%04d", day, month, year)
-                        viewModel.onExpiryDateChanged(formattedDate)
-                        showDatePicker = false
-                    },
-                    onDismiss = { showDatePicker = false }
-                )
-            }
+            CustomDatePickerDialog(
+                showDialog = showDatePicker,
+                onDateSelected = { day, month, year ->
+                    val formattedDate = String.format("%02d/%02d/%04d", day, month, year)
+                    viewModel.onExpiryDateChanged(formattedDate)
+                    showDatePicker = false
+                },
+                onDismiss = { showDatePicker = false }
+            )
         }
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -845,214 +841,3 @@ fun ScanningOverlay() {
     }
 }
 
-@Composable
-fun DatePickerDialog(
-    onDateSelected: (Int, Int, Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val calendar = Calendar.getInstance()
-    var currentYear by remember { mutableIntStateOf(calendar.get(Calendar.YEAR)) }
-    var currentMonth by remember { mutableIntStateOf(calendar.get(Calendar.MONTH)) } // 0-based
-    var currentDay by remember { mutableIntStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { 
-            Text(
-                text = "Selecionar Data de Validade",
-                style = MaterialTheme.typography.headlineSmall
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Month/Year selector
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(LojaSocialPrimary),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {
-                            if (currentMonth == 0) {
-                                currentMonth = 11
-                                currentYear--
-                            } else {
-                                currentMonth--
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Mês Anterior",
-                            tint = Color.White
-                        )
-                    }
-
-                    Text(
-                        text = "${getMonthName(currentMonth)} $currentYear",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-
-                    IconButton(
-                        onClick = {
-                            if (currentMonth == 11) {
-                                currentMonth = 0
-                                currentYear++
-                            } else {
-                                currentMonth++
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Próximo Mês",
-                            tint = Color.White
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Days of week
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    listOf("Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb").forEach { day ->
-                        Text(
-                            text = day,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Calendar grid
-                val daysInMonth = getDaysInMonth(currentMonth, currentYear)
-                val firstDayOfWeek = getFirstDayOfMonth(currentMonth, currentYear)
-                
-                // Generate calendar weeks
-                val calendarDays = mutableListOf<List<Int>>()
-                val currentWeek = mutableListOf<Int>()
-                
-                // Add empty cells for days before month starts
-                repeat(firstDayOfWeek) {
-                    currentWeek.add(0)
-                }
-                
-                // Add days of the month
-                for (day in 1..daysInMonth) {
-                    currentWeek.add(day)
-                    if (currentWeek.size == 7) {
-                        calendarDays.add(currentWeek.toList())
-                        currentWeek.clear()
-                    }
-                }
-                
-                // Add remaining days
-                if (currentWeek.isNotEmpty()) {
-                    while (currentWeek.size < 7) {
-                        currentWeek.add(0)
-                    }
-                    calendarDays.add(currentWeek.toList())
-                }
-                
-                // Display calendar weeks
-                calendarDays.forEach { week ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        week.forEach { day ->
-                            if (day == 0) {
-                                // Empty cell to align days
-                                Spacer(modifier = Modifier.size(40.dp))
-                            } else {
-                                TextButton(
-                                    onClick = { currentDay = day },
-                                    modifier = Modifier.size(40.dp),
-                                    colors = ButtonDefaults.textButtonColors(
-                                        containerColor = if (day == currentDay)
-                                            LojaSocialPrimary.copy(alpha = 0.2f)
-                                        else
-                                            Color.Transparent,
-                                        contentColor = if (day == currentDay)
-                                            LojaSocialPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface
-                                    )
-                                ) {
-                                    Text(
-                                        text = day.toString(),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onDateSelected(currentDay, currentMonth + 1, currentYear) // +1 because month is 0-based
-                }
-            ) {
-                Text("Confirmar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        }
-    )
-}
-
-private fun getMonthName(month: Int): String {
-    return when (month) {
-        0 -> "Janeiro"
-        1 -> "Fevereiro"
-        2 -> "Março"
-        3 -> "Abril"
-        4 -> "Maio"
-        5 -> "Junho"
-        6 -> "Julho"
-        7 -> "Agosto"
-        8 -> "Setembro"
-        9 -> "Outubro"
-        10 -> "Novembro"
-        11 -> "Dezembro"
-        else -> ""
-    }
-}
-
-private fun getDaysInMonth(month: Int, year: Int): Int {
-    return when (month) {
-        0, 2, 4, 6, 7, 9, 11 -> 31
-        1 -> if (isLeapYear(year)) 29 else 28
-        else -> 30
-    }
-}
-
-private fun getFirstDayOfMonth(month: Int, year: Int): Int {
-    val calendar = Calendar.getInstance()
-    calendar.set(year, month, 1)
-    return calendar.get(Calendar.DAY_OF_WEEK) - 1 // Convert to 0-based (0 = Sunday)
-}
-
-private fun isLeapYear(year: Int): Boolean {
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-}

@@ -57,3 +57,12 @@ val RedDelete = Color(0xFFE53935)
 val ChatBrandGreen = Color(0xFF1B5E46)
 val ChatBubbleGray = Color(0xFFF5F5F5)
 val ChatTextDark = Color(0xFF1A1A1A)
+
+// --- Request Status ---
+
+val BgYellow = Color(0xFFFEF3C7)
+val TextYellow = Color(0xFFD97706)
+val BgBlue = Color(0xFFDBEAFE)
+val TextBlue = Color(0xFF2563EB)
+val BgRed = Color(0xFFFEE2E2)
+val TextRed = Color(0xFFDC2626)
