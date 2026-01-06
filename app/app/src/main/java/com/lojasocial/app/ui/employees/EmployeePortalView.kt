@@ -20,6 +20,7 @@ import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.stock.AddStockScreen
 import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
+import com.lojasocial.app.ui.calendar.CalendarView
 import kotlinx.coroutines.flow.flow
 
 @Composable
@@ -110,14 +111,7 @@ fun EmployeePortalView(
             }
 
             "calendar" -> {
-                Box(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Calendário (por implementar)")
-                }
+                CalendarView(paddingValues = paddingValues)
             }
         }
     }
