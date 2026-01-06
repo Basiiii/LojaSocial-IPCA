@@ -17,31 +17,25 @@ class OrdersRepositoryImpl @Inject constructor(
         return try {
             val currentUser = auth.currentUser ?: return Result.failure(Exception("User not authenticated"))
 
-            val requestsData = hashMapOf(
+            val itemsList = selectedItems.map { (productDocId, quantity) ->
+                mapOf(
+                    "productDocId" to productDocId,
+                    "quantity" to quantity
+                )
+            }
+
+            val requestsData = mapOf(
                 "userId" to currentUser.uid,
                 "status" to 0,
                 "submissionDate" to FieldValue.serverTimestamp(),
-                "totalItems" to selectedItems.values.sum()
+                "totalItems" to selectedItems.values.sum(),
+                "items" to itemsList
             )
 
-            val documentRef = firestore.collection("requests")
+            firestore.collection("requests")
                 .add(requestsData)
                 .await()
 
-            val itemsCollection = documentRef.collection("items")
-            val batch = firestore.batch()
-
-            selectedItems.forEach { (productDocId, quantity) ->
-                val itemData = hashMapOf(
-                    "productDocId" to productDocId,
-                    "quantity" to quantity,
-                    "addedAt" to FieldValue.serverTimestamp()
-                )
-                val itemRef = itemsCollection.document()
-                batch.set(itemRef, itemData)
-            }
-
-            batch.commit().await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
