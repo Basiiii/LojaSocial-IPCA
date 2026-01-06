@@ -52,6 +52,7 @@ import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.ScanBlue
 import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
+import com.lojasocial.app.utils.AppConstants
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
 import com.lojasocial.app.data.model.ProductCategory
@@ -376,11 +377,10 @@ fun FormStepScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 // Product image - always show, use default if no URL available
-                val defaultImageUrl = "https://drive.google.com/uc?export=view&id=1pFBQEmEMZOnUoDeQxus054ezCihRywPQ"
                 val imageUrlToShow = when {
                     productImageUrl.isNotEmpty() -> productImageUrl
                     !productData?.imageUrl.isNullOrEmpty() -> productData.imageUrl
-                    else -> defaultImageUrl
+                    else -> AppConstants.DEFAULT_PRODUCT_IMAGE_URL
                 }
                 
                 AsyncImage(

@@ -54,4 +54,43 @@ class StockItemRepository @Inject constructor(
             false
         }
     }
+
+    /**
+     * Get items expiring within the specified number of days
+     * @param daysThreshold Number of days to check ahead (default: 3)
+     * @return List of StockItems expiring within the threshold
+     */
+    suspend fun getExpiringItems(daysThreshold: Int = 3): List<StockItem> {
+        return try {
+            val now = java.util.Date()
+            val calendar = java.util.Calendar.getInstance()
+            calendar.time = now
+            calendar.add(java.util.Calendar.DAY_OF_MONTH, daysThreshold)
+            val thresholdDate = calendar.time
+
+            // Query items with quantity > 0 and expirationDate <= thresholdDate
+            val snapshot = itemsCollection
+                .whereGreaterThan("quantity", 0)
+                .whereLessThanOrEqualTo("expirationDate", thresholdDate)
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                val item = doc.toObject(StockItem::class.java)?.copy(id = doc.id)
+                // Additional filter: ensure expirationDate exists and is in the future
+                if (item != null && item.expirationDate != null) {
+                    val expDate = item.expirationDate
+                    if (expDate.after(now) && expDate.before(thresholdDate) || expDate == thresholdDate) {
+                        item
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 }

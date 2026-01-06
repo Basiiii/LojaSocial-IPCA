@@ -122,7 +122,8 @@ fun NonBeneficiaryPortalView(
                     userRepository = userRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
-                    onNavigateToApplications = onNavigateToApplications
+                    onNavigateToApplications = onNavigateToApplications,
+                    onNavigateToExpiringItems = {}
                 )
             }
 
@@ -368,6 +369,7 @@ fun NonBeneficiaryPreview() {
 
             override suspend fun updateProfile(profile: UserProfile) = TODO()
             override suspend fun createProfile(profile: UserProfile) = TODO()
+            override suspend fun saveFcmToken(token: String) = Result.success(Unit)
         }
 
         NonBeneficiaryPortalView(

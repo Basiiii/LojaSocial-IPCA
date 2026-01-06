@@ -39,26 +39,37 @@ fun AppTopBar(
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF064E3B))
-                        .then(
-                            if (showPortalSelection && onPortalSelectionClick != null) {
-                                Modifier.clickable { onPortalSelectionClick?.invoke() }
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.loja_social_small),
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(40.dp),
-                        contentScale = ContentScale.Crop
-                    )
+                if (showPortalSelection && onPortalSelectionClick != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF064E3B))
+                            .clickable { onPortalSelectionClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.loja_social_small),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(40.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF064E3B)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.loja_social_small),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(40.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
 

@@ -31,6 +31,7 @@ fun EmployeePortalView(
     userRepository: UserRepository,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
+    onNavigateToExpiringItems: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -71,7 +72,8 @@ fun EmployeePortalView(
                     userRepository = userRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
-                    onNavigateToApplications = onNavigateToApplications
+                    onNavigateToApplications = onNavigateToApplications,
+                    onNavigateToExpiringItems = onNavigateToExpiringItems
                 )
             }
 
@@ -179,6 +181,7 @@ fun EmployeeScreenPreview() {
 
             override suspend fun updateProfile(profile: UserProfile) = TODO()
             override suspend fun createProfile(profile: UserProfile) = TODO()
+            override suspend fun saveFcmToken(token: String) = Result.success(Unit)
         }
 
         AppLayout(

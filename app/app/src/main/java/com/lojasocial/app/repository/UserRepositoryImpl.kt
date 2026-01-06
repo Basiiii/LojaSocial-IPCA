@@ -99,4 +99,21 @@ class UserRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun saveFcmToken(token: String): Result<Unit> {
+        return try {
+            val currentUser = auth.currentUser
+            if (currentUser != null) {
+                firestore.collection("users")
+                    .document(currentUser.uid)
+                    .update("fcmToken", token)
+                    .await()
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("No user logged in"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

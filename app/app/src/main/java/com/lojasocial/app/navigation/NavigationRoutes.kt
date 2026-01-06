@@ -50,4 +50,7 @@ sealed class Screen(val route: String) {
             fun createRoute(applicationId: String) = "applicationDetail/$applicationId"
         }
     }
+    
+    // Stock
+    object ExpiringItems : Screen("expiringItems")
 }

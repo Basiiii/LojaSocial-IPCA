@@ -323,6 +323,21 @@ fun NavigationGraph(
                 onNavigateBack = { navController.navigateUp() }
             )
         }
+
+        // Expiring Items
+        composable(Screen.ExpiringItems.route) {
+            com.lojasocial.app.ui.expiringitems.ExpiringItemsView(
+                onNavigateBack = { 
+                    // Try to pop back if there's a back stack entry
+                    // If not (e.g., from notification), navigate to Employee Portal home
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.EmployeePortal.Home.route) {
+                            popUpTo(Screen.ExpiringItems.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -354,6 +369,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToApplications = {
             navController.navigate(Screen.ApplicationsList.route)
+        },
+        onNavigateToExpiringItems = {
+            navController.navigate(Screen.ExpiringItems.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

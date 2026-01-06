@@ -40,7 +40,8 @@ fun ProfileView(
     userRepository: UserRepository,
     onLogout: () -> Unit,
     onTabSelected: (String) -> Unit,
-    onNavigateToApplications: () -> Unit = {}
+    onNavigateToApplications: () -> Unit = {},
+    onNavigateToExpiringItems: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
@@ -71,7 +72,8 @@ fun ProfileView(
             userProfile = userProfile.value,
             onSupportClick = { onTabSelected("support") },
             onCalendarClick = { onTabSelected("calendar") },
-            onApplicationsClick = onNavigateToApplications
+            onApplicationsClick = onNavigateToApplications,
+            onExpiringItemsClick = onNavigateToExpiringItems
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -135,6 +137,7 @@ fun ProfileViewPreview() {
         }
         override suspend fun updateProfile(profile: UserProfile) = TODO()
         override suspend fun createProfile(profile: UserProfile) = TODO()
+        override suspend fun saveFcmToken(token: String) = Result.success(Unit)
     }
 
     ProfileView(

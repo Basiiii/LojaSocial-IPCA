@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.database)
+    implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
     implementation(libs.androidx.material3)
 
     testImplementation(libs.junit)

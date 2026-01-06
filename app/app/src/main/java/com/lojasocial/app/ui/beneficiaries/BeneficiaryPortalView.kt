@@ -77,7 +77,8 @@ fun BeneficiaryPortalView(
                     userRepository = userRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
-                    onNavigateToApplications = onNavigateToApplications
+                    onNavigateToApplications = onNavigateToApplications,
+                    onNavigateToExpiringItems = {}
                 )
             }
 
@@ -183,6 +184,7 @@ fun BeneficiaryPreview() {
 
             override suspend fun updateProfile(profile: UserProfile) = TODO()
             override suspend fun createProfile(profile: UserProfile) = TODO()
+            override suspend fun saveFcmToken(token: String) = Result.success(Unit)
         }
 
         BeneficiaryPortalView(

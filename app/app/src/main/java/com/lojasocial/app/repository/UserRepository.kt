@@ -15,4 +15,5 @@ interface UserRepository {
     suspend fun getCurrentUserProfile(): Flow<UserProfile?>
     suspend fun updateProfile(profile: UserProfile): Result<Unit>
     suspend fun createProfile(profile: UserProfile): Result<Unit>
+    suspend fun saveFcmToken(token: String): Result<Unit>
 }
