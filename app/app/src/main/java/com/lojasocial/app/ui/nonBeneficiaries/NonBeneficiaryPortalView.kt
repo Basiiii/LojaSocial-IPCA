@@ -67,7 +67,9 @@ fun NonBeneficiaryPortalView(
     onCandidaturaClick: () -> Unit = {},
     onNavigateToApplication: () -> Unit = {},
     onLogout: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {}
+    onNavigateToApplications: () -> Unit = {},
+    currentTab: String = "home",
+    onTabChange: ((String) -> Unit)? = null
 ) {
     /**
      * Current selected tab state for navigation.
@@ -78,8 +80,8 @@ fun NonBeneficiaryPortalView(
      * - "support": Support tab with chat functionality
      * - "calendar": Calendar tab (placeholder)
      */
-    var selectedTab by remember { mutableStateOf("home") }
     var isChatOpen by remember { mutableStateOf(false) }
+    val selectedTab = currentTab
 
     /**
      * Main content composable based on selected tab.
@@ -119,7 +121,7 @@ fun NonBeneficiaryPortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     onLogout = onLogout,
-                    onTabSelected = { selectedTab = it },
+                    onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications
                 )
             }
@@ -166,10 +168,12 @@ fun NonBeneficiaryPortalView(
     if (useAppLayout) {
         AppLayout(
             selectedTab = selectedTab,
-            onTabSelected = {
-                selectedTab = it
-                if (it != "support") {
+            onTabSelected = { tab ->
+                if (tab != "support") {
                     isChatOpen = false
+                }
+                onTabChange?.invoke(tab) ?: run {
+                    // Fallback for preview/legacy usage
                 }
             },
             subtitle = "Portal Candidatos",

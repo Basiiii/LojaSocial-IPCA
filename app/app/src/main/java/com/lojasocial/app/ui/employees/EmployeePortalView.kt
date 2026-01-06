@@ -30,11 +30,13 @@ fun EmployeePortalView(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     onLogout: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {}
+    onNavigateToApplications: () -> Unit = {},
+    currentTab: String = "home",
+    onTabChange: ((String) -> Unit)? = null
 ) {
-    var selectedTab by remember { mutableStateOf("home") }
     var showAddStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
+    val selectedTab = currentTab
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -68,7 +70,7 @@ fun EmployeePortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     onLogout = onLogout,
-                    onTabSelected = { selectedTab = it },
+                    onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications
                 )
             }
@@ -121,7 +123,11 @@ fun EmployeePortalView(
         if (useAppLayout) {
             AppLayout(
                 selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
+                onTabSelected = { tab ->
+                    onTabChange?.invoke(tab) ?: run {
+                        // Fallback for preview/legacy usage
+                    }
+                },
                 subtitle = "Portal Funcionários",
                 showPortalSelection = showPortalSelection,
                 onPortalSelectionClick = onPortalSelectionClick

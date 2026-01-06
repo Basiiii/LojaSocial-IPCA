@@ -27,18 +27,18 @@ fun BeneficiaryPortalView(
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null,
     onNavigateToOrders: (() -> Unit)? = null,
-    onNavigateToSupport: (() -> Unit)? = null,
     onNavigateToPickups: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
     onLogout: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {}
+    onNavigateToApplications: () -> Unit = {},
+    currentTab: String = "home",
+    onTabChange: ((String) -> Unit)? = null
 ) {
-    var selectedTab by remember { mutableStateOf("home") }
     var isChatOpen by remember { mutableStateOf(false) }
 
     val content = @Composable { paddingValues: PaddingValues ->
-        when (selectedTab) {
+        when (currentTab) {
             "home" -> {
                 Column(
                     modifier = Modifier
@@ -59,7 +59,7 @@ fun BeneficiaryPortalView(
                     QuickActionsSection(
                         onNavigateToOrders = onNavigateToOrders ?: {},
                         onNavigateToPickups = onNavigateToPickups ?: {},
-                        onSupportClick = { selectedTab = "support" }
+                        onSupportClick = { onTabChange?.invoke("support") }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -76,7 +76,7 @@ fun BeneficiaryPortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     onLogout = onLogout,
-                    onTabSelected = { selectedTab = it },
+                    onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications
                 )
             }
@@ -122,16 +122,18 @@ fun BeneficiaryPortalView(
 
     if (useAppLayout) {
         AppLayout(
-            selectedTab = selectedTab,
-            onTabSelected = {
-                selectedTab = it
-                if (it != "support") {
+            selectedTab = currentTab,
+            onTabSelected = { tab ->
+                if (tab != "support") {
                     isChatOpen = false
+                }
+                onTabChange?.invoke(tab) ?: run {
+                    // Fallback for preview/legacy usage
                 }
             },
             subtitle = "Portal Beneficiários",
-            showTopBar = !(selectedTab == "support" && isChatOpen),
-            showBottomBar = !(selectedTab == "support" && isChatOpen),
+            showTopBar = !(currentTab == "support" && isChatOpen),
+            showBottomBar = !(currentTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
             onPortalSelectionClick = onPortalSelectionClick
         ) { paddingValues ->

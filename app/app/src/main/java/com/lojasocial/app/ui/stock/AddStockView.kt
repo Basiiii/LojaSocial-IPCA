@@ -39,8 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.mlkit.vision.barcode.BarcodeScanner
@@ -51,15 +49,14 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.Calendar
 import java.util.concurrent.Executors
 import com.lojasocial.app.ui.theme.TextDark
-import com.lojasocial.app.ui.theme.TextGray
 import com.lojasocial.app.ui.theme.ScanBlue
 import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
 import com.lojasocial.app.data.model.ProductCategory
-import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 @Composable
 fun AddStockScreen(
@@ -382,7 +379,7 @@ fun FormStepScreen(
                 val defaultImageUrl = "https://drive.google.com/uc?export=view&id=1pFBQEmEMZOnUoDeQxus054ezCihRywPQ"
                 val imageUrlToShow = when {
                     productImageUrl.isNotEmpty() -> productImageUrl
-                    !productData?.imageUrl.isNullOrEmpty() -> productData?.imageUrl
+                    !productData?.imageUrl.isNullOrEmpty() -> productData.imageUrl
                     else -> defaultImageUrl
                 }
                 

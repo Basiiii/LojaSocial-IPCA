@@ -9,39 +9,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
+import com.lojasocial.app.navigation.NavigationGraph
+import com.lojasocial.app.navigation.loadUserProfileAndDestination
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.ui.applications.ApplicationsListView
-import com.lojasocial.app.ui.applications.ApplicationDetailView
-import com.lojasocial.app.ui.submitApplications.CandidaturaPersonalInfoView
-import com.lojasocial.app.ui.submitApplications.CandidaturaAcademicDataView
-import com.lojasocial.app.ui.submitApplications.CandidaturaDocumentsView
-import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
-import com.lojasocial.app.ui.employees.EmployeePortalView
-import com.lojasocial.app.ui.login.LoginScreen
-import com.lojasocial.app.ui.nonbeneficiaries.NonBeneficiaryPortalView
-import com.lojasocial.app.ui.portalselection.PortalSelectionView
-import com.lojasocial.app.ui.requestitems.RequestItemsView
 import com.lojasocial.app.ui.theme.LojaSocialTheme
-import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-    @AndroidEntryPoint
-    class MainActivity : ComponentActivity() {
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
 
-        @Inject
+    @Inject
     lateinit var authRepository: AuthRepository
 
     @Inject
@@ -49,16 +31,6 @@ import javax.inject.Inject
 
     @Inject
     lateinit var applicationRepository: ApplicationRepository
-
-    private fun getDestinationForUser(userProfile: UserProfile?): String {
-        return when {
-            userProfile == null -> "login"
-            userProfile.isAdmin && userProfile.isBeneficiary -> "portalSelection"
-            !userProfile.isAdmin && !userProfile.isBeneficiary -> "nonBeneficiaryPortal"
-            userProfile.isAdmin -> "employeePortal"
-            else -> "beneficiaryPortal"
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,226 +46,34 @@ import javax.inject.Inject
                     val lastProfile = remember { mutableStateOf<UserProfile?>(null) }
                     var startDestination by remember { mutableStateOf<String?>(null) }
 
+                    // Load user profile and determine start destination
                     LaunchedEffect(Unit) {
-                        try {
-                            val currentUser = authRepository.getCurrentUser()
-                            if (currentUser != null) {
-                                val profile = userRepository.getCurrentUserProfile().first()
-                                if (profile != null) {
-                                    lastProfile.value = profile
-                                    val destination = getDestinationForUser(profile)
-                                    if (destination == "login") {
-                                        navigationError.value = "Perfil carregado mas sem portal válido."
-                                        startDestination = "login"
-                                    } else {
-                                        startDestination = destination
-                                    }
-                                } else {
-                                    startDestination = "login"
-                                }
-                            } else {
-                                startDestination = "login"
-                            }
-                        } catch (e: Exception) {
-                            startDestination = "login"
-                        }
+                        val state = loadUserProfileAndDestination(authRepository, userRepository)
+                        lastProfile.value = state.profile
+                        navigationError.value = state.error
+                        startDestination = state.destination
                     }
 
+                    // Show loading indicator while determining start destination
                     if (startDestination == null) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator()
                         }
                     } else {
-                        NavHost(
+                        NavigationGraph(
                             navController = navController,
-                            startDestination = startDestination!!
-                        ) {
-                            composable("employeePortal") {
-                                val profile = lastProfile.value
-                                val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-                                val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
-                                EmployeePortalView(
-                                    userName = displayName,
-                                    showPortalSelection = showPortalSelection,
-                                    onPortalSelectionClick = { navController.navigate("portalSelection") },
-                                    authRepository = authRepository,
-                                    userRepository = userRepository,
-                                    onLogout = {
-                                        navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                                    },
-                                    onNavigateToApplications = {
-                                        navController.navigate("applicationsList")
-                                    }
-                                )
-                            }
-
-                            composable("beneficiaryPortal") {
-                                val profile = lastProfile.value
-                                val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-                                val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
-                                BeneficiaryPortalView(
-                                    userName = displayName,
-                                    showPortalSelection = showPortalSelection,
-                                    onPortalSelectionClick = { navController.navigate("portalSelection") },
-                                    onNavigateToOrders = { navController.navigate("requestItems") },
-                                    authRepository = authRepository,
-                                    userRepository = userRepository,
-                                    onLogout = {
-                                        navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                                    },
-                                    onNavigateToApplications = {
-                                        navController.navigate("applicationsList")
-                                    }
-                                )
-                            }
-
-                            composable("requestItems") {
-                                RequestItemsView(
-                                    onBackClick = { navController.navigateUp() },
-                                    onSubmitClick = {
-                                        navController.navigate("beneficiaryPortal") {
-                                            popUpTo("beneficiaryPortal") { inclusive = false }
-                                        }
-                                    }
-                                )
-                            }
-
-                            composable("portalSelection") {
-                                val profile = lastProfile.value
-                                val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
-                                PortalSelectionView(
-                                    userName = displayName,
-                                    onNavigateToEmployeePortal = { navController.navigate("employeePortal") },
-                                    onNavigateToBeneficiaryPortal = { navController.navigate("beneficiaryPortal") },
-                                    onLogout = {
-                                        CoroutineScope(Dispatchers.Main).launch {
-                                            authRepository.signOut()
-                                            navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                                        }
-                                    }
-                                )
-                            }
-
-                            composable("nonBeneficiaryPortal") {
-                                val profile = lastProfile.value
-                                val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
-                                NonBeneficiaryPortalView(
-                                    userName = displayName,
-                                    showPortalSelection = false, // Usually false for non-beneficiaries
-                                    onPortalSelectionClick = { navController.navigate("portalSelection") },
-                                    authRepository = authRepository,
-                                    userRepository = userRepository,
-                                    onNavigateToApplication = {
-                                        navController.navigate("applicationFlow")
-                                    },
-                                    onLogout = {
-                                        navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                                    },
-                                    onNavigateToApplications = {
-                                        navController.navigate("applicationsList")
-                                    }
-                                )
-                            }
-
-                            navigation(
-                                startDestination = "applicationPage1",
-                                route = "applicationFlow"
-                            ) {
-                                composable("applicationPage1") { backStackEntry ->
-                                    val parentEntry = remember(backStackEntry) {
-                                        navController.getBackStackEntry("applicationFlow")
-                                    }
-                                    val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
-
-                                    CandidaturaPersonalInfoView(
-                                        onNavigateBack = { navController.navigateUp() },
-                                        onNavigateNext = { navController.navigate("applicationPage2") },
-                                        viewModel = viewModel
-                                    )
-                                }
-
-                                composable("applicationPage2") { backStackEntry ->
-                                    val parentEntry = remember(backStackEntry) {
-                                        navController.getBackStackEntry("applicationFlow")
-                                    }
-                                    val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
-
-                                    CandidaturaAcademicDataView(
-                                        onNavigateBack = { navController.navigateUp() },
-                                        onNavigateNext = { navController.navigate("applicationPage3") },
-                                        viewModel = viewModel
-                                    )
-                                }
-
-                                composable("applicationPage3") { backStackEntry ->
-                                    val parentEntry = remember(backStackEntry) {
-                                        navController.getBackStackEntry("applicationFlow")
-                                    }
-                                    val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
-
-                                    CandidaturaDocumentsView(
-                                        onNavigateBack = { navController.navigateUp() },
-                                        onSubmit = {
-                                            // Pop back to the screen before applicationFlow
-                                            navController.popBackStack("applicationFlow", inclusive = true)
-                                        },
-                                        viewModel = viewModel
-                                    )
-                                }
-                            }
-
-                            composable("applicationsList") {
-                                ApplicationsListView(
-                                    applicationRepository = applicationRepository,
-                                    onNavigateBack = { navController.navigateUp() },
-                                    onAddClick = {
-                                        // Navigate to application flow if user is non-beneficiary
-                                        navController.navigate("applicationFlow")
-                                    },
-                                    onItemClick = { applicationId ->
-                                        navController.navigate("applicationDetail/$applicationId")
-                                    }
-                                )
-                            }
-
-                            composable("applicationDetail/{applicationId}") { backStackEntry ->
-                                val applicationId = backStackEntry.arguments?.getString("applicationId") ?: ""
-                                ApplicationDetailView(
-                                    applicationId = applicationId,
-                                    applicationRepository = applicationRepository,
-                                    onNavigateBack = { navController.navigateUp() }
-                                )
-                            }
-
-                            composable("login") {
-                                LoginScreen(
-                                    externalError = navigationError.value,
-                                    onLoginSuccess = {
-                                        CoroutineScope(Dispatchers.Main).launch {
-                                            try {
-                                                navigationError.value = null
-                                                val profile = userRepository.getCurrentUserProfile().first()
-                                                if (profile != null) {
-                                                    lastProfile.value = profile
-                                                    val destination = getDestinationForUser(profile)
-                                                    if (destination == "login") {
-                                                        navigationError.value = "Perfil inválido."
-                                                    } else {
-                                                        navController.navigate(destination) {
-                                                            popUpTo("login") { inclusive = true }
-                                                        }
-                                                    }
-                                                } else {
-                                                    navigationError.value = "Erro ao carregar perfil."
-                                                }
-                                            } catch (e: Exception) {
-                                                navigationError.value = "Erro de conexão."
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
+                            startDestination = startDestination!!,
+                            lastProfile = lastProfile.value,
+                            navigationError = navigationError.value,
+                            onNavigationErrorChange = { navigationError.value = it },
+                            onProfileChange = { lastProfile.value = it },
+                            authRepository = authRepository,
+                            userRepository = userRepository,
+                            applicationRepository = applicationRepository
+                        )
                     }
                 }
             }

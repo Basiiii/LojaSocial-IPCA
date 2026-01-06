@@ -44,7 +44,13 @@ fun AppTopBar(
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFF064E3B))
-                        .let { if (showPortalSelection && onPortalSelectionClick != null) it.clickable { onPortalSelectionClick() } else it },
+                        .then(
+                            if (showPortalSelection && onPortalSelectionClick != null) {
+                                Modifier.clickable { onPortalSelectionClick?.invoke() }
+                            } else {
+                                Modifier
+                            }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(

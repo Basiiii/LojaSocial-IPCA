@@ -30,9 +30,9 @@ import com.lojasocial.app.ui.theme.ChatBrandGreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatHeader(
+    modifier: Modifier = Modifier,
     onClose: (() -> Unit)? = null,
-    showCloseButton: Boolean = onClose != null,
-    modifier: Modifier = Modifier
+    showCloseButton: Boolean = onClose != null
 ) {
     CenterAlignedTopAppBar(
         title = {

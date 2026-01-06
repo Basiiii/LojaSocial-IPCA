@@ -33,10 +33,10 @@ import com.lojasocial.app.ui.theme.BrandOrange
  */
 @Composable
 fun QuickActionsSection(
+    modifier: Modifier = Modifier,
     onNavigateToOrders: () -> Unit,
     onNavigateToPickups: () -> Unit,
-    onSupportClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onSupportClick: () -> Unit = {}
 ) {
     Column(modifier = modifier) {
         Text(

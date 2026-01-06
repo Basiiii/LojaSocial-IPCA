@@ -89,9 +89,9 @@ fun ContactSection(
  */
 @Composable
 fun ChatStartButton(
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    text: String = "Abrir Chat",
-    modifier: Modifier = Modifier
+    text: String = "Abrir Chat"
 ) {
     Button(
         onClick = onClick,
