@@ -66,3 +66,11 @@ val BgBlue = Color(0xFFDBEAFE)
 val TextBlue = Color(0xFF2563EB)
 val BgRed = Color(0xFFFEE2E2)
 val TextRed = Color(0xFFDC2626)
+val BgGreen = Color(0xFFDCFCE7)
+val TextGreen = Color(0xFF166534)
+
+// --- Request Dialog ---
+val ButtonGreen = Color(0xFF14532D)
+val LightGreenBg = Color(0xFFDCFCE7)
+val HeaderText = Color(0xFF111827)
+val BodyText = Color(0xFF4B5563)
