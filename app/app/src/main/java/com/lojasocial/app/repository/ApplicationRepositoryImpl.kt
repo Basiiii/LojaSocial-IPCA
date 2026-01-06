@@ -9,7 +9,9 @@ import com.lojasocial.app.domain.Application
 import com.lojasocial.app.domain.ApplicationDocument
 import com.lojasocial.app.domain.ApplicationStatus
 import com.lojasocial.app.utils.FileUtils
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import java.util.Date
@@ -24,7 +26,8 @@ import javax.inject.Singleton
  * operations for the scholarship application system.
  * 
  * Key features:
- * - Stores applications in a hierarchical structure: users/{userId}/applications/{applicationId}
+ * - Stores applications in a dedicated collection: applications/{applicationId}
+ * - Includes userId field in each application document for user association
  * - Converts document files to Base64 format for Firestore storage
  * - Provides real-time updates using Kotlin Flow
  * - Handles authentication and user-specific data isolation
@@ -74,12 +77,13 @@ class ApplicationRepositoryImpl @Inject constructor(
             val userId = auth.currentUser?.uid
                 ?: return Result.failure(Exception("User not authenticated"))
 
-            // Create application document in users/{userId}/applications subcollection
-            val applicationsRef = firestore.collection("users")
-                .document(userId)
-                .collection("applications")
+            // Create application document in applications collection
+            val applicationsRef = firestore.collection("applications")
             
-            val applicationWithId = application.copy(id = applicationsRef.document().id)
+            val applicationWithId = application.copy(
+                id = applicationsRef.document().id,
+                userId = userId
+            )
             
             // Convert documents to base64 and store in Firestore
             val documentsData = application.documents.map { doc ->
@@ -101,6 +105,7 @@ class ApplicationRepositoryImpl @Inject constructor(
             
             val applicationData = mapOf(
                 "id" to applicationWithId.id,
+                "userId" to userId,
                 "personalInfo" to mapOf(
                     "name" to application.personalInfo.name,
                     "dateOfBirth" to application.personalInfo.dateOfBirth,
@@ -154,11 +159,11 @@ class ApplicationRepositoryImpl @Inject constructor(
     /**
      * Retrieves all applications for the current authenticated user.
      * 
-     * This method fetches all applications from the user's applications subcollection
-     * in Firestore and converts them to domain objects. The data is mapped from the
-     * Firestore document structure to the Application domain model.
+     * This method fetches all applications from the applications collection
+     * in Firestore filtered by userId and converts them to domain objects. 
+     * The data is mapped from the Firestore document structure to the Application domain model.
      * 
-     * Firestore structure: users/{userId}/applications/{applicationId}
+     * Firestore structure: applications/{applicationId} with userId field
      * 
      * @return Flow emitting a list of applications for the current user
      */
@@ -170,9 +175,8 @@ class ApplicationRepositoryImpl @Inject constructor(
                 return@flow
             }
             
-            val snapshot = firestore.collection("users")
-                .document(userId)
-                .collection("applications")
+            val snapshot = firestore.collection("applications")
+                .whereEqualTo("userId", userId)
                 .get()
                 .await()
 
@@ -212,6 +216,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                     
                     Application(
                         id = data["id"] as? String ?: doc.id,
+                        userId = data["userId"] as? String ?: "",
                         personalInfo = com.lojasocial.app.domain.PersonalInfo(
                             name = personalInfoData?.get("name") as? String ?: "",
                             dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
@@ -234,41 +239,42 @@ class ApplicationRepositoryImpl @Inject constructor(
                                 else -> false
                             }
                         ),
-                documents = documentsData?.map { docData ->
-                    ApplicationDocument(
-                        id = (docData["id"] as? Long)?.toInt() ?: 0,
-                        name = docData["name"] as? String ?: "",
-                        uri = null, // Stored as base64
-                        fileName = docData["fileName"] as? String,
-                        base64Data = docData["base64Data"] as? String // Store base64 for viewing
-                    )
-                } ?: emptyList(),
-                submissionDate = when (val dateValue = data["submissionDate"]) {
-                    is Date -> dateValue
-                    else -> {
-                        // Try to convert Firestore Timestamp to Date using reflection
-                        if (dateValue != null) {
-                            val className = dateValue.javaClass.name
-                            if (className == "com.google.firebase.Timestamp" || className == "com.google.firebase.firestore.Timestamp") {
-                                try {
-                                    val toDateMethod = dateValue.javaClass.getMethod("toDate")
-                                    (toDateMethod.invoke(dateValue) as? Date) ?: Date()
-                                } catch (e: Exception) {
+                        documents = documentsData?.map { docData ->
+                            ApplicationDocument(
+                                id = (docData["id"] as? Long)?.toInt() ?: 0,
+                                name = docData["name"] as? String ?: "",
+                                uri = null, // Stored as base64
+                                fileName = docData["fileName"] as? String,
+                                base64Data = docData["base64Data"] as? String // Store base64 for viewing
+                            )
+                        } ?: emptyList(),
+                        submissionDate = when (val dateValue = data["submissionDate"]) {
+                            is Date -> dateValue
+                            else -> {
+                                // Try to convert Firestore Timestamp to Date using reflection
+                                if (dateValue != null) {
+                                    val className = dateValue.javaClass.name
+                                    if (className == "com.google.firebase.Timestamp" || className == "com.google.firebase.firestore.Timestamp") {
+                                        try {
+                                            val toDateMethod = dateValue.javaClass.getMethod("toDate")
+                                            (toDateMethod.invoke(dateValue) as? Date) ?: Date()
+                                        } catch (e: Exception) {
+                                            Date()
+                                        }
+                                    } else {
+                                        Date()
+                                    }
+                                } else {
                                     Date()
                                 }
-                            } else {
-                                Date()
                             }
-                        } else {
-                            Date()
-                        }
-                    }
-                },
+                        },
                         status = try {
                             ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
                         } catch (e: Exception) {
                             ApplicationStatus.PENDING
-                        }
+                        },
+                        rejectionMessage = data["rejectionMessage"] as? String
                     )
                 } catch (e: Exception) {
                     null
@@ -282,10 +288,142 @@ class ApplicationRepositoryImpl @Inject constructor(
     }
 
     /**
+     * Retrieves all applications from all users.
+     * 
+     * This method fetches all applications from the applications collection
+     * in Firestore without filtering by userId. The data is mapped from the
+     * Firestore document structure to the Application domain model.
+     * Uses a snapshot listener for real-time updates.
+     * 
+     * Firestore structure: applications/{applicationId} with userId field
+     * 
+     * @return Flow emitting a list of all applications
+     */
+    override fun getAllApplications(): Flow<List<Application>> = callbackFlow {
+        val listener = firestore.collection("applications")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                if (snapshot == null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val applications = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                    
+                    val personalInfoData = data["personalInfo"] as? Map<String, Any>
+                    val academicInfoData = data["academicInfo"] as? Map<String, Any>
+                    val documentsData = data["documents"] as? List<Map<String, Any>>
+                    
+                    // Helper function to convert Firestore date to Date
+                    fun convertToDate(value: Any?): Date? {
+                        return when {
+                            value is Date -> value
+                            value != null && value.javaClass.name == "com.google.firebase.Timestamp" -> {
+                                // Use reflection to call toDate() method
+                                try {
+                                    val toDateMethod = value.javaClass.getMethod("toDate")
+                                    toDateMethod.invoke(value) as? Date
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            value != null && value.javaClass.name == "com.google.firebase.firestore.Timestamp" -> {
+                                // Use reflection to call toDate() method
+                                try {
+                                    val toDateMethod = value.javaClass.getMethod("toDate")
+                                    toDateMethod.invoke(value) as? Date
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            else -> null
+                        }
+                    }
+                    
+                        Application(
+                            id = data["id"] as? String ?: doc.id,
+                            userId = data["userId"] as? String ?: "",
+                            personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                                name = personalInfoData?.get("name") as? String ?: "",
+                                dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
+                                idPassport = personalInfoData?.get("idPassport") as? String ?: "",
+                                email = personalInfoData?.get("email") as? String ?: "",
+                                phone = personalInfoData?.get("phone") as? String ?: ""
+                            ),
+                            academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                                academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
+                                course = academicInfoData?.get("course") as? String ?: "",
+                                studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
+                                faesSupport = when (val faes = academicInfoData?.get("faesSupport")) {
+                                    is Boolean -> faes
+                                    is String -> faes == "Sim"
+                                    else -> false
+                                },
+                                hasScholarship = when (val scholarship = academicInfoData?.get("hasScholarship")) {
+                                    is Boolean -> scholarship
+                                    is String -> scholarship == "Sim"
+                                    else -> false
+                                }
+                            ),
+                            documents = documentsData?.map { docData ->
+                                ApplicationDocument(
+                                    id = (docData["id"] as? Long)?.toInt() ?: 0,
+                                    name = docData["name"] as? String ?: "",
+                                    uri = null, // Stored as base64
+                                    fileName = docData["fileName"] as? String,
+                                    base64Data = docData["base64Data"] as? String // Store base64 for viewing
+                                )
+                            } ?: emptyList(),
+                            submissionDate = when (val dateValue = data["submissionDate"]) {
+                                is Date -> dateValue
+                                else -> {
+                                    // Try to convert Firestore Timestamp to Date using reflection
+                                    if (dateValue != null) {
+                                        val className = dateValue.javaClass.name
+                                        if (className == "com.google.firebase.Timestamp" || className == "com.google.firebase.firestore.Timestamp") {
+                                            try {
+                                                val toDateMethod = dateValue.javaClass.getMethod("toDate")
+                                                (toDateMethod.invoke(dateValue) as? Date) ?: Date()
+                                            } catch (e: Exception) {
+                                                Date()
+                                            }
+                                        } else {
+                                            Date()
+                                        }
+                                    } else {
+                                        Date()
+                                    }
+                                }
+                            },
+                            status = try {
+                                ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
+                            } catch (e: Exception) {
+                                ApplicationStatus.PENDING
+                            }
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                
+                trySend(applications)
+            }
+        
+        awaitClose { listener.remove() }
+    }
+
+    /**
      * Retrieves a specific application by its unique identifier.
      * 
      * This method fetches a single application document from Firestore
      * using the provided ID and converts it to the Application domain model.
+     * It also verifies that the application belongs to the current user.
      * 
      * @param id The unique identifier of the application
      * @return Result containing the application if found, or error if not found
@@ -295,9 +433,7 @@ class ApplicationRepositoryImpl @Inject constructor(
             val userId = auth.currentUser?.uid
                 ?: return Result.failure(Exception("User not authenticated"))
 
-            val doc = firestore.collection("users")
-                .document(userId)
-                .collection("applications")
+            val doc = firestore.collection("applications")
                 .document(id)
                 .get()
                 .await()
@@ -307,6 +443,12 @@ class ApplicationRepositoryImpl @Inject constructor(
             }
 
             val data = doc.data ?: return Result.failure(Exception("No data found"))
+            
+            // Verify that the application belongs to the current user
+            val applicationUserId = data["userId"] as? String
+            if (applicationUserId != userId) {
+                return Result.failure(Exception("Unauthorized: Application does not belong to current user"))
+            }
             
             val personalInfoData = data["personalInfo"] as? Map<String, Any>
             val academicInfoData = data["academicInfo"] as? Map<String, Any>
@@ -340,6 +482,7 @@ class ApplicationRepositoryImpl @Inject constructor(
             
             val application = Application(
                 id = data["id"] as? String ?: doc.id,
+                userId = applicationUserId ?: "",
                 personalInfo = com.lojasocial.app.domain.PersonalInfo(
                     name = personalInfoData?.get("name") as? String ?: "",
                     dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
@@ -396,10 +539,200 @@ class ApplicationRepositoryImpl @Inject constructor(
                     ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
                 } catch (e: Exception) {
                     ApplicationStatus.PENDING
-                }
+                },
+                rejectionMessage = data["rejectionMessage"] as? String
             )
 
             Result.success(application)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Retrieves a specific application by its unique identifier without user verification.
+     * 
+     * This method fetches a single application document from Firestore
+     * using the provided ID and converts it to the Application domain model.
+     * It does not verify that the application belongs to the current user,
+     * allowing employees to view any application.
+     * 
+     * @param id The unique identifier of the application
+     * @return Result containing the application if found, or error if not found
+     */
+    override suspend fun getApplicationByIdForEmployee(id: String): Result<Application> {
+        return try {
+            val doc = firestore.collection("applications")
+                .document(id)
+                .get()
+                .await()
+
+            if (!doc.exists()) {
+                return Result.failure(Exception("Application not found"))
+            }
+
+            val data = doc.data ?: return Result.failure(Exception("No data found"))
+            
+            val personalInfoData = data["personalInfo"] as? Map<String, Any>
+            val academicInfoData = data["academicInfo"] as? Map<String, Any>
+            val documentsData = data["documents"] as? List<Map<String, Any>>
+            
+            // Helper function to convert Firestore date to Date
+            fun convertToDate(value: Any?): Date? {
+                return when {
+                    value is Date -> value
+                    value != null && value.javaClass.name == "com.google.firebase.Timestamp" -> {
+                        // Use reflection to call toDate() method
+                        try {
+                            val toDateMethod = value.javaClass.getMethod("toDate")
+                            toDateMethod.invoke(value) as? Date
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    value != null && value.javaClass.name == "com.google.firebase.firestore.Timestamp" -> {
+                        // Use reflection to call toDate() method
+                        try {
+                            val toDateMethod = value.javaClass.getMethod("toDate")
+                            toDateMethod.invoke(value) as? Date
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    else -> null
+                }
+            }
+            
+            val applicationUserId = data["userId"] as? String
+            
+            val application = Application(
+                id = data["id"] as? String ?: doc.id,
+                userId = applicationUserId ?: "",
+                personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                    name = personalInfoData?.get("name") as? String ?: "",
+                    dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
+                    idPassport = personalInfoData?.get("idPassport") as? String ?: "",
+                    email = personalInfoData?.get("email") as? String ?: "",
+                    phone = personalInfoData?.get("phone") as? String ?: ""
+                ),
+                academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                    academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
+                    course = academicInfoData?.get("course") as? String ?: "",
+                    studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
+                    faesSupport = when (val faes = academicInfoData?.get("faesSupport")) {
+                        is Boolean -> faes
+                        is String -> faes == "Sim"
+                        else -> false
+                    },
+                    hasScholarship = when (val scholarship = academicInfoData?.get("hasScholarship")) {
+                        is Boolean -> scholarship
+                        is String -> scholarship == "Sim"
+                        else -> false
+                    }
+                ),
+                documents = documentsData?.map { docData ->
+                    ApplicationDocument(
+                        id = (docData["id"] as? Long)?.toInt() ?: 0,
+                        name = docData["name"] as? String ?: "",
+                        uri = null, // Stored as base64
+                        fileName = docData["fileName"] as? String,
+                        base64Data = docData["base64Data"] as? String
+                    )
+                } ?: emptyList(),
+                submissionDate = when (val dateValue = data["submissionDate"]) {
+                    is Date -> dateValue
+                    else -> {
+                        // Try to convert Firestore Timestamp to Date using reflection
+                        if (dateValue != null) {
+                            val className = dateValue.javaClass.name
+                            if (className == "com.google.firebase.Timestamp" || className == "com.google.firebase.firestore.Timestamp") {
+                                try {
+                                    val toDateMethod = dateValue.javaClass.getMethod("toDate")
+                                    (toDateMethod.invoke(dateValue) as? Date) ?: Date()
+                                } catch (e: Exception) {
+                                    Date()
+                                }
+                            } else {
+                                Date()
+                            }
+                        } else {
+                            Date()
+                        }
+                    }
+                },
+                status = try {
+                    ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
+                } catch (e: Exception) {
+                    ApplicationStatus.PENDING
+                },
+                rejectionMessage = data["rejectionMessage"] as? String
+            )
+
+            Result.success(application)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Updates the status of an application.
+     * 
+     * This method allows employees/administrators to update the status of an application
+     * (e.g., approve or reject). Optionally includes a rejection message when rejecting.
+     * When approving an application, it also sets the user's isBeneficiary field to true.
+     * 
+     * @param applicationId The unique identifier of the application
+     * @param status The new status to set
+     * @param rejectionMessage Optional message to include when rejecting (null for approval)
+     * @return Result indicating success or failure
+     */
+    override suspend fun updateApplicationStatus(
+        applicationId: String,
+        status: ApplicationStatus,
+        rejectionMessage: String?
+    ): Result<Unit> {
+        return try {
+            // First, get the application to retrieve the userId
+            val applicationDoc = firestore.collection("applications")
+                .document(applicationId)
+                .get()
+                .await()
+            
+            if (!applicationDoc.exists()) {
+                return Result.failure(Exception("Application not found"))
+            }
+            
+            val applicationData = applicationDoc.data ?: return Result.failure(Exception("No data found"))
+            val userId = applicationData["userId"] as? String
+                ?: return Result.failure(Exception("Application userId not found"))
+            
+            val updateData = mutableMapOf<String, Any>(
+                "status" to status.name
+            )
+            
+            // Add rejection message if provided
+            if (rejectionMessage != null && rejectionMessage.isNotBlank()) {
+                updateData["rejectionMessage"] = rejectionMessage
+            } else if (status != ApplicationStatus.REJECTED) {
+                // Clear rejection message if not rejecting
+                updateData["rejectionMessage"] = FieldValue.delete()
+            }
+            
+            // Update application status
+            firestore.collection("applications")
+                .document(applicationId)
+                .update(updateData)
+                .await()
+            
+            // If approving, update user's isBeneficiary field to true
+            if (status == ApplicationStatus.APPROVED) {
+                firestore.collection("users")
+                    .document(userId)
+                    .update("isBeneficiary", true)
+                    .await()
+            }
+            
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

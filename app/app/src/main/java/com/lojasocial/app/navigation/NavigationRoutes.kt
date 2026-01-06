@@ -45,6 +45,7 @@ sealed class Screen(val route: String) {
     
     // Applications
     object ApplicationsList : Screen("applicationsList")
+    object AllApplicationsList : Screen("allApplicationsList") // For employees to review all applications
     data class ApplicationDetail(val applicationId: String = "{applicationId}") : Screen("applicationDetail/{applicationId}") {
         companion object {
             fun createRoute(applicationId: String) = "applicationDetail/$applicationId"

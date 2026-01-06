@@ -188,9 +188,9 @@ class ActivityRepositoryImpl @Inject constructor(
                 }
             }
 
-            // Query all applications using collection group query
-            // Applications are stored in users/{userId}/applications/{applicationId}
-            val applicationsSnapshot = firestore.collectionGroup("applications")
+            // Query all applications from applications collection
+            // Applications are stored in applications/{applicationId} with userId field
+            val applicationsSnapshot = firestore.collection("applications")
                 .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .limit(limit.toLong())
                 .get()
@@ -207,13 +207,8 @@ class ActivityRepositoryImpl @Inject constructor(
                     }
                     val submissionDate = convertToDate(data["submissionDate"]) ?: Date()
                     
-                    // Extract userId from document path: users/{userId}/applications/{applicationId}
-                    val pathParts = doc.reference.path.split("/")
-                    val userId = if (pathParts.size >= 2 && pathParts[0] == "users") {
-                        pathParts[1]
-                    } else {
-                        null
-                    }
+                    // Get userId from document data
+                    val userId = data["userId"] as? String
 
                     val personalInfoData = data["personalInfo"] as? Map<*, *>
                     val userName = personalInfoData?.get("name") as? String

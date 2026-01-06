@@ -323,7 +323,7 @@ fun NavigationGraph(
             }
         }
 
-        // Applications List
+        // Applications List (for users - shows only their applications)
         composable(Screen.ApplicationsList.route) {
             ApplicationsListView(
                 applicationRepository = applicationRepository,
@@ -333,17 +333,34 @@ fun NavigationGraph(
                 },
                 onItemClick = { applicationId ->
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
-                }
+                },
+                showAllApplications = false
+            )
+        }
+
+        // All Applications List (for employees - shows all applications)
+        composable(Screen.AllApplicationsList.route) {
+            ApplicationsListView(
+                applicationRepository = applicationRepository,
+                onNavigateBack = { navController.navigateUp() },
+                onAddClick = {}, // No add button for employees
+                onItemClick = { applicationId ->
+                    navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
+                },
+                showAllApplications = true
             )
         }
 
         // Application Detail
         composable(Screen.ApplicationDetail().route) { backStackEntry ->
             val applicationId = backStackEntry.arguments?.getString("applicationId") ?: ""
+            // Check if we came from AllApplicationsList (employee view)
+            val isEmployeeView = navController.previousBackStackEntry?.destination?.route == Screen.AllApplicationsList.route
             ApplicationDetailView(
                 applicationId = applicationId,
                 applicationRepository = applicationRepository,
-                onNavigateBack = { navController.navigateUp() }
+                onNavigateBack = { navController.navigateUp() },
+                isEmployeeView = isEmployeeView
             )
         }
 
@@ -448,7 +465,7 @@ private fun EmployeePortalTabContent(
 ) {
     val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
     val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
-    
+
     EmployeePortalView(
         userName = displayName,
         showPortalSelection = showPortalSelection,
@@ -457,12 +474,12 @@ private fun EmployeePortalTabContent(
         userRepository = userRepository,
         expirationRepository = expirationRepository,
         onLogout = {
-            navController.navigate(Screen.Login.route) { 
-                popUpTo(0) { inclusive = true } 
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
             }
         },
         onNavigateToApplications = {
-            navController.navigate(Screen.ApplicationsList.route)
+            navController.navigate(Screen.AllApplicationsList.route)
         },
         onNavigateToExpiringItems = {
             navController.navigate(Screen.ExpiringItems.route)

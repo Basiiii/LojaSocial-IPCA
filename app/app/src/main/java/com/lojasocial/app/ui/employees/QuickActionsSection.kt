@@ -21,7 +21,8 @@ import com.lojasocial.app.ui.theme.TextDark
 @Composable
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {},
-    onSupportClick: () -> Unit = {}
+    onSupportClick: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}
 ) {
     Column {
         Text(
@@ -76,7 +77,7 @@ fun QuickActionsSection(
             badgeCount = 5,
             badgeLabel = "Novas",
             isRedBadge = true,
-            onClick = { /* Handle Applications */ }
+            onClick = onNavigateToApplications
         )
     }
 }

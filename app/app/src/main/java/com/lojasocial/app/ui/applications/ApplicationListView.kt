@@ -89,14 +89,21 @@ fun ApplicationsListView(
     applicationRepository: ApplicationRepository,
     onNavigateBack: () -> Unit = {},
     onAddClick: () -> Unit = {},
-    onItemClick: (String) -> Unit = {}
+    onItemClick: (String) -> Unit = {},
+    showAllApplications: Boolean = false // If true, shows all applications regardless of userId
 ) {
     var applications by remember { mutableStateOf<List<Application>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     // Fetch applications from repository
-    LaunchedEffect(Unit) {
-        applicationRepository.getApplications().collect { apps ->
+    LaunchedEffect(showAllApplications) {
+        val applicationsFlow = if (showAllApplications) {
+            applicationRepository.getAllApplications()
+        } else {
+            applicationRepository.getApplications()
+        }
+        
+        applicationsFlow.collect { apps ->
             applications = apps
             isLoading = false
         }
@@ -119,7 +126,7 @@ fun ApplicationsListView(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Candidaturas",
+                        if (showAllApplications) "Todas as Candidaturas" else "Candidaturas",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
@@ -136,12 +143,15 @@ fun ApplicationsListView(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onAddClick) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Adicionar",
-                            tint = Color.DarkGray
-                        )
+                    // Only show add button if not showing all applications (employee view)
+                    if (!showAllApplications) {
+                        IconButton(onClick = onAddClick) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Adicionar",
+                                tint = Color.DarkGray
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(

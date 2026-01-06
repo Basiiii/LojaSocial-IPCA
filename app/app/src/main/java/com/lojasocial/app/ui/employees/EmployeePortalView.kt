@@ -62,7 +62,8 @@ fun EmployeePortalView(
                     StatsSection()
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
-                        onNavigateToScanStock = { showAddStockScreen = true }
+                        onNavigateToScanStock = { showAddStockScreen = true },
+                        onNavigateToApplications = onNavigateToApplications
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection(

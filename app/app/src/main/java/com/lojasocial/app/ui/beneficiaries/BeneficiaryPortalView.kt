@@ -55,7 +55,7 @@ fun BeneficiaryPortalView(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     GreetingSection(
-                        name = userName?.takeIf { it.isNotBlank() } ?: "Carla",
+                        name = userName?.takeIf { it.isNotBlank() } ?: "Beneficiário",
                         message = "Recebe apoio quando precisares e acompanha os teus pedidos"
                     )
 
