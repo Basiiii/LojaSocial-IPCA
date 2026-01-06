@@ -4,21 +4,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lojasocial.app.api.ExpirationCheckResponse
 import com.lojasocial.app.data.model.Product
 import com.lojasocial.app.data.model.StockItem
 import com.lojasocial.app.domain.ExpiringItemWithProduct
 import com.lojasocial.app.domain.ExpiringItemsUiState
+import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.ui.expiringitems.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.LojaSocialTheme
+import kotlinx.coroutines.launch
 import java.util.Date
 
 /**
@@ -41,6 +43,7 @@ import java.util.Date
  * administrators prioritize which items need immediate attention.
  * 
  * @param onNavigateBack Callback invoked when the back button is clicked, navigates to Employee Portal
+ * @param expirationRepository Optional repository for triggering expiration checks
  * @param viewModel The view model managing the expiring items state and business logic
  * 
  * @see ExpiringItemsViewModel The ViewModel managing the state
@@ -49,16 +52,29 @@ import java.util.Date
 @Composable
 fun ExpiringItemsView(
     onNavigateBack: () -> Unit,
+    expirationRepository: ExpirationRepository? = null,
     viewModel: ExpiringItemsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    var showExpirationCheckConfirmation by remember { mutableStateOf(false) }
+    var showExpirationCheckLoading by remember { mutableStateOf(false) }
+    var showExpirationCheckSuccess by remember { mutableStateOf(false) }
+    var showExpirationCheckError by remember { mutableStateOf(false) }
+    var expirationCheckError by remember { mutableStateOf<String?>(null) }
+    var expirationCheckResult by remember { mutableStateOf<ExpirationCheckResponse?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppBgColor)
     ) {
-        ExpiringItemsTopBar(onNavigateBack = onNavigateBack)
+        ExpiringItemsTopBar(
+            onNavigateBack = onNavigateBack,
+            onRefreshClick = if (expirationRepository != null) {
+                { showExpirationCheckConfirmation = true }
+            } else null
+        )
 
         when {
             uiState.isLoading -> {
@@ -77,6 +93,149 @@ fun ExpiringItemsView(
                 ExpiringItemsList(items = uiState.items)
             }
         }
+    }
+    
+    // Confirmation dialog
+    if (showExpirationCheckConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showExpirationCheckConfirmation = false },
+            title = {
+                Text("Confirmar Verificação")
+            },
+            text = {
+                Text("Tem a certeza que deseja verificar as expirações do stock? Esta ação irá verificar todos os itens e enviar notificações para os itens que estão a expirar em breve.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showExpirationCheckConfirmation = false
+                        if (expirationRepository != null) {
+                            coroutineScope.launch {
+                                showExpirationCheckLoading = true
+                                showExpirationCheckError = false
+                                showExpirationCheckSuccess = false
+                                expirationCheckResult = null
+                                expirationCheckError = null
+                                
+                                val result = expirationRepository.checkExpiringItems()
+                                
+                                showExpirationCheckLoading = false
+                                if (result.isSuccess) {
+                                    expirationCheckResult = result.getOrNull()
+                                    showExpirationCheckSuccess = true
+                                    // Refresh the list after successful check
+                                    viewModel.refresh()
+                                } else {
+                                    expirationCheckError = result.exceptionOrNull()?.message ?: "Erro desconhecido"
+                                    showExpirationCheckError = true
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showExpirationCheckConfirmation = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    // Loading dialog
+    if (showExpirationCheckLoading) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = {
+                Text("A Verificar Expirações")
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("A verificar stock e a enviar notificações...")
+                }
+            },
+            confirmButton = {}
+        )
+    }
+    
+    // Success dialog
+    if (showExpirationCheckSuccess) {
+        AlertDialog(
+            onDismissRequest = { 
+                showExpirationCheckSuccess = false
+                expirationCheckResult = null
+            },
+            title = {
+                Text("Verificação Concluída")
+            },
+            text = {
+                Column {
+                    Text("A verificação de expirações foi concluída com sucesso.")
+                    if (expirationCheckResult != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Itens verificados: ${expirationCheckResult!!.itemCount}")
+                        Text("Notificações enviadas: ${expirationCheckResult!!.notificationsSent}")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { 
+                        showExpirationCheckSuccess = false
+                        expirationCheckResult = null
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+    
+    // Error dialog
+    if (showExpirationCheckError) {
+        AlertDialog(
+            onDismissRequest = { 
+                showExpirationCheckError = false
+                expirationCheckError = null
+            },
+            title = {
+                Text("Erro na Verificação")
+            },
+            text = {
+                Column {
+                    Text("Ocorreu um erro ao verificar as expirações.")
+                    if (expirationCheckError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = expirationCheckError!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Por favor, tente novamente.")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { 
+                        showExpirationCheckError = false
+                        expirationCheckError = null
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
 
@@ -171,7 +330,7 @@ fun ExpiringItemsViewPreview() {
                 .fillMaxSize()
                 .background(AppBgColor)
         ) {
-            ExpiringItemsTopBar(onNavigateBack = {})
+            ExpiringItemsTopBar(onNavigateBack = {}, onRefreshClick = null)
             ExpiringItemsList(items = mockItems)
         }
     }
@@ -189,7 +348,7 @@ fun ExpiringItemsViewLoadingPreview() {
                 .fillMaxSize()
                 .background(AppBgColor)
         ) {
-            ExpiringItemsTopBar(onNavigateBack = {})
+            ExpiringItemsTopBar(onNavigateBack = {}, onRefreshClick = null)
             ExpiringItemsLoadingState()
         }
     }
@@ -207,7 +366,7 @@ fun ExpiringItemsViewErrorPreview() {
                 .fillMaxSize()
                 .background(AppBgColor)
         ) {
-            ExpiringItemsTopBar(onNavigateBack = {})
+            ExpiringItemsTopBar(onNavigateBack = {}, onRefreshClick = null)
             ExpiringItemsErrorState(
                 errorMessage = "Erro ao carregar itens. Verifique a sua conexão.",
                 onRetry = {}
@@ -228,7 +387,7 @@ fun ExpiringItemsViewEmptyPreview() {
                 .fillMaxSize()
                 .background(AppBgColor)
         ) {
-            ExpiringItemsTopBar(onNavigateBack = {})
+            ExpiringItemsTopBar(onNavigateBack = {}, onRefreshClick = null)
             ExpiringItemsEmptyState()
         }
     }

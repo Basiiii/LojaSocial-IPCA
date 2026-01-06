@@ -8,6 +8,13 @@ package com.lojasocial.app.utils
  */
 object AppConstants {
     /**
+     * Base URL for the Loja Social API backend.
+     * 
+     * This is the main API endpoint for all backend services.
+     */
+    const val API_BASE_URL = "https://lojasocial-ipca.onrender.com/"
+    
+    /**
      * Default product image URL used as a fallback when a product doesn't have an image.
      * 
      * This URL points to a default placeholder image stored on Google Drive.

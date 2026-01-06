@@ -77,7 +77,7 @@ fun QuickActionsCard(
                 ProfileOption(
                     icon = Icons.Default.Assignment,
                     title = "As minhas Candidaturas",
-                    subtitle = "Ver e gerir as tuas candidaturas",
+                    subtitle = "Ver e gerir as minhas candidaturas",
                     iconColor = Color(0xFF10B981),
                     onClick = onApplicationsClick
                 )

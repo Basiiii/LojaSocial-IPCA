@@ -11,6 +11,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
@@ -30,8 +31,10 @@ fun BeneficiaryPortalView(
     onNavigateToPickups: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    expirationRepository: ExpirationRepository? = null,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
+    onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToActivityList: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
@@ -81,7 +84,7 @@ fun BeneficiaryPortalView(
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,
-                    onNavigateToExpiringItems = {}
+                    onNavigateToExpiringItems = onNavigateToExpiringItems
                 )
             }
 

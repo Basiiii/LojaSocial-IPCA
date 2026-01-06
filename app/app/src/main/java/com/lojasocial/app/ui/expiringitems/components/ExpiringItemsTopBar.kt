@@ -2,6 +2,7 @@ package com.lojasocial.app.ui.expiringitems.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
@@ -16,17 +17,21 @@ import com.lojasocial.app.ui.theme.TextDark
  * Provides a consistent navigation header with:
  * - Screen title: "Itens Próximos do Prazo"
  * - Back button: Navigates back to the Employee Portal home screen
+ * - Refresh button: Triggers manual expiration check and sends notifications
  * 
  * The bar uses the app's standard styling with the background color matching
  * the screen background for a seamless look.
  * 
  * @param onNavigateBack Callback invoked when the back button is clicked.
  *                       Should navigate to the Employee Portal home screen.
+ * @param onRefreshClick Optional callback invoked when the refresh button is clicked.
+ *                       If null, the refresh button will not be shown.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpiringItemsTopBar(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onRefreshClick: (() -> Unit)? = null
 ) {
     TopAppBar(
         title = {
@@ -46,6 +51,17 @@ fun ExpiringItemsTopBar(
                 )
             }
         },
+        actions = {
+            if (onRefreshClick != null) {
+                IconButton(onClick = onRefreshClick) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Verificar Expirações",
+                        tint = TextDark
+                    )
+                }
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = AppBgColor)
     )
 }
@@ -57,6 +73,9 @@ fun ExpiringItemsTopBar(
 @Composable
 fun ExpiringItemsTopBarPreview() {
     LojaSocialTheme {
-        ExpiringItemsTopBar(onNavigateBack = {})
+        ExpiringItemsTopBar(
+            onNavigateBack = {},
+            onRefreshClick = {}
+        )
     }
 }

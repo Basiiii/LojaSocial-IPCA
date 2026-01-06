@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.applications.ApplicationDetailView
@@ -39,6 +40,7 @@ import kotlinx.coroutines.launch
  * @param authRepository Authentication repository
  * @param userRepository User repository
  * @param applicationRepository Application repository
+ * @param expirationRepository Expiration repository for checking expiring items
  */
 @Composable
 fun NavigationGraph(
@@ -50,7 +52,8 @@ fun NavigationGraph(
     onProfileChange: (UserProfile?) -> Unit,
     authRepository: AuthRepository,
     userRepository: UserRepository,
-    applicationRepository: ApplicationRepository
+    applicationRepository: ApplicationRepository,
+    expirationRepository: ExpirationRepository? = null
 ) {
     NavHost(
         navController = navController,
@@ -123,7 +126,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
             composable(Screen.EmployeePortal.Profile.route) { backStackEntry ->
@@ -132,7 +136,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
             composable(Screen.EmployeePortal.Support.route) { backStackEntry ->
@@ -141,7 +146,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
             composable(Screen.EmployeePortal.Calendar.route) { backStackEntry ->
@@ -150,7 +156,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
         }
@@ -166,7 +173,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
             composable(Screen.BeneficiaryPortal.Profile.route) { backStackEntry ->
@@ -175,7 +183,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
             composable(Screen.BeneficiaryPortal.Support.route) { backStackEntry ->
@@ -184,7 +193,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
             composable(Screen.BeneficiaryPortal.Calendar.route) { backStackEntry ->
@@ -193,7 +203,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    expirationRepository = expirationRepository
                 )
             }
         }
@@ -329,13 +340,20 @@ fun NavigationGraph(
             com.lojasocial.app.ui.expiringitems.ExpiringItemsView(
                 onNavigateBack = { 
                     // Try to pop back if there's a back stack entry
-                    // If not (e.g., from notification), navigate to Employee Portal home
+                    // If not (e.g., from notification), navigate to appropriate portal home
                     if (!navController.popBackStack()) {
-                        navController.navigate(Screen.EmployeePortal.Home.route) {
+                        // Determine which portal to navigate to based on user profile
+                        val destination = when {
+                            lastProfile?.isAdmin == true && lastProfile.isBeneficiary -> Screen.BeneficiaryPortal.Home.route
+                            lastProfile?.isAdmin == true -> Screen.EmployeePortal.Home.route
+                            else -> Screen.BeneficiaryPortal.Home.route
+                        }
+                        navController.navigate(destination) {
                             popUpTo(Screen.ExpiringItems.route) { inclusive = true }
                         }
                     }
-                }
+                },
+                expirationRepository = expirationRepository
             )
         }
 
@@ -362,7 +380,8 @@ private fun EmployeePortalTabContent(
     profile: UserProfile?,
     navController: NavHostController,
     authRepository: AuthRepository,
-    userRepository: UserRepository
+    userRepository: UserRepository,
+    expirationRepository: ExpirationRepository? = null
 ) {
     val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
     val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
@@ -373,6 +392,7 @@ private fun EmployeePortalTabContent(
         onPortalSelectionClick = { navController.navigate(Screen.PortalSelection.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        expirationRepository = expirationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) { 
                 popUpTo(0) { inclusive = true } 
@@ -412,7 +432,8 @@ private fun BeneficiaryPortalTabContent(
     profile: UserProfile?,
     navController: NavHostController,
     authRepository: AuthRepository,
-    userRepository: UserRepository
+    userRepository: UserRepository,
+    expirationRepository: ExpirationRepository? = null
 ) {
     val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
     val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
@@ -424,6 +445,7 @@ private fun BeneficiaryPortalTabContent(
         onNavigateToOrders = { navController.navigate(Screen.RequestItems.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        expirationRepository = expirationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) { 
                 popUpTo(0) { inclusive = true } 
@@ -431,6 +453,9 @@ private fun BeneficiaryPortalTabContent(
         },
         onNavigateToApplications = {
             navController.navigate(Screen.ApplicationsList.route)
+        },
+        onNavigateToExpiringItems = {
+            navController.navigate(Screen.ExpiringItems.route)
         },
         onNavigateToActivityList = {
             navController.navigate(Screen.ActivityList.route)

@@ -21,6 +21,7 @@ import com.lojasocial.app.navigation.NavigationGraph
 import com.lojasocial.app.navigation.loadUserProfileAndDestination
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.ui.theme.LojaSocialTheme
@@ -43,6 +44,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var applicationRepository: ApplicationRepository
+
+    @Inject
+    lateinit var expirationRepository: ExpirationRepository
 
     @Inject
     lateinit var fcmTokenService: FcmTokenService
@@ -130,7 +134,8 @@ class MainActivity : ComponentActivity() {
                             onProfileChange = { lastProfile.value = it },
                             authRepository = authRepository,
                             userRepository = userRepository,
-                            applicationRepository = applicationRepository
+                            applicationRepository = applicationRepository,
+                            expirationRepository = expirationRepository
                         )
                     }
                 }
