@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.Warning
@@ -35,6 +36,7 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * @param onCalendarClick Callback invoked when calendar option is clicked
  * @param onApplicationsClick Callback invoked when applications option is clicked (beneficiaries only)
  * @param onExpiringItemsClick Callback invoked when expiring items option is clicked (admins only)
+ * @param onCampaignsClick Callback invoked when campaigns option is clicked (admins only)
  */
 @Composable
 fun QuickActionsCard(
@@ -42,7 +44,8 @@ fun QuickActionsCard(
     onSupportClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onApplicationsClick: () -> Unit = {},
-    onExpiringItemsClick: () -> Unit = {}
+    onExpiringItemsClick: () -> Unit = {},
+    onCampaignsClick: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -93,6 +96,16 @@ fun QuickActionsCard(
                     subtitle = "Ver itens a expirar em breve",
                     iconColor = BrandOrange,
                     onClick = onExpiringItemsClick
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+                
+                ProfileOption(
+                    icon = Icons.Default.Campaign,
+                    title = "Campanhas",
+                    subtitle = "Gerir campanhas",
+                    iconColor = Color(0xFF9333EA),
+                    onClick = onCampaignsClick
                 )
             }
         }

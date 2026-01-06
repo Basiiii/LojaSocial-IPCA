@@ -124,7 +124,8 @@ fun NonBeneficiaryPortalView(
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,
-                    onNavigateToExpiringItems = {}
+                    onNavigateToExpiringItems = {},
+                    onNavigateToCampaigns = { /* Will be passed from navigation */ }
                 )
             }
 

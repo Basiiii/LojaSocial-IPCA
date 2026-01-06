@@ -1,6 +1,11 @@
 package com.lojasocial.app.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -8,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
+import com.lojasocial.app.repository.CampaignRepository
 import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
@@ -27,6 +33,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.lojasocial.app.ui.campaigns.CreateCampaignScreen
 
 /**
  * Builds the complete navigation graph for the application.
@@ -53,7 +60,8 @@ fun NavigationGraph(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     applicationRepository: ApplicationRepository,
-    expirationRepository: ExpirationRepository? = null
+    expirationRepository: ExpirationRepository? = null,
+    campaignRepository: CampaignRepository? = null
 ) {
     NavHost(
         navController = navController,
@@ -127,7 +135,8 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository
                 )
             }
             composable(Screen.EmployeePortal.Profile.route) { backStackEntry ->
@@ -137,7 +146,8 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository
                 )
             }
             composable(Screen.EmployeePortal.Support.route) { backStackEntry ->
@@ -147,7 +157,8 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository
                 )
             }
             composable(Screen.EmployeePortal.Calendar.route) { backStackEntry ->
@@ -157,7 +168,8 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository
                 )
             }
         }
@@ -367,6 +379,56 @@ fun NavigationGraph(
                 onNavigateBack = { navController.navigateUp() }
             )
         }
+
+        // Campaigns List
+        composable(Screen.CampaignsList.route) {
+            campaignRepository?.let { repository ->
+                com.lojasocial.app.ui.campaigns.CampaignsListView(
+                    campaignRepository = repository,
+                    onNavigateBack = { navController.navigateUp() },
+                    onAddClick = {
+                        navController.navigate(Screen.CreateCampaign.route)
+                    },
+                    onEditClick = { campaign ->
+                        // Navigate to edit campaign screen
+                        navController.navigate(Screen.CreateCampaign.Edit.createRoute(campaign.id))
+                    }
+                )
+            } ?: run {
+                // Show error if repository is not available
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Erro ao carregar campanhas")
+                }
+            }
+        }
+
+        // Create Campaign
+        composable(Screen.CreateCampaign.route) {
+            CreateCampaignScreen(
+                campaignRepository = campaignRepository,
+                campaignToEdit = null,
+                onNavigateBack = { navController.navigateUp() },
+                onCampaignSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Edit Campaign
+        composable(Screen.CreateCampaign.Edit().route) { backStackEntry ->
+            val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+            CreateCampaignScreen(
+                campaignRepository = campaignRepository,
+                campaignId = campaignId,
+                onNavigateBack = { navController.navigateUp() },
+                onCampaignSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -381,7 +443,8 @@ private fun EmployeePortalTabContent(
     navController: NavHostController,
     authRepository: AuthRepository,
     userRepository: UserRepository,
-    expirationRepository: ExpirationRepository? = null
+    expirationRepository: ExpirationRepository? = null,
+    campaignRepository: CampaignRepository? = null
 ) {
     val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
     val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
@@ -406,6 +469,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToActivityList = {
             navController.navigate(Screen.ActivityList.route)
+        },
+        onNavigateToCampaigns = {
+            navController.navigate(Screen.CampaignsList.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

@@ -85,7 +85,8 @@ fun BeneficiaryPortalView(
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,
-                    onNavigateToExpiringItems = onNavigateToExpiringItems
+                    onNavigateToExpiringItems = onNavigateToExpiringItems,
+                    onNavigateToCampaigns = { /* Will be passed from navigation */ }
                 )
             }
 

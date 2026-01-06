@@ -56,4 +56,14 @@ sealed class Screen(val route: String) {
     
     // Activity
     object ActivityList : Screen("activityList")
+    
+    // Campaigns
+    object CampaignsList : Screen("campaignsList")
+    object CreateCampaign : Screen("createCampaign") {
+        data class Edit(val campaignId: String = "{campaignId}") : Screen("createCampaign/{campaignId}") {
+            companion object {
+                fun createRoute(campaignId: String) = "createCampaign/$campaignId"
+            }
+        }
+    }
 }
