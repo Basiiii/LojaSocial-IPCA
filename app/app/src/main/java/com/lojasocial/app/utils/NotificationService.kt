@@ -73,13 +73,11 @@ class NotificationService : FirebaseMessagingService() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         // Check if notifications are enabled
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            if (!notificationManager.areNotificationsEnabled()) {
-                Log.w(TAG, "Notifications are disabled for this app")
-                return
-            }
+        if (!notificationManager.areNotificationsEnabled()) {
+            Log.w(TAG, "Notifications are disabled for this app")
+            return
         }
-        
+
         val notificationId = System.currentTimeMillis().toInt()
         notificationManager.notify(notificationId, notification)
         Log.d(TAG, "Notification displayed with ID: $notificationId")
