@@ -160,15 +160,31 @@ async function sendExpirationNotifications(itemCount) {
 
 /**
  * Main function to check expiring items and send notifications
+ * @returns {Promise<{success: boolean, itemCount?: number, notificationsSent?: number, error?: string}>}
  */
 async function checkAndNotifyExpiringItems() {
   try {
     logger.server('Starting expiration check...');
     const itemCount = await checkExpiringItems(3); // 3 days threshold
-    await sendExpirationNotifications(itemCount);
-    logger.server('Expiration check completed');
+    const notificationResults = await sendExpirationNotifications(itemCount);
+    
+    // notificationResults can be undefined if no items or no admin users
+    const notificationsSent = (notificationResults && Array.isArray(notificationResults))
+      ? notificationResults.filter(r => r.success).length 
+      : 0;
+    
+    logger.server(`Expiration check completed: ${itemCount} expiring items, ${notificationsSent} notifications sent`);
+    
+    return {
+      success: true,
+      itemCount,
+      notificationsSent,
+      timestamp: new Date().toISOString()
+    };
   } catch (error) {
     logger.error('Error in expiration check process', error);
+    // Re-throw so the caller can handle it
+    throw error;
   }
 }
 

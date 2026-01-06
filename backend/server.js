@@ -24,7 +24,12 @@ app.use('/api/expiration', expirationRoutes);
 // Format: minute hour day month dayOfWeek
 cron.schedule('0 9 * * *', async () => {
   logger.server('Running scheduled expiration check...');
-  await checkAndNotifyExpiringItems();
+  try {
+    const result = await checkAndNotifyExpiringItems();
+    logger.server(`Scheduled check completed: ${result.itemCount} expiring items, ${result.notificationsSent} notifications sent`);
+  } catch (error) {
+    logger.error('Scheduled expiration check failed', error);
+  }
 }, {
   scheduled: true,
   timezone: "Europe/Lisbon"
