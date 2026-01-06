@@ -50,19 +50,11 @@ fun LoginScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ipca_sas),
-                contentDescription = "IPCA-SAS Logo",
-                modifier = Modifier
-                    .height(84.dp)
-                    .width(84.dp),
-                contentScale = ContentScale.Fit
-            )
-            Image(
-                painter = painterResource(id = R.drawable.loja_social),
+                painter = painterResource(id = R.drawable.logos),
                 contentDescription = "Loja Social Logo",
                 modifier = Modifier
-                    .height(60.dp)
-                    .width(60.dp),
+                    .height(100.dp)
+                    .width(150.dp),
                 contentScale = ContentScale.Fit
             )
         }
