@@ -206,7 +206,7 @@ import javax.inject.Inject
                                     val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
 
                                     CandidaturaPersonalInfoView(
-                                        onNavigateBack = { navController.navigate("nonBeneficiaryPortal") },
+                                        onNavigateBack = { navController.navigateUp() },
                                         onNavigateNext = { navController.navigate("applicationPage2") },
                                         viewModel = viewModel
                                     )
@@ -219,7 +219,7 @@ import javax.inject.Inject
                                     val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
 
                                     CandidaturaAcademicDataView(
-                                        onNavigateBack = { navController.navigate("applicationPage1") },
+                                        onNavigateBack = { navController.navigateUp() },
                                         onNavigateNext = { navController.navigate("applicationPage3") },
                                         viewModel = viewModel
                                     )
@@ -232,11 +232,10 @@ import javax.inject.Inject
                                     val viewModel = hiltViewModel<ApplicationViewModel>(parentEntry)
 
                                     CandidaturaDocumentsView(
-                                        onNavigateBack = { navController.navigate("applicationPage2") },
+                                        onNavigateBack = { navController.navigateUp() },
                                         onSubmit = {
-                                            navController.navigate("nonBeneficiaryPortal") {
-                                                popUpTo("applicationFlow") { inclusive = true }
-                                            }
+                                            // Pop back to the screen before applicationFlow
+                                            navController.popBackStack("applicationFlow", inclusive = true)
                                         },
                                         viewModel = viewModel
                                     )
