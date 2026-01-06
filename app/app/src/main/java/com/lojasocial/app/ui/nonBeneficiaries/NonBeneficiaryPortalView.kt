@@ -25,6 +25,7 @@ import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
+import com.lojasocial.app.ui.calendar.CalendarView
 import com.lojasocial.app.ui.theme.CardBlue
 import kotlinx.coroutines.flow.flow
 
@@ -154,14 +155,7 @@ fun NonBeneficiaryPortalView(
             }
 
             "calendar" -> {
-                Box(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Calendário (por implementar)")
-                }
+                CalendarView(paddingValues = paddingValues)
             }
         }
     }
