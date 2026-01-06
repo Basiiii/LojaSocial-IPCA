@@ -48,7 +48,7 @@ class RequestItemsViewModel @Inject constructor(
                 val newProducts = itemsRepository.getProducts(lastVisibleId = lastVisibleId)
 
                 if (newProducts.isNotEmpty()) {
-                    lastVisibleId = newProducts.last().docId
+                    lastVisibleId = newProducts.last().id
 
                     val currentProducts = if (isLoadMore && _uiState.value is RequestItemsUiState.Success) {
                         (_uiState.value as RequestItemsUiState.Success).products
@@ -72,33 +72,33 @@ class RequestItemsViewModel @Inject constructor(
         }
     }
 
-    fun onAddProduct(productDocId: String) {
-        val currentQuantity = _productQuantities.value[productDocId] ?: 0
-        val availableStock = getAvailableStock(productDocId)
+    fun onAddProduct(productId: String) {
+        val currentQuantity = _productQuantities.value[productId] ?: 0
+        val availableStock = getAvailableStock(productId)
         if (currentQuantity >= availableStock) {
             return
         }
         val newMap = _productQuantities.value.toMutableMap()
-        newMap[productDocId] = currentQuantity + 1
+        newMap[productId] = currentQuantity + 1
         _productQuantities.value = newMap
     }
 
-    private fun getAvailableStock(productDocId: String): Int {
+    private fun getAvailableStock(productId: String): Int {
         val products = when (val state = _uiState.value) {
             is RequestItemsUiState.Success -> state.products
             else -> emptyList()
         }
-        return products.find { it.docId == productDocId }?.stock ?: 0
+        return products.find { it.id == productId }?.stock ?: 0
     }
 
-    fun onRemoveProduct(productDocId: String) {
-        val currentQuantity = _productQuantities.value[productDocId] ?: 0
+    fun onRemoveProduct(productId: String) {
+        val currentQuantity = _productQuantities.value[productId] ?: 0
         if (currentQuantity > 0) {
             val newMap = _productQuantities.value.toMutableMap()
             if (currentQuantity == 1) {
-                newMap.remove(productDocId)
+                newMap.remove(productId)
             } else {
-                newMap[productDocId] = currentQuantity - 1
+                newMap[productId] = currentQuantity - 1
             }
             _productQuantities.value = newMap
         }

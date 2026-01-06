@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lojasocial.app.data.model.Product
+import com.lojasocial.app.domain.RequestItem
 import com.lojasocial.app.ui.requestitems.components.CategoryFilters
 import com.lojasocial.app.ui.requestitems.components.ProductItemRow
 import com.lojasocial.app.ui.requestitems.components.RequestItemsBottomBar
@@ -168,22 +170,22 @@ fun RequestItemsContent(
                             contentPadding = PaddingValues(bottom = 16.dp)
                         ) {
                             val filteredProducts = uiState.products.filter { product ->
-                                (selectedCategory == RequestItemsConstants.DEFAULT_CATEGORY || product.category == selectedCategory) &&
-                                        (searchQuery.isBlank() || product.name.contains(
+                                (selectedCategory == RequestItemsConstants.DEFAULT_CATEGORY || product.product.category == RequestItemsConstants.PRODUCT_CATEGORIES.indexOf(selectedCategory)) &&
+                                        (searchQuery.isBlank() || product.product.name.contains(
                                             searchQuery,
                                             ignoreCase = true
                                         ))
                             }
 
-                            items(filteredProducts) { product ->
+                            items(filteredProducts) { requestItem ->
                                 ProductItemRow(
-                                    product = product,
-                                    quantity = productQuantities[product.docId] ?: 0,
+                                    requestItem = requestItem,
+                                    quantity = productQuantities[requestItem.id] ?: 0,
                                     onAdd = {
-                                        if (!isSubmitting) onAddProduct(product.docId)
+                                        if (!isSubmitting) onAddProduct(requestItem.id)
                                     },
                                     onRemove = {
-                                        if (!isSubmitting) onRemoveProduct(product.docId)
+                                        if (!isSubmitting) onRemoveProduct(requestItem.id)
                                     },
                                     enabled = totalItemsSelected < maxItems && !isSubmitting
                                 )
@@ -248,12 +250,12 @@ val previewCategories = RequestItemsConstants.PRODUCT_CATEGORIES
 @Composable
 fun RequestItemsViewPreview() {
     val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(
-            docId = 1.toString(),
-            id = 1,
-            name = "Arroz Agulha",
-            category = "Alimentar",
-            quantity = 50
+        RequestItem(
+            id = "1",
+            product = Product(
+                name = "Arroz Agulha",
+                category = 1,
+            )
         ),
     )
 
@@ -300,12 +302,12 @@ fun PreviewLoading() {
 @Composable
 fun PreviewSubmitting() {
     val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(
-            docId = 1.toString(),
-            id = 1,
-            name = "Arroz Agulha",
-            category = "Alimentar",
-            quantity = 50
+        RequestItem(
+            id = "1",
+            product = Product(
+                name = "Arroz Agulha",
+                category = 1,
+            )
         ),
     )
     RequestItemsContent(
@@ -342,68 +344,6 @@ fun PreviewError() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
-        isSubmitting = false,
-        onLoadMore = {}
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewEmptyList() {
-    RequestItemsContent(
-        uiState = RequestItemsUiState.Success(emptyList()),
-        productQuantities = emptyMap(),
-        searchQuery = "",
-        onSearchQueryChange = {},
-        categories = previewCategories,
-        selectedCategory = RequestItemsConstants.DEFAULT_CATEGORY,
-        onCategorySelected = {},
-        onAddProduct = {},
-        onRemoveProduct = {},
-        onClearQuantities = {},
-        onBackClick = {},
-        onSubmitClick = {},
-        isSubmitting = false,
-        onLoadMore = {}
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewLimitReached() {
-    val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(
-            docId = 1.toString(),
-            id = 1,
-            name = "Arroz",
-            category = "Alimentar",
-            quantity = 50
-        ),
-        com.lojasocial.app.domain.RequestItem(
-            docId = 2.toString(),
-            id = 2,
-            name = "Massa",
-            category = "Alimentar",
-            quantity = 50
-        )
-    )
-
-    val quantities = mapOf("1" to 5, "2" to 5)
-
-    RequestItemsContent(
-        uiState = RequestItemsUiState.Success(mockProducts),
-        productQuantities = quantities,
-        searchQuery = "",
-        onSearchQueryChange = {},
-        categories = previewCategories,
-        selectedCategory = RequestItemsConstants.DEFAULT_CATEGORY,
-        onCategorySelected = {},
-        onAddProduct = {},
-        onRemoveProduct = {},
-        onClearQuantities = {},
-        onBackClick = {},
-        onSubmitClick = {},
-        isSubmitting = false,
         onLoadMore = {}
     )
 }

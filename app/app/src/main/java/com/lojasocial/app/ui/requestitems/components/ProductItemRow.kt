@@ -39,12 +39,14 @@ import com.lojasocial.app.ui.theme.TextGray
 
 @Composable
 fun ProductItemRow(
-    product: RequestItem,
+    requestItem: RequestItem,
     quantity: Int,
     onAdd: () -> Unit,
     onRemove: () -> Unit,
     enabled: Boolean
 ) {
+    val stockColor = if (requestItem.stock > 5) BrandGreen else RedStock
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -55,27 +57,22 @@ fun ProductItemRow(
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(
-                text = product.name,
+                text = requestItem.name,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = product.category,
+                text = requestItem.category,
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val stockColor = if (product.stock <= 3) RedStock else BrandGreen
-            val stockText = "Disponível: ${product.stock}"
-
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = stockText,
+                text = "Disponível: ${requestItem.stock}",
                 fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = stockColor
+                color = stockColor,
             )
         }
 
@@ -135,7 +132,7 @@ private fun QuantityButton(
 @Composable
 fun ProductItemRowPreview() {
     ProductItemRow(
-        product = RequestItem(docId = "1", id = 1, name = "Arroz", category = "Alimentos", quantity = 10),
+        requestItem = RequestItem(id = "1", product = com.lojasocial.app.data.model.Product(name = "Arroz", category = 1)),
         quantity = 2,
         onAdd = { },
         onRemove = { },

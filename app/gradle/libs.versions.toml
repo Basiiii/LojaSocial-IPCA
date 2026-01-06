@@ -1,5 +1,5 @@
 [versions]
-agp = "8.13.1"
+agp = "8.13.2"
 firebaseFirestore = "26.0.2"
 hiltAndroid = "2.51.1"
 hiltCompiler = "2.51.1"
