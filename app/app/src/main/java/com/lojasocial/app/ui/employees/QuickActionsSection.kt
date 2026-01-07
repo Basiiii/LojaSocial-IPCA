@@ -22,7 +22,8 @@ import com.lojasocial.app.ui.theme.TextDark
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {},
     onSupportClick: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {}
+    onNavigateToApplications: () -> Unit = {},
+    pendingApplicationsCount: Int = 0
 ) {
     Column {
         Text(
@@ -74,8 +75,8 @@ fun QuickActionsSection(
             buttonText = "Rever Candidaturas",
             backgroundColor = BrandBlue,
             icon = Icons.Default.Description,
-            badgeCount = 5,
-            badgeLabel = "Novas",
+            badgeCount = if (pendingApplicationsCount > 0) pendingApplicationsCount else null,
+            badgeLabel = if (pendingApplicationsCount > 0) "Novas" else null,
             isRedBadge = true,
             onClick = onNavigateToApplications
         )

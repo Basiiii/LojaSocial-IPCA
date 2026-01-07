@@ -13,6 +13,8 @@ import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.domain.ApplicationStatus
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
@@ -32,6 +34,7 @@ fun EmployeePortalView(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
+    applicationRepository: ApplicationRepository? = null,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
@@ -43,6 +46,15 @@ fun EmployeePortalView(
     var showAddStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
     val selectedTab = currentTab
+    
+    // Fetch pending applications count
+    var pendingApplicationsCount by remember { mutableStateOf(0) }
+    
+    LaunchedEffect(applicationRepository) {
+        applicationRepository?.getAllApplications()?.collect { applications ->
+            pendingApplicationsCount = applications.count { it.status == ApplicationStatus.PENDING }
+        }
+    }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -63,7 +75,8 @@ fun EmployeePortalView(
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
-                        onNavigateToApplications = onNavigateToApplications
+                        onNavigateToApplications = onNavigateToApplications,
+                        pendingApplicationsCount = pendingApplicationsCount
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection(

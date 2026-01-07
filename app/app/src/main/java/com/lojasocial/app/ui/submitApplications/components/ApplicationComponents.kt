@@ -34,6 +34,8 @@ val TextGray = Color(0xFF455A64)
  * @param onValueChange Callback invoked when the input value changes
  * @param placeholder The placeholder text displayed when the field is empty
  * @param keyboardType The type of keyboard to show for this input field
+ * @param errorMessage Optional error message to display below the field
+ * @param isError Whether the field is in an error state
  */
 @Composable
 fun CustomLabelInput(
@@ -41,7 +43,9 @@ fun CustomLabelInput(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    errorMessage: String? = null,
+    isError: Boolean = false
 ) {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
@@ -58,9 +62,14 @@ fun CustomLabelInput(
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            isError = isError,
+            supportingText = errorMessage?.let {
+                { Text(text = it, color = MaterialTheme.colorScheme.error) }
+            },
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color.LightGray,
-                focusedBorderColor = LojaSocialPrimary
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error else Color.LightGray,
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error else LojaSocialPrimary,
+                errorBorderColor = MaterialTheme.colorScheme.error
             )
         )
     }
@@ -76,39 +85,50 @@ fun CustomLabelInput(
  * @param value The current phone number value (without country code)
  * @param onValueChange Callback invoked when the phone number changes
  * @param placeholder Placeholder text for the phone input field
+ * @param errorMessage Optional error message to display below the field
+ * @param isError Whether the field is in an error state
  */
 @Composable
 fun PhoneInputField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "Insira o seu numero aqui"
+    placeholder: String = "Insira o seu numero aqui",
+    errorMessage: String? = null,
+    isError: Boolean = false
 ) {
-    Text(
-        text = "Telemóvel",
-        style = MaterialTheme.typography.bodyMedium,
-        color = Color.Gray,
-        modifier = Modifier.padding(bottom = 4.dp)
-    )
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text(placeholder) },
-        prefix = {
-            Text(
-                "+351 ",
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        shape = RoundedCornerShape(8.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Color.LightGray,
-            focusedBorderColor = LojaSocialPrimary
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Text(
+            text = "Telemóvel",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 4.dp)
         )
-    )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(placeholder) },
+            prefix = {
+                Text(
+                    "+351 ",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            shape = RoundedCornerShape(8.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            isError = isError,
+            supportingText = errorMessage?.let {
+                { Text(text = it, color = MaterialTheme.colorScheme.error) }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error else Color.LightGray,
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error else LojaSocialPrimary,
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
+        )
+    }
 }
 
 /**

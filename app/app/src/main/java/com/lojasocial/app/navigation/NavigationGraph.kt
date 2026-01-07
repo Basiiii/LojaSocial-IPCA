@@ -136,7 +136,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Profile.route) { backStackEntry ->
@@ -147,7 +148,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Support.route) { backStackEntry ->
@@ -158,7 +160,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Calendar.route) { backStackEntry ->
@@ -169,7 +172,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    applicationRepository = applicationRepository
                 )
             }
         }
@@ -461,7 +465,8 @@ private fun EmployeePortalTabContent(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
-    campaignRepository: CampaignRepository? = null
+    campaignRepository: CampaignRepository? = null,
+    applicationRepository: ApplicationRepository? = null
 ) {
     val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
     val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
@@ -473,6 +478,7 @@ private fun EmployeePortalTabContent(
         authRepository = authRepository,
         userRepository = userRepository,
         expirationRepository = expirationRepository,
+        applicationRepository = applicationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }

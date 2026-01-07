@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.lojasocial.app.ui.components.CustomDatePickerDialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +28,7 @@ import com.lojasocial.app.ui.submitApplications.components.CustomLabelInput
 import com.lojasocial.app.ui.submitApplications.components.PhoneInputField
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
+import com.lojasocial.app.utils.ValidationUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -84,6 +86,7 @@ fun CandidaturaPersonalInfoView(
     var email by remember { mutableStateOf(formData.email) }
     var phone by remember { mutableStateOf(formData.phone) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var validationAttempted by remember { mutableStateOf(false) }
 
     LaunchedEffect(formData) {
         name = formData.name
@@ -117,7 +120,20 @@ fun CandidaturaPersonalInfoView(
                     .navigationBarsPadding()
             ) {
                 Button(
-                    onClick = onNavigateNext,
+                    onClick = {
+                        validationAttempted = true
+                        // Validate before navigating
+                        val nameError = ValidationUtils.getNameError(name)
+                        val idPassportError = ValidationUtils.getIdPassportError(idPassport)
+                        val emailError = ValidationUtils.getEmailError(email)
+                        val phoneError = ValidationUtils.getPhoneError(phone)
+                        
+                        if (nameError == null && idPassportError == null && 
+                            emailError == null && phoneError == null && 
+                            dateOfBirth != null) {
+                            onNavigateNext()
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -144,6 +160,7 @@ fun CandidaturaPersonalInfoView(
             Spacer(modifier = Modifier.height(16.dp))
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                val nameError = if (validationAttempted) ValidationUtils.getNameError(name) else null
                 CustomLabelInput(
                     label = "Nome",
                     value = name,
@@ -151,7 +168,9 @@ fun CandidaturaPersonalInfoView(
                         name = it
                         viewModel.name = it
                     },
-                    placeholder = "Insira o nome completo"
+                    placeholder = "Insira o nome completo",
+                    errorMessage = nameError,
+                    isError = nameError != null
                 )
 
                 Column(modifier = Modifier.padding(bottom = 16.dp)) {
@@ -163,6 +182,7 @@ fun CandidaturaPersonalInfoView(
                     )
 
                     val interactionSource = remember { MutableInteractionSource() }
+                    val dateError = if (validationAttempted && dateOfBirth == null) "Data de nascimento é obrigatória" else null
 
                     OutlinedTextField(
                         value = dateOfBirth?.let {
@@ -188,13 +208,19 @@ fun CandidaturaPersonalInfoView(
                                 indication = null,
                                 onClick = { showDatePicker = true }
                             ),
+                        isError = dateError != null,
+                        supportingText = dateError?.let {
+                            { Text(text = it, color = MaterialTheme.colorScheme.error) }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color.LightGray,
-                            focusedBorderColor = LojaSocialPrimary
+                            unfocusedBorderColor = if (dateError != null) MaterialTheme.colorScheme.error else Color.LightGray,
+                            focusedBorderColor = if (dateError != null) MaterialTheme.colorScheme.error else LojaSocialPrimary,
+                            errorBorderColor = MaterialTheme.colorScheme.error
                         )
                     )
                 }
 
+                val idPassportError = if (validationAttempted) ValidationUtils.getIdPassportError(idPassport) else null
                 CustomLabelInput(
                     label = "CC/Passaporte",
                     value = idPassport,
@@ -202,9 +228,12 @@ fun CandidaturaPersonalInfoView(
                         idPassport = it
                         viewModel.idPassport = it
                     },
-                    placeholder = "Introduz número de CC ou Passaporte"
+                    placeholder = "Introduz número de CC ou Passaporte",
+                    errorMessage = idPassportError,
+                    isError = idPassportError != null
                 )
 
+                val emailError = if (validationAttempted) ValidationUtils.getEmailError(email) else null
                 CustomLabelInput(
                     label = "Email",
                     value = email,
@@ -213,47 +242,52 @@ fun CandidaturaPersonalInfoView(
                         viewModel.email = it
                     },
                     placeholder = "Insira aqui o seu email",
-                    keyboardType = KeyboardType.Email
+                    keyboardType = KeyboardType.Email,
+                    errorMessage = emailError,
+                    isError = emailError != null
                 )
 
+                val phoneError = if (validationAttempted) ValidationUtils.getPhoneError(phone) else null
                 PhoneInputField(
                     value = phone,
                     onValueChange = {
                         phone = it
                         viewModel.phone = it
-                    }
+                    },
+                    errorMessage = phoneError,
+                    isError = phoneError != null
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
             }
 
-            if (showDatePicker) {
-                val datePickerState = rememberDatePickerState()
-                DatePickerDialog(
-                    onDismissRequest = { showDatePicker = false },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                datePickerState.selectedDateMillis?.let { millis ->
-                                    val selectedDate = Date(millis)
-                                    dateOfBirth = selectedDate
-                                    viewModel.dateOfBirth = selectedDate
-                                }
-                                showDatePicker = false
-                            }
-                        ) {
-                            Text("OK")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDatePicker = false }) {
-                            Text("Cancelar")
-                        }
-                    }
-                ) {
-                    DatePicker(state = datePickerState)
-                }
+            // Custom Date Picker Dialog
+            val calendar = remember { Calendar.getInstance() }
+            val currentDateOfBirth = dateOfBirth?.let {
+                val cal = Calendar.getInstance()
+                cal.time = it
+                cal
             }
+            
+            CustomDatePickerDialog(
+                showDialog = showDatePicker,
+                onDateSelected = { day, month, year ->
+                    // month is 1-based (1 = January, 12 = December)
+                    val selectedCalendar = Calendar.getInstance()
+                    selectedCalendar.set(year, month - 1, day) // Calendar uses 0-based months
+                    val selectedDate = selectedCalendar.time
+                    dateOfBirth = selectedDate
+                    viewModel.dateOfBirth = selectedDate
+                    showDatePicker = false
+                },
+                onDismiss = {
+                    showDatePicker = false
+                },
+                initialYear = currentDateOfBirth?.get(Calendar.YEAR),
+                initialMonth = currentDateOfBirth?.let { it.get(Calendar.MONTH) + 1 }, // Convert to 1-based
+                initialDay = currentDateOfBirth?.get(Calendar.DAY_OF_MONTH),
+                maxDate = calendar.timeInMillis // Prevent selecting future dates
+            )
         }
     }
 }

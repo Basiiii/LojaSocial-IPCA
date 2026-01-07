@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.widget.Toast
 import com.lojasocial.app.domain.ApplicationDocument
 import com.lojasocial.app.ui.submitApplications.components.ApplicationHeader
 import com.lojasocial.app.ui.submitApplications.components.DocumentUi
@@ -119,11 +120,16 @@ fun CandidaturaDocumentsView(
     /**
      * Handles successful application submission.
      * 
-     * When the submission is successful, this effect clears the submission
-     * state and invokes the onSubmit callback to navigate away from the form.
+     * When the submission is successful, this effect shows a success toast,
+     * clears the submission state and invokes the onSubmit callback to navigate away from the form.
      */
     LaunchedEffect(uiState.submissionSuccess) {
         if (uiState.submissionSuccess) {
+            Toast.makeText(
+                context,
+                "Candidatura submetida com sucesso!",
+                Toast.LENGTH_LONG
+            ).show()
             viewModel.clearSubmissionState()
             onSubmit()
         }

@@ -313,6 +313,11 @@ fun ApplicationDetailContent(
                                 ApplicationStatus.APPROVED
                             )
                             if (result.isSuccess) {
+                                Toast.makeText(
+                                    context,
+                                    "Candidatura aceite com sucesso!",
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 onStatusUpdated()
                             } else {
                                 updateError = result.exceptionOrNull()?.message ?: "Erro ao aprovar candidatura"
@@ -377,6 +382,11 @@ fun ApplicationDetailContent(
                                     rejectionMessage.takeIf { it.isNotBlank() }
                                 )
                                 if (result.isSuccess) {
+                                    Toast.makeText(
+                                        context,
+                                        "Candidatura rejeitada com sucesso!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                     showRejectionDialog = false
                                     rejectionMessage = ""
                                     onStatusUpdated()
