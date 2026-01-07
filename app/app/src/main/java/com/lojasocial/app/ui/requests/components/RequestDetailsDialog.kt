@@ -2,37 +2,63 @@ package com.lojasocial.app.ui.requests.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import java.util.Calendar
 import com.lojasocial.app.data.model.RequestStatus
+import com.lojasocial.app.domain.Request
+import com.lojasocial.app.ui.components.CustomDatePickerDialog
 import com.lojasocial.app.ui.theme.BodyText
 import com.lojasocial.app.ui.theme.ButtonGreen
 import com.lojasocial.app.ui.theme.HeaderText
-
-// --- Data Model for the Dialog ---
-data class RequestDetails(
-    val status: RequestStatus,
-    val products: List<String>,
-    val pickupDate: String? = null,
-    val pickupTimeRange: String? = null,
-    val rejectionReason: String? = null
-)
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun RequestDetailsDialog(
-    request: RequestDetails,
-    onDismiss: () -> Unit
+    request: Request,
+    userName: String = "",
+    userEmail: String = "",
+    isLoading: Boolean = false,
+    onDismiss: () -> Unit,
+    onAccept: (Date) -> Unit = {},
+    onReject: (String?) -> Unit = {}
 ) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showRejectDialog by remember { mutableStateOf(false) }
+    var rejectReason by remember { mutableStateOf("") }
+    var selectedDate by remember { mutableStateOf<Date?>(null) }
+
+    // Format date for display
+    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "PT")) }
+    val formattedPickupDate = request.scheduledPickupDate?.let { dateFormat.format(it) }
+
+    // Determine status enum from status int
+    val status = when (request.status) {
+        0 -> RequestStatus.SUBMETIDO
+        1 -> RequestStatus.PENDENTE_LEVANTAMENTO
+        2 -> RequestStatus.CONCLUIDO
+        3 -> RequestStatus.CANCELADO 
+        4 -> RequestStatus.REJEITADO
+        else -> RequestStatus.SUBMETIDO
+    }
+
+    // Format products list
+    val productsList = request.items.map { item ->
+        "${item.quantity}x ${item.productName}"
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -43,7 +69,9 @@ fun RequestDetailsDialog(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
             ) {
                 // 1. Header Section (Icon + Status Title)
                 Row(
@@ -52,28 +80,25 @@ fun RequestDetailsDialog(
                         .padding(24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Dynamic Icon Box
                     Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(request.status.iconBgColor),
+                            .background(status.iconBgColor),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = request.status.icon,
+                            imageVector = status.icon,
                             contentDescription = null,
-                            tint = request.status.iconTint,
+                            tint = status.iconTint,
                             modifier = Modifier.size(24.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Dynamic Title
-                    // Using .label from the Enum as defined in the previous step
                     Text(
-                        text = request.status.label,
+                        text = status.label,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = HeaderText
@@ -82,7 +107,35 @@ fun RequestDetailsDialog(
 
                 Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
 
-                // 2. Products List Section
+                // 2. User Information Section
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = "Informações do utilizador",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = HeaderText
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (userName.isNotEmpty()) {
+                        Text(
+                            text = "Nome: $userName",
+                            fontSize = 15.sp,
+                            color = BodyText,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                    if (userEmail.isNotEmpty()) {
+                        Text(
+                            text = "Email: $userEmail",
+                            fontSize = 15.sp,
+                            color = BodyText
+                        )
+                    }
+                }
+
+                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
+
+                // 3. Products List Section
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
                         text = "Produtos no cabaz",
@@ -92,26 +145,31 @@ fun RequestDetailsDialog(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Simple list of products
-                    request.products.forEach { product ->
+                    if (productsList.isEmpty()) {
                         Text(
-                            text = product,
+                            text = "Nenhum produto",
                             fontSize = 15.sp,
                             color = BodyText,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                         )
+                    } else {
+                        productsList.forEach { product ->
+                            Text(
+                                text = product,
+                                fontSize = 15.sp,
+                                color = BodyText,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
                     }
                 }
 
                 Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
 
-                // 3. Dynamic Section (Date OR Rejection Reason)
-                // HIDE if status is SUBMETIDO (Yellow state)
-                if (request.status != RequestStatus.SUBMETIDO) {
+                // 4. Dynamic Section (Date OR Rejection Reason)
+                if (status != RequestStatus.SUBMETIDO) {
                     Column(modifier = Modifier.padding(24.dp)) {
-
-                        if (request.status == RequestStatus.REJEITADO) {
-                            // --- REJECTED STATE ---
+                        if (status == RequestStatus.REJEITADO) {
                             Text(
                                 text = "Motivo da rejeição",
                                 fontSize = 16.sp,
@@ -126,9 +184,7 @@ fun RequestDetailsDialog(
                                 lineHeight = 22.sp
                             )
                         } else {
-                            // --- PENDING_LEVANTAMENTO OR CONCLUIDO STATE ---
-                            // Change label based on history vs upcoming
-                            val label = if (request.status == RequestStatus.CONCLUIDO)
+                            val label = if (status == RequestStatus.CONCLUIDO)
                                 "Levantado em" else "Data de levantamento"
 
                             Text(
@@ -139,94 +195,164 @@ fun RequestDetailsDialog(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = request.pickupDate ?: "Data a definir",
+                                text = formattedPickupDate ?: "Data a definir",
                                 fontSize = 15.sp,
                                 color = BodyText
                             )
-                            if (request.pickupTimeRange != null) {
-                                Text(
-                                    text = request.pickupTimeRange,
-                                    fontSize = 15.sp,
-                                    color = BodyText
-                                )
-                            }
                         }
                     }
                     Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
                 }
 
-                // 4. Footer (Button)
-                Box(modifier = Modifier.padding(24.dp)) {
-                    Button(
-                        onClick = onDismiss,
+                // 5. Action Buttons (only for SUBMETIDO status)
+                if (status == RequestStatus.SUBMETIDO) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ButtonGreen),
-                        shape = RoundedCornerShape(12.dp)
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "Ok",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
-                        )
+                        // Accept Button
+                        Button(
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = ButtonGreen),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Aceitar",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // Reject Button
+                        OutlinedButton(
+                            onClick = { showRejectDialog = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFDC2626) // Red
+                            )
+                        ) {
+                            Text(
+                                text = "Rejeitar",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                } else {
+                    // Close Button for other statuses
+                    Box(modifier = Modifier.padding(24.dp)) {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ButtonGreen),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Fechar",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
         }
     }
-}
 
-// --- Previews ---
-
-@Preview(name = "Accepted/Pending Request")
-@Composable
-fun PreviewDialogAccepted() {
-    val details = RequestDetails(
-        status = RequestStatus.PENDENTE_LEVANTAMENTO, // Updated Enum Name
-        products = listOf(
-            "1x Detergente da loiça",
-            "4x Pacote de arroz",
-            "4x Pacote de massa"
-        ),
-        pickupDate = "Segunda-feira, 2 de Março de 2026",
-        pickupTimeRange = "Entre as 14h00 e 18h00"
+    // Date Picker Dialog (using CustomDatePickerDialog)
+    CustomDatePickerDialog(
+        showDialog = showDatePicker,
+        onDateSelected = { day, month, year ->
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month - 1) // month is 1-based in callback, convert to 0-based
+                set(Calendar.DAY_OF_MONTH, day)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            selectedDate = calendar.time
+            selectedDate?.let { onAccept(it) }
+            showDatePicker = false
+        },
+        onDismiss = { showDatePicker = false },
+        initialYear = selectedDate?.let {
+            val cal = Calendar.getInstance().apply { time = it }
+            cal.get(Calendar.YEAR)
+        },
+        initialMonth = selectedDate?.let {
+            val cal = Calendar.getInstance().apply { time = it }
+            cal.get(Calendar.MONTH) + 1 // Convert to 1-based
+        },
+        initialDay = selectedDate?.let {
+            val cal = Calendar.getInstance().apply { time = it }
+            cal.get(Calendar.DAY_OF_MONTH)
+        },
+        minDate = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
     )
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
-        RequestDetailsDialog(request = details, onDismiss = {})
-    }
-}
-
-@Preview(name = "Rejected Request")
-@Composable
-fun PreviewDialogRejected() {
-    val details = RequestDetails(
-        status = RequestStatus.REJEITADO,
-        products = listOf(
-            "2x Óleo Alimentar",
-            "1x Leite UHT"
-        ),
-        rejectionReason = "Infelizmente não temos stock suficiente."
-    )
-
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
-        RequestDetailsDialog(request = details, onDismiss = {})
-    }
-}
-
-@Preview(name = "Submitted Request")
-@Composable
-fun PreviewDialogSubmitted() {
-    val details = RequestDetails(
-        status = RequestStatus.SUBMETIDO,
-        products = listOf(
-            "1x Cabaz Básico"
+    // Reject Confirmation Dialog
+    if (showRejectDialog) {
+        AlertDialog(
+            onDismissRequest = { showRejectDialog = false },
+            title = { Text("Rejeitar Pedido") },
+            text = {
+                Column {
+                    Text("Tem a certeza que deseja rejeitar este pedido?")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = rejectReason,
+                        onValueChange = { rejectReason = it },
+                        label = { Text("Motivo (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showRejectDialog = false
+                        onReject(if (rejectReason.isBlank()) null else rejectReason)
+                        rejectReason = ""
+                    }
+                ) {
+                    Text("Rejeitar", color = Color(0xFFDC2626))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRejectDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
         )
-    )
-
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
-        RequestDetailsDialog(request = details, onDismiss = {})
     }
 }

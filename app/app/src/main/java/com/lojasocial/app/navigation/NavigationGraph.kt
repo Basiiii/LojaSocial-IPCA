@@ -15,6 +15,7 @@ import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.CampaignRepository
 import com.lojasocial.app.repository.ExpirationRepository
+import com.lojasocial.app.repository.RequestsRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.applications.ApplicationDetailView
@@ -61,7 +62,8 @@ fun NavigationGraph(
     userRepository: UserRepository,
     applicationRepository: ApplicationRepository,
     expirationRepository: ExpirationRepository? = null,
-    campaignRepository: CampaignRepository? = null
+    campaignRepository: CampaignRepository? = null,
+    requestsRepository: RequestsRepository? = null
 ) {
     NavHost(
         navController = navController,
@@ -137,6 +139,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                     applicationRepository = applicationRepository
                 )
             }
@@ -149,6 +152,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                     applicationRepository = applicationRepository
                 )
             }
@@ -161,6 +165,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                     applicationRepository = applicationRepository
                 )
             }
@@ -173,6 +178,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                     applicationRepository = applicationRepository
                 )
             }
@@ -406,6 +412,14 @@ fun NavigationGraph(
             )
         }
 
+        // Pickup Requests
+        composable(Screen.PickupRequests.route) {
+            com.lojasocial.app.ui.requests.PickupRequestsView(
+                onNavigateBack = { navController.navigateUp() },
+                userRepository = userRepository
+            )
+        }
+
         // Campaigns List
         composable(Screen.CampaignsList.route) {
             campaignRepository?.let { repository ->
@@ -471,6 +485,7 @@ private fun EmployeePortalTabContent(
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
     campaignRepository: CampaignRepository? = null,
+    requestsRepository: RequestsRepository? = null
     applicationRepository: ApplicationRepository? = null
 ) {
     // Observe current user to get fresh profile data - this ensures the name updates when user changes
@@ -507,6 +522,7 @@ private fun EmployeePortalTabContent(
         authRepository = authRepository,
         userRepository = userRepository,
         expirationRepository = expirationRepository,
+        requestsRepository = requestsRepository,
         applicationRepository = applicationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) {
@@ -529,6 +545,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToCampaigns = {
             navController.navigate(Screen.CampaignsList.route)
+        },
+        onNavigateToPickupRequests = {
+            navController.navigate(Screen.PickupRequests.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->
