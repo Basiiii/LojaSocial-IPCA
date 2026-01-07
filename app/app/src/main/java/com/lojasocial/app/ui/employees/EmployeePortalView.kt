@@ -54,16 +54,19 @@ fun EmployeePortalView(
     var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
     val selectedTab = currentTab
     
-    // Fetch pending requests count
-    LaunchedEffect(requestsRepository) {
-        requestsRepository?.getAllRequests()?.collect { requests ->
-            // Count requests with status 0 (SUBMETIDO)
-            pendingRequestsCount = requests.count { it.status == 0 }
     // Get current user ID to exclude own applications
     val currentUserId = authRepository.getCurrentUser()?.uid
     
     // Fetch pending applications count (excluding current user's applications)
     var pendingApplicationsCount by remember { mutableStateOf(0) }
+    
+    // Fetch pending requests count
+    LaunchedEffect(requestsRepository) {
+        requestsRepository?.getAllRequests()?.collect { requests ->
+            // Count requests with status 0 (SUBMETIDO)
+            pendingRequestsCount = requests.count { it.status == 0 }
+        }
+    }
     
     LaunchedEffect(applicationRepository, currentUserId) {
         applicationRepository?.getAllApplications()?.collect { applications ->
@@ -95,7 +98,7 @@ fun EmployeePortalView(
                         onNavigateToScanStock = { showAddStockScreen = true },
                         onNavigateToApplications = onNavigateToApplications,
                         onNavigateToPickupRequests = onNavigateToPickupRequests,
-                        pendingRequestsCount = pendingRequestsCount
+                        pendingRequestsCount = pendingRequestsCount,
                         pendingApplicationsCount = pendingApplicationsCount
                     )
                     Spacer(modifier = Modifier.height(24.dp))

@@ -139,7 +139,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
-                    requestsRepository = requestsRepository
+                    requestsRepository = requestsRepository,
                     applicationRepository = applicationRepository
                 )
             }
@@ -152,7 +152,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
-                    requestsRepository = requestsRepository
+                    requestsRepository = requestsRepository,
                     applicationRepository = applicationRepository
                 )
             }
@@ -165,7 +165,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
-                    requestsRepository = requestsRepository
+                    requestsRepository = requestsRepository,
                     applicationRepository = applicationRepository
                 )
             }
@@ -178,7 +178,7 @@ fun NavigationGraph(
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
-                    requestsRepository = requestsRepository
+                    requestsRepository = requestsRepository,
                     applicationRepository = applicationRepository
                 )
             }
@@ -485,7 +485,7 @@ private fun EmployeePortalTabContent(
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
     campaignRepository: CampaignRepository? = null,
-    requestsRepository: RequestsRepository? = null
+    requestsRepository: RequestsRepository? = null,
     applicationRepository: ApplicationRepository? = null
 ) {
     // Observe current user to get fresh profile data - this ensures the name updates when user changes

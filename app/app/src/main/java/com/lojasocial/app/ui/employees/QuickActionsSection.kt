@@ -24,7 +24,7 @@ fun QuickActionsSection(
     onSupportClick: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToPickupRequests: () -> Unit = {},
-    pendingRequestsCount: Int? = null
+    pendingRequestsCount: Int? = null,
     pendingApplicationsCount: Int = 0
 ) {
     Column {
