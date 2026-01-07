@@ -1,18 +1,22 @@
 package com.lojasocial.app.ui.submitApplications.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
+import kotlinx.coroutines.delay
 
 /**
  * Gray color used for text elements in the application form.
@@ -36,6 +40,7 @@ val TextGray = Color(0xFF455A64)
  * @param keyboardType The type of keyboard to show for this input field
  * @param errorMessage Optional error message to display below the field
  * @param isError Whether the field is in an error state
+ * @param bringIntoViewRequester Optional requester to bring the field into view when focused
  */
 @Composable
 fun CustomLabelInput(
@@ -45,7 +50,8 @@ fun CustomLabelInput(
     placeholder: String,
     keyboardType: KeyboardType = KeyboardType.Text,
     errorMessage: String? = null,
-    isError: Boolean = false
+    isError: Boolean = false,
+    bringIntoViewRequester: androidx.compose.foundation.relocation.BringIntoViewRequester? = null
 ) {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
@@ -54,10 +60,31 @@ fun CustomLabelInput(
             color = Color.Gray,
             modifier = Modifier.padding(bottom = 4.dp)
         )
+        val textFieldInteractionSource = remember { MutableInteractionSource() }
+        var isFocused by remember { mutableStateOf(false) }
+        
+        // Bring field into view when focused (keyboard opens)
+        LaunchedEffect(isFocused) {
+            if (isFocused && bringIntoViewRequester != null) {
+                delay(300) // Wait for keyboard to appear
+                bringIntoViewRequester.bringIntoView()
+            }
+        }
+        
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { isFocused = it.isFocused }
+                .then(
+                    if (bringIntoViewRequester != null) {
+                        Modifier.bringIntoViewRequester(bringIntoViewRequester)
+                    } else {
+                        Modifier
+                    }
+                ),
+            interactionSource = textFieldInteractionSource,
             placeholder = { Text(placeholder, color = Color.LightGray) },
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
@@ -87,6 +114,7 @@ fun CustomLabelInput(
  * @param placeholder Placeholder text for the phone input field
  * @param errorMessage Optional error message to display below the field
  * @param isError Whether the field is in an error state
+ * @param bringIntoViewRequester Optional requester to bring the field into view when focused
  */
 @Composable
 fun PhoneInputField(
@@ -94,7 +122,8 @@ fun PhoneInputField(
     onValueChange: (String) -> Unit,
     placeholder: String = "Insira o seu numero aqui",
     errorMessage: String? = null,
-    isError: Boolean = false
+    isError: Boolean = false,
+    bringIntoViewRequester: androidx.compose.foundation.relocation.BringIntoViewRequester? = null
 ) {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
@@ -103,10 +132,31 @@ fun PhoneInputField(
             color = Color.Gray,
             modifier = Modifier.padding(bottom = 4.dp)
         )
+        val textFieldInteractionSource = remember { MutableInteractionSource() }
+        var isFocused by remember { mutableStateOf(false) }
+        
+        // Bring field into view when focused (keyboard opens)
+        LaunchedEffect(isFocused) {
+            if (isFocused && bringIntoViewRequester != null) {
+                delay(300) // Wait for keyboard to appear
+                bringIntoViewRequester.bringIntoView()
+            }
+        }
+        
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { isFocused = it.isFocused }
+                .then(
+                    if (bringIntoViewRequester != null) {
+                        Modifier.bringIntoViewRequester(bringIntoViewRequester)
+                    } else {
+                        Modifier
+                    }
+                ),
+            interactionSource = textFieldInteractionSource,
             placeholder = { Text(placeholder) },
             prefix = {
                 Text(

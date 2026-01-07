@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -87,6 +88,11 @@ fun CandidaturaPersonalInfoView(
     var phone by remember { mutableStateOf(formData.phone) }
     var showDatePicker by remember { mutableStateOf(false) }
     var validationAttempted by remember { mutableStateOf(false) }
+    
+    // For keyboard-aware scrolling
+    val scrollState = rememberScrollState()
+    val emailBringIntoViewRequester = remember { BringIntoViewRequester() }
+    val phoneBringIntoViewRequester = remember { BringIntoViewRequester() }
 
     LaunchedEffect(formData) {
         name = formData.name
@@ -117,6 +123,7 @@ fun CandidaturaPersonalInfoView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.background)
+                    .imePadding()
                     .navigationBarsPadding()
             ) {
                 Button(
@@ -150,7 +157,7 @@ fun CandidaturaPersonalInfoView(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
         ) {
             ApplicationHeader(
                 title = "Informações Pessoais",
@@ -244,7 +251,8 @@ fun CandidaturaPersonalInfoView(
                     placeholder = "Insira aqui o seu email",
                     keyboardType = KeyboardType.Email,
                     errorMessage = emailError,
-                    isError = emailError != null
+                    isError = emailError != null,
+                    bringIntoViewRequester = emailBringIntoViewRequester
                 )
 
                 val phoneError = if (validationAttempted) ValidationUtils.getPhoneError(phone) else null
@@ -255,11 +263,15 @@ fun CandidaturaPersonalInfoView(
                         viewModel.phone = it
                     },
                     errorMessage = phoneError,
-                    isError = phoneError != null
+                    isError = phoneError != null,
+                    bringIntoViewRequester = phoneBringIntoViewRequester
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
             }
+
+            // Add extra bottom padding to ensure fields are visible above keyboard
+            Spacer(modifier = Modifier.height(100.dp))
 
             // Custom Date Picker Dialog
             val calendar = remember { Calendar.getInstance() }
