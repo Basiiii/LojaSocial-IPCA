@@ -473,8 +473,32 @@ private fun EmployeePortalTabContent(
     campaignRepository: CampaignRepository? = null,
     applicationRepository: ApplicationRepository? = null
 ) {
-    val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            userRepository.getCurrentUserProfile().collect { newProfile ->
+                if (newProfile != null && newProfile.uid == currentUser.uid) {
+                    currentProfile = newProfile
+                }
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val showPortalSelection = currentProfile?.isAdmin == true && currentProfile?.isBeneficiary == true
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
 
     EmployeePortalView(
         userName = displayName,
@@ -534,8 +558,32 @@ private fun BeneficiaryPortalTabContent(
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null
 ) {
-    val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            userRepository.getCurrentUserProfile().collect { newProfile ->
+                if (newProfile != null && newProfile.uid == currentUser.uid) {
+                    currentProfile = newProfile
+                }
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val showPortalSelection = currentProfile?.isAdmin == true && currentProfile?.isBeneficiary == true
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
     
     BeneficiaryPortalView(
         userName = displayName,
@@ -586,7 +634,31 @@ private fun NonBeneficiaryPortalTabContent(
     authRepository: AuthRepository,
     userRepository: UserRepository
 ) {
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            userRepository.getCurrentUserProfile().collect { newProfile ->
+                if (newProfile != null && newProfile.uid == currentUser.uid) {
+                    currentProfile = newProfile
+                }
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
     
     NonBeneficiaryPortalView(
         userName = displayName,
