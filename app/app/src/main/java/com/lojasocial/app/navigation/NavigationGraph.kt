@@ -338,12 +338,16 @@ fun NavigationGraph(
                 onItemClick = { applicationId ->
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
                 },
-                showAllApplications = false
+                showAllApplications = false,
+                isBeneficiary = lastProfile?.isBeneficiary == true, // Hide add button if user is already a beneficiary
+                title = "As minhas Candidaturas" // Custom title for profile view
             )
         }
 
-        // All Applications List (for employees - shows all applications)
+        // All Applications List (for employees - shows all applications except their own)
         composable(Screen.AllApplicationsList.route) {
+            val currentUserId = authRepository.getCurrentUser()?.uid
+            
             ApplicationsListView(
                 applicationRepository = applicationRepository,
                 onNavigateBack = { navController.navigateUp() },
@@ -351,7 +355,8 @@ fun NavigationGraph(
                 onItemClick = { applicationId ->
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
                 },
-                showAllApplications = true
+                showAllApplications = true,
+                excludeCurrentUserId = currentUserId // Exclude employee's own applications
             )
         }
 
@@ -485,7 +490,12 @@ private fun EmployeePortalTabContent(
             }
         },
         onNavigateToApplications = {
+            // For "Ver Candidaturas" button in employee portal home - show all applications except employee's own
             navController.navigate(Screen.AllApplicationsList.route)
+        },
+        onNavigateToMyApplications = {
+            // For "As minhas Candidaturas" in profile - show only user's own applications
+            navController.navigate(Screen.ApplicationsList.route)
         },
         onNavigateToExpiringItems = {
             navController.navigate(Screen.ExpiringItems.route)

@@ -14,14 +14,16 @@ import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 
 @Composable
-fun StatsSection() {
+fun StatsSection(
+    pendingApplicationsCount: Int = 0
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatCard(
             modifier = Modifier.weight(1f),
-            count = "4",
+            count = pendingApplicationsCount.toString(),
             label = "Pendentes",
             icon = Icons.Outlined.Schedule,
             iconBg = Color(0xFFFEF3C7),

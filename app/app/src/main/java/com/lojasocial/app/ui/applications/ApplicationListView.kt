@@ -91,7 +91,10 @@ fun ApplicationsListView(
     onNavigateBack: () -> Unit = {},
     onAddClick: () -> Unit = {},
     onItemClick: (String) -> Unit = {},
-    showAllApplications: Boolean = false // If true, shows all applications regardless of userId
+    showAllApplications: Boolean = false, // If true, shows all applications regardless of userId
+    excludeCurrentUserId: String? = null, // If provided, excludes applications from this user ID when showAllApplications is true
+    isBeneficiary: Boolean = false, // If true, hides the add button (user is already a beneficiary)
+    title: String? = null // Custom title. If null, uses default based on showAllApplications
 ) {
     var applications by remember { mutableStateOf<List<Application>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -111,11 +114,18 @@ fun ApplicationsListView(
         }
     }
 
-    // Filter applications by selected status
-    val filteredApplications = if (selectedStatusFilter != null) {
-        applications.filter { it.status == selectedStatusFilter }
+    // Filter applications: exclude current user's applications if showAllApplications is true and excludeCurrentUserId is provided
+    var filteredApplications = if (showAllApplications && excludeCurrentUserId != null) {
+        applications.filter { it.userId != excludeCurrentUserId }
     } else {
         applications
+    }
+
+    // Filter applications by selected status
+    filteredApplications = if (selectedStatusFilter != null) {
+        filteredApplications.filter { it.status == selectedStatusFilter }
+    } else {
+        filteredApplications
     }
 
     // Map Application domain objects to UI model and sort by date (most recent first)
@@ -135,7 +145,7 @@ fun ApplicationsListView(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        if (showAllApplications) "Todas as Candidaturas" else "Candidaturas",
+                        title ?: if (showAllApplications) "Todas as Candidaturas" else "Candidaturas",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
@@ -152,8 +162,8 @@ fun ApplicationsListView(
                     }
                 },
                 actions = {
-                    // Only show add button if not showing all applications (employee view)
-                    if (!showAllApplications) {
+                    // Only show add button if not showing all applications (employee view) and user is not already a beneficiary
+                    if (!showAllApplications && !isBeneficiary) {
                         IconButton(onClick = onAddClick) {
                             Icon(
                                 imageVector = Icons.Default.Add,

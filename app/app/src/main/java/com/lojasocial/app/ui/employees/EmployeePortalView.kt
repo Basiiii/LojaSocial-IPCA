@@ -36,7 +36,8 @@ fun EmployeePortalView(
     expirationRepository: ExpirationRepository? = null,
     applicationRepository: ApplicationRepository? = null,
     onLogout: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}, // For viewing all applications (employee portal home)
+    onNavigateToMyApplications: () -> Unit = {}, // For viewing own applications (profile page)
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToActivityList: () -> Unit = {},
     onNavigateToCampaigns: () -> Unit = {},
@@ -47,12 +48,18 @@ fun EmployeePortalView(
     var isChatOpen by remember { mutableStateOf(false) }
     val selectedTab = currentTab
     
-    // Fetch pending applications count
+    // Get current user ID to exclude own applications
+    val currentUserId = authRepository.getCurrentUser()?.uid
+    
+    // Fetch pending applications count (excluding current user's applications)
     var pendingApplicationsCount by remember { mutableStateOf(0) }
     
-    LaunchedEffect(applicationRepository) {
+    LaunchedEffect(applicationRepository, currentUserId) {
         applicationRepository?.getAllApplications()?.collect { applications ->
-            pendingApplicationsCount = applications.count { it.status == ApplicationStatus.PENDING }
+            pendingApplicationsCount = applications.count { 
+                it.status == ApplicationStatus.PENDING && 
+                it.userId != currentUserId // Exclude current user's applications
+            }
         }
     }
 
@@ -71,7 +78,7 @@ fun EmployeePortalView(
                         name = userName?.takeIf { it.isNotBlank() } ?: "Utilizador"
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    StatsSection()
+                    StatsSection(pendingApplicationsCount = pendingApplicationsCount)
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
@@ -93,7 +100,7 @@ fun EmployeePortalView(
                     userRepository = userRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
-                    onNavigateToApplications = onNavigateToApplications,
+                    onNavigateToApplications = onNavigateToMyApplications, // Use separate callback for own applications
                     onNavigateToExpiringItems = onNavigateToExpiringItems,
                     onNavigateToCampaigns = onNavigateToCampaigns
                 )
