@@ -12,6 +12,7 @@ import com.lojasocial.app.ui.theme.BgBlue
 import com.lojasocial.app.ui.theme.BgGreen
 import com.lojasocial.app.ui.theme.BgRed
 import com.lojasocial.app.ui.theme.BgYellow
+import com.lojasocial.app.ui.theme.BrandOrange
 import com.lojasocial.app.ui.theme.TextBlue
 import com.lojasocial.app.ui.theme.TextGreen
 import com.lojasocial.app.ui.theme.TextRed
@@ -50,5 +51,12 @@ enum class RequestStatus(
         icon = Icons.Default.Cancel,
         iconBgColor = BgRed,
         iconTint = TextRed
+    ),
+
+    CANCELADO(
+    label = "Pedido Cancelado",
+    icon = Icons.Default.Cancel,
+    iconBgColor = BrandOrange,
+    iconTint = TextRed
     )
 }

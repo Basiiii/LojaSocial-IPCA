@@ -15,6 +15,7 @@ import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.CampaignRepository
 import com.lojasocial.app.repository.ExpirationRepository
+import com.lojasocial.app.repository.RequestsRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.ui.applications.ApplicationDetailView
@@ -61,7 +62,8 @@ fun NavigationGraph(
     userRepository: UserRepository,
     applicationRepository: ApplicationRepository,
     expirationRepository: ExpirationRepository? = null,
-    campaignRepository: CampaignRepository? = null
+    campaignRepository: CampaignRepository? = null,
+    requestsRepository: RequestsRepository? = null
 ) {
     NavHost(
         navController = navController,
@@ -136,7 +138,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                 )
             }
             composable(Screen.EmployeePortal.Profile.route) { backStackEntry ->
@@ -147,7 +150,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                 )
             }
             composable(Screen.EmployeePortal.Support.route) { backStackEntry ->
@@ -158,7 +162,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                 )
             }
             composable(Screen.EmployeePortal.Calendar.route) { backStackEntry ->
@@ -169,7 +174,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     expirationRepository = expirationRepository,
-                    campaignRepository = campaignRepository
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository
                 )
             }
         }
@@ -397,6 +403,14 @@ fun NavigationGraph(
             )
         }
 
+        // Pickup Requests
+        composable(Screen.PickupRequests.route) {
+            com.lojasocial.app.ui.requests.PickupRequestsView(
+                onNavigateBack = { navController.navigateUp() },
+                userRepository = userRepository
+            )
+        }
+
         // Campaigns List
         composable(Screen.CampaignsList.route) {
             campaignRepository?.let { repository ->
@@ -461,7 +475,8 @@ private fun EmployeePortalTabContent(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
-    campaignRepository: CampaignRepository? = null
+    campaignRepository: CampaignRepository? = null,
+    requestsRepository: RequestsRepository? = null
 ) {
     val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
     val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
@@ -473,6 +488,7 @@ private fun EmployeePortalTabContent(
         authRepository = authRepository,
         userRepository = userRepository,
         expirationRepository = expirationRepository,
+        requestsRepository = requestsRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }
@@ -489,6 +505,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToCampaigns = {
             navController.navigate(Screen.CampaignsList.route)
+        },
+        onNavigateToPickupRequests = {
+            navController.navigate(Screen.PickupRequests.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

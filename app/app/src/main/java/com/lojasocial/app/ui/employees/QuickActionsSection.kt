@@ -22,7 +22,9 @@ import com.lojasocial.app.ui.theme.TextDark
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {},
     onSupportClick: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {}
+    onNavigateToApplications: () -> Unit = {},
+    onNavigateToPickupRequests: () -> Unit = {},
+    pendingRequestsCount: Int? = null
 ) {
     Column {
         Text(
@@ -50,9 +52,9 @@ fun QuickActionsSection(
             buttonText = "Gere Pedidos",
             backgroundColor = BrandPurple,
             icon = Icons.Default.Inventory2,
-            badgeCount = 12,
+            badgeCount = pendingRequestsCount ?: 0,
             badgeLabel = "Pendentes",
-            onClick = { /* Handle Orders */ }
+            onClick = onNavigateToPickupRequests
         )
 
         Spacer(modifier = Modifier.height(16.dp))

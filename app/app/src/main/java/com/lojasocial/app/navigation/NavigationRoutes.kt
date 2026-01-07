@@ -35,6 +35,7 @@ sealed class Screen(val route: String) {
     
     // Feature Screens
     object RequestItems : Screen("requestItems")
+    object PickupRequests : Screen("pickupRequests")
     
     // Application Flow
     object ApplicationFlow : Screen("applicationFlow") {

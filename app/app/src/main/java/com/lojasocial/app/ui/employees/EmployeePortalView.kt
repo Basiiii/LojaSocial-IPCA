@@ -13,6 +13,9 @@ import com.lojasocial.app.repository.AuthRepository
 import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.RequestsRepository
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
@@ -32,17 +35,28 @@ fun EmployeePortalView(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
+    requestsRepository: RequestsRepository? = null,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToActivityList: () -> Unit = {},
     onNavigateToCampaigns: () -> Unit = {},
+    onNavigateToPickupRequests: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
     var showAddStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
+    var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
     val selectedTab = currentTab
+    
+    // Fetch pending requests count
+    LaunchedEffect(requestsRepository) {
+        requestsRepository?.getAllRequests()?.collect { requests ->
+            // Count requests with status 0 (SUBMETIDO)
+            pendingRequestsCount = requests.count { it.status == 0 }
+        }
+    }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -63,7 +77,9 @@ fun EmployeePortalView(
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
-                        onNavigateToApplications = onNavigateToApplications
+                        onNavigateToApplications = onNavigateToApplications,
+                        onNavigateToPickupRequests = onNavigateToPickupRequests,
+                        pendingRequestsCount = pendingRequestsCount
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection(
