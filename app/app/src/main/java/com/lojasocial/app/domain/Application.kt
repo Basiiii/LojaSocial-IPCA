@@ -103,16 +103,43 @@ data class ApplicationDocument(
  * - APPROVED: Application has been approved
  * - REJECTED: Application has been rejected
  */
-enum class ApplicationStatus {
+enum class ApplicationStatus(val value: Int) {
     /** Application submitted and awaiting initial review */
-    PENDING,
+    PENDING(0),
     
     /** Application is currently under review by administrators */
-    UNDER_REVIEW,
+    UNDER_REVIEW(1),
     
     /** Application has been approved for scholarship */
-    APPROVED,
+    APPROVED(2),
     
     /** Application has been rejected */
-    REJECTED
+    REJECTED(3);
+    
+    companion object {
+        /**
+         * Converts an integer value to the corresponding ApplicationStatus enum.
+         * 
+         * @param value The integer value to convert
+         * @return The corresponding ApplicationStatus, or PENDING if value is invalid
+         */
+        fun fromInt(value: Int?): ApplicationStatus {
+            return values().find { it.value == value } ?: PENDING
+        }
+        
+        /**
+         * Converts a string value to the corresponding ApplicationStatus enum.
+         * This is used for backward compatibility with existing string-based statuses.
+         * 
+         * @param value The string value to convert
+         * @return The corresponding ApplicationStatus, or PENDING if value is invalid
+         */
+        fun fromString(value: String?): ApplicationStatus {
+            return try {
+                valueOf(value ?: PENDING.name)
+            } catch (e: Exception) {
+                PENDING
+            }
+        }
+    }
 }

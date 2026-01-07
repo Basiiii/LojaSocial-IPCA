@@ -122,7 +122,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                 ),
                 "documents" to documentsData,
                 "submissionDate" to application.submissionDate,
-                "status" to application.status.name,
+                "status" to application.status.value.toLong(),
                 "createdAt" to FieldValue.serverTimestamp()
             )
 
@@ -269,10 +269,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                                 }
                             }
                         },
-                        status = try {
-                            ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                        } catch (e: Exception) {
-                            ApplicationStatus.PENDING
+                        status = when (val statusValue = data["status"]) {
+                            is Int -> ApplicationStatus.fromInt(statusValue)
+                            is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                            is String -> ApplicationStatus.fromString(statusValue)
+                            else -> ApplicationStatus.PENDING
                         },
                         rejectionMessage = data["rejectionMessage"] as? String
                     )
@@ -401,10 +402,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                                     }
                                 }
                             },
-                            status = try {
-                                ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                            } catch (e: Exception) {
-                                ApplicationStatus.PENDING
+                            status = when (val statusValue = data["status"]) {
+                                is Int -> ApplicationStatus.fromInt(statusValue)
+                                is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                                is String -> ApplicationStatus.fromString(statusValue)
+                                else -> ApplicationStatus.PENDING
                             }
                         )
                     } catch (e: Exception) {
@@ -535,10 +537,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                         }
                     }
                 },
-                status = try {
-                    ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                } catch (e: Exception) {
-                    ApplicationStatus.PENDING
+                status = when (val statusValue = data["status"]) {
+                    is Int -> ApplicationStatus.fromInt(statusValue)
+                    is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                    is String -> ApplicationStatus.fromString(statusValue)
+                    else -> ApplicationStatus.PENDING
                 },
                 rejectionMessage = data["rejectionMessage"] as? String
             )
@@ -660,10 +663,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                         }
                     }
                 },
-                status = try {
-                    ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                } catch (e: Exception) {
-                    ApplicationStatus.PENDING
+                status = when (val statusValue = data["status"]) {
+                    is Int -> ApplicationStatus.fromInt(statusValue)
+                    is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                    is String -> ApplicationStatus.fromString(statusValue)
+                    else -> ApplicationStatus.PENDING
                 },
                 rejectionMessage = data["rejectionMessage"] as? String
             )
@@ -707,7 +711,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                 ?: return Result.failure(Exception("Application userId not found"))
             
             val updateData = mutableMapOf<String, Any>(
-                "status" to status.name
+                "status" to status.value.toLong()
             )
             
             // Add rejection message if provided

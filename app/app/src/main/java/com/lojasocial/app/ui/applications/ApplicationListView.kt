@@ -83,6 +83,7 @@ fun ApplicationStatus.toPortugueseLabel(): String {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApplicationsListView(
@@ -94,6 +95,7 @@ fun ApplicationsListView(
 ) {
     var applications by remember { mutableStateOf<List<Application>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedStatusFilter by remember { mutableStateOf<ApplicationStatus?>(null) }
 
     // Fetch applications from repository
     LaunchedEffect(showAllApplications) {
@@ -109,8 +111,15 @@ fun ApplicationsListView(
         }
     }
 
+    // Filter applications by selected status
+    val filteredApplications = if (selectedStatusFilter != null) {
+        applications.filter { it.status == selectedStatusFilter }
+    } else {
+        applications
+    }
+
     // Map Application domain objects to UI model and sort by date (most recent first)
-    val candidaturas = applications
+    val candidaturas = filteredApplications
         .sortedByDescending { it.submissionDate } // Sort by submission date, most recent first
         .map { app ->
             CandidaturaItemUi(
@@ -161,55 +170,70 @@ fun ApplicationsListView(
         },
         containerColor = Color.White // Fundo geral branco
     ) { paddingValues ->
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            candidaturas.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = Color.Gray,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Nenhuma candidatura encontrada",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
+                        CircularProgressIndicator()
                     }
                 }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
-                ) {
-                    items(candidaturas) { candidatura ->
-                        ApplicationListItem(
-                            item = candidatura,
-                            onClick = { onItemClick(candidatura.id) }
-                        )
-                        HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
+                else -> {
+                    // Application Status Tab Selector - always visible when not loading
+                    ApplicationStatusTab(
+                        selectedStatus = selectedStatusFilter,
+                        onStatusSelected = { status ->
+                            selectedStatusFilter = status
+                        }
+                    )
+                    
+                    // Applications List or Empty State
+                    if (candidaturas.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Nenhuma candidatura encontrada",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    } else {
+                        // Applications List
+                        LazyColumn(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            items(candidaturas) { candidatura ->
+                                ApplicationListItem(
+                                    item = candidatura,
+                                    onClick = { onItemClick(candidatura.id) }
+                                )
+                                HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
+                            }
+                        }
                     }
                 }
             }
