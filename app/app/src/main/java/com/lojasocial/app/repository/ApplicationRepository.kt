@@ -1,7 +1,8 @@
 package com.lojasocial.app.repository
 
 import android.content.Context
-import com.lojasocial.app.domain.Application
+import com.lojasocial.app.data.model.Application
+import com.lojasocial.app.data.model.ApplicationStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -98,7 +99,7 @@ interface ApplicationRepository {
      */
     suspend fun updateApplicationStatus(
         applicationId: String,
-        status: com.lojasocial.app.domain.ApplicationStatus,
+        status: ApplicationStatus,
         rejectionMessage: String? = null
     ): Result<Unit>
     

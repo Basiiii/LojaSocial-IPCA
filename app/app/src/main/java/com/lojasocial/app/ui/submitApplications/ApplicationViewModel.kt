@@ -3,9 +3,7 @@ package com.lojasocial.app.ui.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationDocument
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.*
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.utils.ValidationUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -188,14 +186,14 @@ class ApplicationViewModel @Inject constructor(
 
             try {
                 val application = Application(
-                    personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                    personalInfo = PersonalInfo(
                         name = name,
                         dateOfBirth = dateOfBirth,
                         idPassport = idPassport,
                         email = email,
                         phone = phone
                     ),
-                    academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                    academicInfo = AcademicInfo(
                         academicDegree = academicDegree,
                         course = course,
                         studentNumber = studentNumber,

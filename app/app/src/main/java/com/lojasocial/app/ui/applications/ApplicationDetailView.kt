@@ -24,8 +24,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.Application
+import com.lojasocial.app.data.model.ApplicationStatus
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.ui.applications.formatTimeAgo
 import com.lojasocial.app.ui.applications.StatusChip
@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import com.lojasocial.app.data.model.ApplicationDocument
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -551,7 +552,7 @@ fun InformationSection(
 
 @Composable
 fun DocumentsSection(
-    documents: List<com.lojasocial.app.domain.ApplicationDocument>,
+    documents: List<ApplicationDocument>,
     context: Context
 ) {
     Card(
@@ -596,7 +597,7 @@ fun DocumentsSection(
 
 @Composable
 fun DocumentItem(
-    document: com.lojasocial.app.domain.ApplicationDocument,
+    document: ApplicationDocument,
     context: Context,
     modifier: Modifier = Modifier
 ) {

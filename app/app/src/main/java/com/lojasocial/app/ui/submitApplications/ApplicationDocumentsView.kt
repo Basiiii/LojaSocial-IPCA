@@ -22,7 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.widget.Toast
-import com.lojasocial.app.domain.ApplicationDocument
+import com.lojasocial.app.data.model.ApplicationDocument
 import com.lojasocial.app.ui.submitApplications.components.ApplicationHeader
 import com.lojasocial.app.ui.submitApplications.components.DocumentUi
 import com.lojasocial.app.ui.submitApplications.components.DocumentUploadCard

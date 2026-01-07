@@ -1,4 +1,4 @@
-package com.lojasocial.app.domain
+package com.lojasocial.app.data.model
 
 import java.util.Date
 
@@ -47,3 +47,4 @@ enum class ActivityType {
     /** An application was approved */
     APPLICATION_APPROVED
 }
+

@@ -1,4 +1,4 @@
-package com.lojasocial.app.domain
+package com.lojasocial.app.data.model
 
 import android.net.Uri
 import java.util.Date
@@ -143,3 +143,4 @@ enum class ApplicationStatus(val value: Int) {
         }
     }
 }
+

@@ -14,7 +14,7 @@ import com.lojasocial.app.repository.ExpirationRepository
 import com.lojasocial.app.repository.UserProfile
 import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.ApplicationRepository
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.ApplicationStatus
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection

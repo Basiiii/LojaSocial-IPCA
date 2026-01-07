@@ -1,6 +1,6 @@
 package com.lojasocial.app.repository
 
-import com.lojasocial.app.domain.Activity
+import com.lojasocial.app.data.model.Activity
 import kotlinx.coroutines.flow.Flow
 
 /**

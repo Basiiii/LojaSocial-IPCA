@@ -2,7 +2,7 @@ package com.lojasocial.app.ui.activity
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.Activity
+import com.lojasocial.app.data.model.Activity
 import com.lojasocial.app.repository.ActivityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

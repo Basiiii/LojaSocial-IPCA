@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.ApplicationStatus
 import com.lojasocial.app.ui.theme.ButtonGreen
 import com.lojasocial.app.ui.theme.TextDarkGray
 import com.lojasocial.app.ui.theme.DisabledBtn
