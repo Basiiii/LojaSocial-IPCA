@@ -349,6 +349,7 @@ fun ApplicationDetailContent(
     if (showRejectionDialog) {
         AlertDialog(
             onDismissRequest = { showRejectionDialog = false },
+            containerColor = Color.White,
             title = {
                 Text("Rejeitar Candidatura")
             },
