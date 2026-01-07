@@ -31,8 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.Application
+import com.lojasocial.app.data.model.ApplicationStatus
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import java.util.Date
@@ -83,6 +83,7 @@ fun ApplicationStatus.toPortugueseLabel(): String {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApplicationsListView(
@@ -90,10 +91,14 @@ fun ApplicationsListView(
     onNavigateBack: () -> Unit = {},
     onAddClick: () -> Unit = {},
     onItemClick: (String) -> Unit = {},
-    showAllApplications: Boolean = false // If true, shows all applications regardless of userId
+    showAllApplications: Boolean = false, // If true, shows all applications regardless of userId
+    excludeCurrentUserId: String? = null, // If provided, excludes applications from this user ID when showAllApplications is true
+    isBeneficiary: Boolean = false, // If true, hides the add button (user is already a beneficiary)
+    title: String? = null // Custom title. If null, uses default based on showAllApplications
 ) {
     var applications by remember { mutableStateOf<List<Application>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedStatusFilter by remember { mutableStateOf<ApplicationStatus?>(null) }
 
     // Fetch applications from repository
     LaunchedEffect(showAllApplications) {
@@ -109,8 +114,22 @@ fun ApplicationsListView(
         }
     }
 
+    // Filter applications: exclude current user's applications if showAllApplications is true and excludeCurrentUserId is provided
+    var filteredApplications = if (showAllApplications && excludeCurrentUserId != null) {
+        applications.filter { it.userId != excludeCurrentUserId }
+    } else {
+        applications
+    }
+
+    // Filter applications by selected status
+    filteredApplications = if (selectedStatusFilter != null) {
+        filteredApplications.filter { it.status == selectedStatusFilter }
+    } else {
+        filteredApplications
+    }
+
     // Map Application domain objects to UI model and sort by date (most recent first)
-    val candidaturas = applications
+    val candidaturas = filteredApplications
         .sortedByDescending { it.submissionDate } // Sort by submission date, most recent first
         .map { app ->
             CandidaturaItemUi(
@@ -126,7 +145,7 @@ fun ApplicationsListView(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        if (showAllApplications) "Todas as Candidaturas" else "Candidaturas",
+                        title ?: if (showAllApplications) "Todas as Candidaturas" else "Candidaturas",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
@@ -143,8 +162,8 @@ fun ApplicationsListView(
                     }
                 },
                 actions = {
-                    // Only show add button if not showing all applications (employee view)
-                    if (!showAllApplications) {
+                    // Only show add button if not showing all applications (employee view) and user is not already a beneficiary
+                    if (!showAllApplications && !isBeneficiary) {
                         IconButton(onClick = onAddClick) {
                             Icon(
                                 imageVector = Icons.Default.Add,
@@ -161,55 +180,70 @@ fun ApplicationsListView(
         },
         containerColor = Color.White // Fundo geral branco
     ) { paddingValues ->
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            candidaturas.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = Color.Gray,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Nenhuma candidatura encontrada",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Gray
-                        )
+                        CircularProgressIndicator()
                     }
                 }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(paddingValues)
-                        .fillMaxSize()
-                ) {
-                    items(candidaturas) { candidatura ->
-                        ApplicationListItem(
-                            item = candidatura,
-                            onClick = { onItemClick(candidatura.id) }
-                        )
-                        HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
+                else -> {
+                    // Application Status Tab Selector - always visible when not loading
+                    ApplicationStatusTab(
+                        selectedStatus = selectedStatusFilter,
+                        onStatusSelected = { status ->
+                            selectedStatusFilter = status
+                        }
+                    )
+                    
+                    // Applications List or Empty State
+                    if (candidaturas.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "Nenhuma candidatura encontrada",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    } else {
+                        // Applications List
+                        LazyColumn(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            items(candidaturas) { candidatura ->
+                                ApplicationListItem(
+                                    item = candidatura,
+                                    onClick = { onItemClick(candidatura.id) }
+                                )
+                                HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
+                            }
+                        }
                     }
                 }
             }

@@ -28,13 +28,13 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * 
  * Visibility rules:
  * - Support and Calendar: Always visible
- * - Applications ("As minhas Candidaturas"): Only visible for beneficiaries
+ * - Applications ("As minhas Candidaturas"): Visible for all users (beneficiaries, non-beneficiaries, and employees)
  * - Expiring Items ("Itens Próximos do Prazo"): Only visible for admins/employees
  * 
  * @param userProfile The user profile data to determine which options should be shown
  * @param onSupportClick Callback invoked when support option is clicked
  * @param onCalendarClick Callback invoked when calendar option is clicked
- * @param onApplicationsClick Callback invoked when applications option is clicked (beneficiaries only)
+ * @param onApplicationsClick Callback invoked when applications option is clicked
  * @param onExpiringItemsClick Callback invoked when expiring items option is clicked (admins only)
  * @param onCampaignsClick Callback invoked when campaigns option is clicked (admins only)
  */
@@ -72,19 +72,17 @@ fun QuickActionsCard(
                 onClick = onCalendarClick
             )
             
-            // Show applications option only for beneficiaries and non beneficiaries
-            val nonBeneficiary = (userProfile?.isBeneficiary == false && !userProfile.isAdmin)
-            if (userProfile?.isBeneficiary == true || nonBeneficiary) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.Assignment,
-                    title = "As minhas Candidaturas",
-                    subtitle = "Ver e gerir as minhas candidaturas",
-                    iconColor = Color(0xFF10B981),
-                    onClick = onApplicationsClick
-                )
-            }
+            // Show applications option for all users (beneficiaries, non-beneficiaries, and employees)
+            // Everyone should be able to see and manage their own applications
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+            
+            ProfileOption(
+                icon = Icons.Default.Assignment,
+                title = "As minhas Candidaturas",
+                subtitle = "Ver e gerir as minhas candidaturas",
+                iconColor = Color(0xFF10B981),
+                onClick = onApplicationsClick
+            )
             
             // Show expiring items option only for admins/employees
             if (userProfile?.isAdmin == true) {

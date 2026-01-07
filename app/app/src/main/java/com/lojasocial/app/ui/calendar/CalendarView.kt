@@ -5,22 +5,27 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.lojasocial.app.data.model.Campaign
 import com.lojasocial.app.domain.PickupRequest
 import com.lojasocial.app.ui.theme.*
 import java.text.SimpleDateFormat
@@ -38,6 +43,7 @@ fun CalendarView(
     val currentMonth by viewModel.currentMonth.collectAsState()
     val pickupRequests by viewModel.pickupRequests.collectAsState()
     val pickupCounts by viewModel.pickupCounts.collectAsState()
+    val campaignsByDate by viewModel.campaignsByDate.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
     Column(
@@ -45,6 +51,7 @@ fun CalendarView(
             .fillMaxSize()
             .background(LojaSocialBackground)
             .padding(paddingValues)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -64,6 +71,7 @@ fun CalendarView(
             currentMonth = currentMonth,
             selectedDate = selectedDate,
             pickupCounts = pickupCounts,
+            campaignsByDate = campaignsByDate,
             onDateSelected = { date ->
                 viewModel.selectDate(date)
             }
@@ -71,13 +79,33 @@ fun CalendarView(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Pickup requests list
+        // Pickup requests and campaigns list
         if (selectedDate != null) {
-            PickupRequestsSection(
-                date = selectedDate!!,
-                requests = pickupRequests,
-                isLoading = isLoading
-            )
+            Column {
+                PickupRequestsSection(
+                    date = selectedDate!!,
+                    requests = pickupRequests,
+                    isLoading = isLoading
+                )
+                
+                // Show campaigns for selected date - normalize date for lookup
+                val normalizedDate = Calendar.getInstance().apply {
+                    time = selectedDate!!
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.time
+                
+                val dateCampaigns = campaignsByDate[normalizedDate]
+                if (!dateCampaigns.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    CampaignsSection(
+                        date = selectedDate!!,
+                        campaigns = dateCampaigns
+                    )
+                }
+            }
         } else {
             Box(
                 modifier = Modifier
@@ -159,6 +187,7 @@ private fun CalendarGrid(
     currentMonth: Calendar,
     selectedDate: Date?,
     pickupCounts: Map<Date, Int>,
+    campaignsByDate: Map<Date, List<Campaign>>,
     onDateSelected: (Date) -> Unit
 ) {
     val calendar = Calendar.getInstance().apply { time = currentMonth.time }
@@ -240,6 +269,7 @@ private fun CalendarGrid(
                         currentMonth = calendar,
                         selectedDate = selectedDate,
                         pickupCounts = pickupCounts,
+                        campaignsByDate = campaignsByDate,
                         onDateSelected = onDateSelected,
                         modifier = Modifier.weight(1f)
                     )
@@ -259,6 +289,7 @@ private fun DayCell(
     currentMonth: Calendar,
     selectedDate: Date?,
     pickupCounts: Map<Date, Int>,
+    campaignsByDate: Map<Date, List<Campaign>>,
     onDateSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -293,7 +324,18 @@ private fun DayCell(
             today.get(Calendar.DAY_OF_MONTH) == dayCal.get(Calendar.DAY_OF_MONTH)
         }
         
-        val pickupCount = pickupCounts[date] ?: 0
+        // Normalize date for lookup (remove time component)
+        val normalizedDate = Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+        
+        val pickupCount = pickupCounts[normalizedDate] ?: 0
+        val dateCampaigns = campaignsByDate[normalizedDate] ?: emptyList()
+        val hasCampaigns = dateCampaigns.isNotEmpty()
         
         Box(
             modifier = modifier
@@ -303,6 +345,7 @@ private fun DayCell(
                 .background(
                     when {
                         isSelected -> LojaSocialPrimary
+                        hasCampaigns -> Color(0xFFFFE5B4) // Light orange/amber for campaign days
                         isToday -> LojaSocialPrimary.copy(alpha = 0.1f)
                         else -> LojaSocialSurface
                     }
@@ -317,24 +360,37 @@ private fun DayCell(
                 Text(
                     text = day.toString(),
                     fontSize = 14.sp,
-                    fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isSelected || isToday || hasCampaigns) FontWeight.Bold else FontWeight.Normal,
                     color = when {
                         isSelected -> LojaSocialOnPrimary
+                        hasCampaigns -> Color(0xFFD97706) // Orange text for campaign days
                         isToday -> LojaSocialPrimary
                         else -> TextDark
                     }
                 )
-                if (pickupCount > 0) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) LojaSocialOnPrimary
-                                else LojaSocialPrimary
-                            )
-                    )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    if (pickupCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) LojaSocialOnPrimary
+                                    else LojaSocialPrimary
+                                )
+                        )
+                    }
+                    if (hasCampaigns) {
+                        Icon(
+                            imageVector = Icons.Default.Campaign,
+                            contentDescription = "Campanha",
+                            modifier = Modifier.size(8.dp),
+                            tint = if (isSelected) LojaSocialOnPrimary else Color(0xFFD97706)
+                        )
+                    }
                 }
             }
         }
@@ -394,6 +450,99 @@ private fun PickupRequestsSection(
                 items(requests) { request ->
                     PickupRequestItem(request = request)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Section showing campaigns for the selected date.
+ */
+@Composable
+private fun CampaignsSection(
+    date: Date,
+    campaigns: List<Campaign>
+) {
+    val dateFormatter = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale("pt", "PT"))
+    val formattedDate = dateFormatter.format(date).replaceFirstChar { 
+        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
+    }
+    
+    Column {
+        Text(
+            text = "Campanhas - $formattedDate",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextDark
+        )
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            campaigns.forEach { campaign ->
+                CampaignItem(campaign = campaign)
+            }
+        }
+    }
+}
+
+/**
+ * Individual campaign item.
+ */
+@Composable
+private fun CampaignItem(
+    campaign: Campaign
+) {
+    val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "PT"))
+    val startDateStr = dateFormatter.format(campaign.startDate)
+    val endDateStr = dateFormatter.format(campaign.endDate)
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFE5B4) // Light orange/amber background
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFD97706).copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Campaign,
+                    contentDescription = null,
+                    tint = Color(0xFFD97706),
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = campaign.name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextDark
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$startDateStr - $endDateStr",
+                    fontSize = 14.sp,
+                    color = TextGray
+                )
             }
         }
     }

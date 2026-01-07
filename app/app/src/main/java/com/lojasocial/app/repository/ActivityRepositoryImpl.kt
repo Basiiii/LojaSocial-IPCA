@@ -2,9 +2,9 @@ package com.lojasocial.app.repository
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lojasocial.app.domain.Activity
-import com.lojasocial.app.domain.ActivityType
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.Activity
+import com.lojasocial.app.data.model.ActivityType
+import com.lojasocial.app.data.model.ApplicationStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await

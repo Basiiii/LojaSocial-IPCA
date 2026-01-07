@@ -5,9 +5,11 @@ import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationDocument
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.AcademicInfo
+import com.lojasocial.app.data.model.Application
+import com.lojasocial.app.data.model.ApplicationDocument
+import com.lojasocial.app.data.model.ApplicationStatus
+import com.lojasocial.app.data.model.PersonalInfo
 import com.lojasocial.app.utils.FileUtils
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -122,7 +124,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                 ),
                 "documents" to documentsData,
                 "submissionDate" to application.submissionDate,
-                "status" to application.status.name,
+                "status" to application.status.value.toLong(),
                 "createdAt" to FieldValue.serverTimestamp()
             )
 
@@ -217,15 +219,16 @@ class ApplicationRepositoryImpl @Inject constructor(
                     Application(
                         id = data["id"] as? String ?: doc.id,
                         userId = data["userId"] as? String ?: "",
-                        personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                        personalInfo = PersonalInfo(
                             name = personalInfoData?.get("name") as? String ?: "",
                             dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
                             idPassport = personalInfoData?.get("idPassport") as? String ?: "",
                             email = personalInfoData?.get("email") as? String ?: "",
                             phone = personalInfoData?.get("phone") as? String ?: ""
                         ),
-                        academicInfo = com.lojasocial.app.domain.AcademicInfo(
-                            academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
+                        academicInfo = AcademicInfo(
+                            academicDegree = academicInfoData?.get("academicDegree") as? String
+                                ?: "",
                             course = academicInfoData?.get("course") as? String ?: "",
                             studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
                             faesSupport = when (val faes = academicInfoData?.get("faesSupport")) {
@@ -233,7 +236,8 @@ class ApplicationRepositoryImpl @Inject constructor(
                                 is String -> faes == "Sim"
                                 else -> false
                             },
-                            hasScholarship = when (val scholarship = academicInfoData?.get("hasScholarship")) {
+                            hasScholarship = when (val scholarship =
+                                academicInfoData?.get("hasScholarship")) {
                                 is Boolean -> scholarship
                                 is String -> scholarship == "Sim"
                                 else -> false
@@ -269,10 +273,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                                 }
                             }
                         },
-                        status = try {
-                            ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                        } catch (e: Exception) {
-                            ApplicationStatus.PENDING
+                        status = when (val statusValue = data["status"]) {
+                            is Int -> ApplicationStatus.fromInt(statusValue)
+                            is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                            is String -> ApplicationStatus.fromString(statusValue)
+                            else -> ApplicationStatus.PENDING
                         },
                         rejectionMessage = data["rejectionMessage"] as? String
                     )
@@ -349,14 +354,14 @@ class ApplicationRepositoryImpl @Inject constructor(
                         Application(
                             id = data["id"] as? String ?: doc.id,
                             userId = data["userId"] as? String ?: "",
-                            personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                            personalInfo = PersonalInfo(
                                 name = personalInfoData?.get("name") as? String ?: "",
                                 dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
                                 idPassport = personalInfoData?.get("idPassport") as? String ?: "",
                                 email = personalInfoData?.get("email") as? String ?: "",
                                 phone = personalInfoData?.get("phone") as? String ?: ""
                             ),
-                            academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                            academicInfo = AcademicInfo(
                                 academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
                                 course = academicInfoData?.get("course") as? String ?: "",
                                 studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
@@ -401,10 +406,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                                     }
                                 }
                             },
-                            status = try {
-                                ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                            } catch (e: Exception) {
-                                ApplicationStatus.PENDING
+                            status = when (val statusValue = data["status"]) {
+                                is Int -> ApplicationStatus.fromInt(statusValue)
+                                is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                                is String -> ApplicationStatus.fromString(statusValue)
+                                else -> ApplicationStatus.PENDING
                             }
                         )
                     } catch (e: Exception) {
@@ -483,14 +489,14 @@ class ApplicationRepositoryImpl @Inject constructor(
             val application = Application(
                 id = data["id"] as? String ?: doc.id,
                 userId = applicationUserId ?: "",
-                personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                personalInfo = PersonalInfo(
                     name = personalInfoData?.get("name") as? String ?: "",
                     dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
                     idPassport = personalInfoData?.get("idPassport") as? String ?: "",
                     email = personalInfoData?.get("email") as? String ?: "",
                     phone = personalInfoData?.get("phone") as? String ?: ""
                 ),
-                academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                academicInfo = AcademicInfo(
                     academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
                     course = academicInfoData?.get("course") as? String ?: "",
                     studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
@@ -535,10 +541,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                         }
                     }
                 },
-                status = try {
-                    ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                } catch (e: Exception) {
-                    ApplicationStatus.PENDING
+                status = when (val statusValue = data["status"]) {
+                    is Int -> ApplicationStatus.fromInt(statusValue)
+                    is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                    is String -> ApplicationStatus.fromString(statusValue)
+                    else -> ApplicationStatus.PENDING
                 },
                 rejectionMessage = data["rejectionMessage"] as? String
             )
@@ -608,14 +615,14 @@ class ApplicationRepositoryImpl @Inject constructor(
             val application = Application(
                 id = data["id"] as? String ?: doc.id,
                 userId = applicationUserId ?: "",
-                personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                personalInfo = PersonalInfo(
                     name = personalInfoData?.get("name") as? String ?: "",
                     dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
                     idPassport = personalInfoData?.get("idPassport") as? String ?: "",
                     email = personalInfoData?.get("email") as? String ?: "",
                     phone = personalInfoData?.get("phone") as? String ?: ""
                 ),
-                academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                academicInfo = AcademicInfo(
                     academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
                     course = academicInfoData?.get("course") as? String ?: "",
                     studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
@@ -660,10 +667,11 @@ class ApplicationRepositoryImpl @Inject constructor(
                         }
                     }
                 },
-                status = try {
-                    ApplicationStatus.valueOf(data["status"] as? String ?: ApplicationStatus.PENDING.name)
-                } catch (e: Exception) {
-                    ApplicationStatus.PENDING
+                status = when (val statusValue = data["status"]) {
+                    is Int -> ApplicationStatus.fromInt(statusValue)
+                    is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                    is String -> ApplicationStatus.fromString(statusValue)
+                    else -> ApplicationStatus.PENDING
                 },
                 rejectionMessage = data["rejectionMessage"] as? String
             )
@@ -707,7 +715,7 @@ class ApplicationRepositoryImpl @Inject constructor(
                 ?: return Result.failure(Exception("Application userId not found"))
             
             val updateData = mutableMapOf<String, Any>(
-                "status" to status.name
+                "status" to status.value.toLong()
             )
             
             // Add rejection message if provided

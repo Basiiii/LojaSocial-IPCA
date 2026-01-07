@@ -12,4 +12,3 @@ data class PickupRequest(
     val totalItems: Int,
     val pickupDate: Date
 )
-

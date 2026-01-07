@@ -80,6 +80,11 @@ fun CandidaturaAcademicDataView(
      * Local state for storing scholarship status (converted from Boolean to "Sim"/"Não").
      */
     var hasScholarship by remember { mutableStateOf(formData.hasScholarship?.let { if (it) "Sim" else "Não" } ?: "") }
+    
+    /**
+     * Tracks if validation has been attempted (only show errors after button click).
+     */
+    var validationAttempted by remember { mutableStateOf(false) }
 
     /**
      * Synchronizes local state with ViewModel data when form data changes.
@@ -152,7 +157,15 @@ fun CandidaturaAcademicDataView(
                     }
 
                     Button(
-                        onClick = onNavigateNext,
+                        onClick = {
+                            validationAttempted = true
+                            // Validate before navigating
+                            if (academicDegree.isNotBlank() && course.isNotBlank() && 
+                                studentNumber.isNotBlank() && faesSupport.isNotBlank() && 
+                                hasScholarship.isNotBlank()) {
+                                onNavigateNext()
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(50.dp),
@@ -179,6 +192,7 @@ fun CandidaturaAcademicDataView(
             Spacer(modifier = Modifier.height(16.dp))
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                val academicDegreeError = if (validationAttempted && academicDegree.isBlank()) "Grau académico é obrigatório" else null
                 DropdownInputField(
                     label = "Grau Académico",
                     value = academicDegree,
@@ -188,7 +202,16 @@ fun CandidaturaAcademicDataView(
                         viewModel.academicDegree = it
                     }
                 )
+                if (academicDegreeError != null) {
+                    Text(
+                        text = academicDegreeError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = (-12).dp, bottom = 8.dp)
+                    )
+                }
 
+                val courseError = if (validationAttempted && course.isBlank()) "Curso é obrigatório" else null
                 DropdownInputField(
                     label = "Curso",
                     value = course,
@@ -198,7 +221,16 @@ fun CandidaturaAcademicDataView(
                         viewModel.course = it
                     }
                 )
+                if (courseError != null) {
+                    Text(
+                        text = courseError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = (-12).dp, bottom = 8.dp)
+                    )
+                }
 
+                val studentNumberError = if (validationAttempted && studentNumber.isBlank()) "Número de estudante é obrigatório" else null
                 CustomLabelInput(
                     label = "Número de Estudante",
                     value = studentNumber,
@@ -206,9 +238,12 @@ fun CandidaturaAcademicDataView(
                         studentNumber = it
                         viewModel.studentNumber = it
                     },
-                    placeholder = "Introduz número de estudante"
+                    placeholder = "Introduz número de estudante",
+                    errorMessage = studentNumberError,
+                    isError = studentNumberError != null
                 )
 
+                val faesSupportError = if (validationAttempted && faesSupport.isBlank()) "Informação sobre apoio FAES é obrigatória" else null
                 DropdownInputField(
                     label = "É apoiado(a) pelo Fundo de Apoio de Emergência Social (FAES)?",
                     value = faesSupport,
@@ -218,7 +253,16 @@ fun CandidaturaAcademicDataView(
                         viewModel.faesSupport = it == "Sim"
                     }
                 )
+                if (faesSupportError != null) {
+                    Text(
+                        text = faesSupportError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = (-12).dp, bottom = 8.dp)
+                    )
+                }
 
+                val hasScholarshipError = if (validationAttempted && hasScholarship.isBlank()) "Informação sobre bolsa é obrigatória" else null
                 DropdownInputField(
                     label = "É beneficiário de alguma bolsa de estudo ou apoio no presente ano letivo?",
                     value = hasScholarship,
@@ -228,6 +272,14 @@ fun CandidaturaAcademicDataView(
                         viewModel.hasScholarship = it == "Sim"
                     }
                 )
+                if (hasScholarshipError != null) {
+                    Text(
+                        text = hasScholarshipError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = (-12).dp, bottom = 8.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
             }

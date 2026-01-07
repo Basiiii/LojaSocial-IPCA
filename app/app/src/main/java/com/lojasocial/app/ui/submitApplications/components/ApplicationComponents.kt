@@ -1,18 +1,22 @@
 package com.lojasocial.app.ui.submitApplications.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
+import kotlinx.coroutines.delay
 
 /**
  * Gray color used for text elements in the application form.
@@ -34,6 +38,9 @@ val TextGray = Color(0xFF455A64)
  * @param onValueChange Callback invoked when the input value changes
  * @param placeholder The placeholder text displayed when the field is empty
  * @param keyboardType The type of keyboard to show for this input field
+ * @param errorMessage Optional error message to display below the field
+ * @param isError Whether the field is in an error state
+ * @param bringIntoViewRequester Optional requester to bring the field into view when focused
  */
 @Composable
 fun CustomLabelInput(
@@ -41,7 +48,10 @@ fun CustomLabelInput(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    errorMessage: String? = null,
+    isError: Boolean = false,
+    bringIntoViewRequester: androidx.compose.foundation.relocation.BringIntoViewRequester? = null
 ) {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
@@ -50,17 +60,43 @@ fun CustomLabelInput(
             color = Color.Gray,
             modifier = Modifier.padding(bottom = 4.dp)
         )
+        val textFieldInteractionSource = remember { MutableInteractionSource() }
+        var isFocused by remember { mutableStateOf(false) }
+        
+        // Bring field into view when focused (keyboard opens)
+        LaunchedEffect(isFocused) {
+            if (isFocused && bringIntoViewRequester != null) {
+                delay(300) // Wait for keyboard to appear
+                bringIntoViewRequester.bringIntoView()
+            }
+        }
+        
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { isFocused = it.isFocused }
+                .then(
+                    if (bringIntoViewRequester != null) {
+                        Modifier.bringIntoViewRequester(bringIntoViewRequester)
+                    } else {
+                        Modifier
+                    }
+                ),
+            interactionSource = textFieldInteractionSource,
             placeholder = { Text(placeholder, color = Color.LightGray) },
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            isError = isError,
+            supportingText = errorMessage?.let {
+                { Text(text = it, color = MaterialTheme.colorScheme.error) }
+            },
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color.LightGray,
-                focusedBorderColor = LojaSocialPrimary
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error else Color.LightGray,
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error else LojaSocialPrimary,
+                errorBorderColor = MaterialTheme.colorScheme.error
             )
         )
     }
@@ -76,39 +112,73 @@ fun CustomLabelInput(
  * @param value The current phone number value (without country code)
  * @param onValueChange Callback invoked when the phone number changes
  * @param placeholder Placeholder text for the phone input field
+ * @param errorMessage Optional error message to display below the field
+ * @param isError Whether the field is in an error state
+ * @param bringIntoViewRequester Optional requester to bring the field into view when focused
  */
 @Composable
 fun PhoneInputField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "Insira o seu numero aqui"
+    placeholder: String = "Insira o seu numero aqui",
+    errorMessage: String? = null,
+    isError: Boolean = false,
+    bringIntoViewRequester: androidx.compose.foundation.relocation.BringIntoViewRequester? = null
 ) {
-    Text(
-        text = "Telemóvel",
-        style = MaterialTheme.typography.bodyMedium,
-        color = Color.Gray,
-        modifier = Modifier.padding(bottom = 4.dp)
-    )
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text(placeholder) },
-        prefix = {
-            Text(
-                "+351 ",
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        shape = RoundedCornerShape(8.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = Color.LightGray,
-            focusedBorderColor = LojaSocialPrimary
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Text(
+            text = "Telemóvel",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 4.dp)
         )
-    )
+        val textFieldInteractionSource = remember { MutableInteractionSource() }
+        var isFocused by remember { mutableStateOf(false) }
+        
+        // Bring field into view when focused (keyboard opens)
+        LaunchedEffect(isFocused) {
+            if (isFocused && bringIntoViewRequester != null) {
+                delay(300) // Wait for keyboard to appear
+                bringIntoViewRequester.bringIntoView()
+            }
+        }
+        
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { isFocused = it.isFocused }
+                .then(
+                    if (bringIntoViewRequester != null) {
+                        Modifier.bringIntoViewRequester(bringIntoViewRequester)
+                    } else {
+                        Modifier
+                    }
+                ),
+            interactionSource = textFieldInteractionSource,
+            placeholder = { Text(placeholder) },
+            prefix = {
+                Text(
+                    "+351 ",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            shape = RoundedCornerShape(8.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            isError = isError,
+            supportingText = errorMessage?.let {
+                { Text(text = it, color = MaterialTheme.colorScheme.error) }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error else Color.LightGray,
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error else LojaSocialPrimary,
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
+        )
+    }
 }
 
 /**

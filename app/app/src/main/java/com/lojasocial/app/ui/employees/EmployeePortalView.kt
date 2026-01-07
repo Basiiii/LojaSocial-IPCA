@@ -16,6 +16,8 @@ import com.lojasocial.app.repository.UserRepository
 import com.lojasocial.app.repository.RequestsRepository
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
+import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.data.model.ApplicationStatus
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
@@ -36,8 +38,10 @@ fun EmployeePortalView(
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null,
     requestsRepository: RequestsRepository? = null,
+    applicationRepository: ApplicationRepository? = null,
     onLogout: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}, // For viewing all applications (employee portal home)
+    onNavigateToMyApplications: () -> Unit = {}, // For viewing own applications (profile page)
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToActivityList: () -> Unit = {},
     onNavigateToCampaigns: () -> Unit = {},
@@ -55,6 +59,18 @@ fun EmployeePortalView(
         requestsRepository?.getAllRequests()?.collect { requests ->
             // Count requests with status 0 (SUBMETIDO)
             pendingRequestsCount = requests.count { it.status == 0 }
+    // Get current user ID to exclude own applications
+    val currentUserId = authRepository.getCurrentUser()?.uid
+    
+    // Fetch pending applications count (excluding current user's applications)
+    var pendingApplicationsCount by remember { mutableStateOf(0) }
+    
+    LaunchedEffect(applicationRepository, currentUserId) {
+        applicationRepository?.getAllApplications()?.collect { applications ->
+            pendingApplicationsCount = applications.count { 
+                it.status == ApplicationStatus.PENDING && 
+                it.userId != currentUserId // Exclude current user's applications
+            }
         }
     }
 
@@ -73,13 +89,14 @@ fun EmployeePortalView(
                         name = userName?.takeIf { it.isNotBlank() } ?: "Utilizador"
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    StatsSection()
+                    StatsSection(pendingApplicationsCount = pendingApplicationsCount)
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
                         onNavigateToApplications = onNavigateToApplications,
                         onNavigateToPickupRequests = onNavigateToPickupRequests,
                         pendingRequestsCount = pendingRequestsCount
+                        pendingApplicationsCount = pendingApplicationsCount
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection(
@@ -96,7 +113,7 @@ fun EmployeePortalView(
                     userRepository = userRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
-                    onNavigateToApplications = onNavigateToApplications,
+                    onNavigateToApplications = onNavigateToMyApplications, // Use separate callback for own applications
                     onNavigateToExpiringItems = onNavigateToExpiringItems,
                     onNavigateToCampaigns = onNavigateToCampaigns
                 )

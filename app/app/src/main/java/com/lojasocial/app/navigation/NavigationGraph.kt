@@ -140,6 +140,7 @@ fun NavigationGraph(
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Profile.route) { backStackEntry ->
@@ -152,6 +153,7 @@ fun NavigationGraph(
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Support.route) { backStackEntry ->
@@ -164,6 +166,7 @@ fun NavigationGraph(
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Calendar.route) { backStackEntry ->
@@ -176,6 +179,7 @@ fun NavigationGraph(
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository
+                    applicationRepository = applicationRepository
                 )
             }
         }
@@ -340,12 +344,16 @@ fun NavigationGraph(
                 onItemClick = { applicationId ->
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
                 },
-                showAllApplications = false
+                showAllApplications = false,
+                isBeneficiary = lastProfile?.isBeneficiary == true, // Hide add button if user is already a beneficiary
+                title = "As minhas Candidaturas" // Custom title for profile view
             )
         }
 
-        // All Applications List (for employees - shows all applications)
+        // All Applications List (for employees - shows all applications except their own)
         composable(Screen.AllApplicationsList.route) {
+            val currentUserId = authRepository.getCurrentUser()?.uid
+            
             ApplicationsListView(
                 applicationRepository = applicationRepository,
                 onNavigateBack = { navController.navigateUp() },
@@ -353,7 +361,8 @@ fun NavigationGraph(
                 onItemClick = { applicationId ->
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
                 },
-                showAllApplications = true
+                showAllApplications = true,
+                excludeCurrentUserId = currentUserId // Exclude employee's own applications
             )
         }
 
@@ -477,9 +486,34 @@ private fun EmployeePortalTabContent(
     expirationRepository: ExpirationRepository? = null,
     campaignRepository: CampaignRepository? = null,
     requestsRepository: RequestsRepository? = null
+    applicationRepository: ApplicationRepository? = null
 ) {
-    val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            userRepository.getCurrentUserProfile().collect { newProfile ->
+                if (newProfile != null && newProfile.uid == currentUser.uid) {
+                    currentProfile = newProfile
+                }
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val showPortalSelection = currentProfile?.isAdmin == true && currentProfile?.isBeneficiary == true
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
 
     EmployeePortalView(
         userName = displayName,
@@ -489,13 +523,19 @@ private fun EmployeePortalTabContent(
         userRepository = userRepository,
         expirationRepository = expirationRepository,
         requestsRepository = requestsRepository,
+        applicationRepository = applicationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }
             }
         },
         onNavigateToApplications = {
+            // For "Ver Candidaturas" button in employee portal home - show all applications except employee's own
             navController.navigate(Screen.AllApplicationsList.route)
+        },
+        onNavigateToMyApplications = {
+            // For "As minhas Candidaturas" in profile - show only user's own applications
+            navController.navigate(Screen.ApplicationsList.route)
         },
         onNavigateToExpiringItems = {
             navController.navigate(Screen.ExpiringItems.route)
@@ -537,8 +577,32 @@ private fun BeneficiaryPortalTabContent(
     userRepository: UserRepository,
     expirationRepository: ExpirationRepository? = null
 ) {
-    val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            userRepository.getCurrentUserProfile().collect { newProfile ->
+                if (newProfile != null && newProfile.uid == currentUser.uid) {
+                    currentProfile = newProfile
+                }
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val showPortalSelection = currentProfile?.isAdmin == true && currentProfile?.isBeneficiary == true
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
     
     BeneficiaryPortalView(
         userName = displayName,
@@ -589,7 +653,31 @@ private fun NonBeneficiaryPortalTabContent(
     authRepository: AuthRepository,
     userRepository: UserRepository
 ) {
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            userRepository.getCurrentUserProfile().collect { newProfile ->
+                if (newProfile != null && newProfile.uid == currentUser.uid) {
+                    currentProfile = newProfile
+                }
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
     
     NonBeneficiaryPortalView(
         userName = displayName,

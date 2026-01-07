@@ -24,8 +24,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationStatus
+import com.lojasocial.app.data.model.Application
+import com.lojasocial.app.data.model.ApplicationStatus
 import com.lojasocial.app.repository.ApplicationRepository
 import com.lojasocial.app.ui.applications.formatTimeAgo
 import com.lojasocial.app.ui.applications.StatusChip
@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import com.lojasocial.app.data.model.ApplicationDocument
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -313,6 +314,11 @@ fun ApplicationDetailContent(
                                 ApplicationStatus.APPROVED
                             )
                             if (result.isSuccess) {
+                                Toast.makeText(
+                                    context,
+                                    "Candidatura aceite com sucesso!",
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 onStatusUpdated()
                             } else {
                                 updateError = result.exceptionOrNull()?.message ?: "Erro ao aprovar candidatura"
@@ -343,6 +349,7 @@ fun ApplicationDetailContent(
     if (showRejectionDialog) {
         AlertDialog(
             onDismissRequest = { showRejectionDialog = false },
+            containerColor = Color.White,
             title = {
                 Text("Rejeitar Candidatura")
             },
@@ -377,6 +384,11 @@ fun ApplicationDetailContent(
                                     rejectionMessage.takeIf { it.isNotBlank() }
                                 )
                                 if (result.isSuccess) {
+                                    Toast.makeText(
+                                        context,
+                                        "Candidatura rejeitada com sucesso!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                     showRejectionDialog = false
                                     rejectionMessage = ""
                                     onStatusUpdated()
@@ -541,7 +553,7 @@ fun InformationSection(
 
 @Composable
 fun DocumentsSection(
-    documents: List<com.lojasocial.app.domain.ApplicationDocument>,
+    documents: List<ApplicationDocument>,
     context: Context
 ) {
     Card(
@@ -586,7 +598,7 @@ fun DocumentsSection(
 
 @Composable
 fun DocumentItem(
-    document: com.lojasocial.app.domain.ApplicationDocument,
+    document: ApplicationDocument,
     context: Context,
     modifier: Modifier = Modifier
 ) {
