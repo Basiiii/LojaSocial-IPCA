@@ -1,15 +1,12 @@
 package com.lojasocial.app.repository.audit
 
 import android.util.Log
-import com.google.firebase.Timestamp
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lojasocial.app.api.AuditApiService
 import com.lojasocial.app.domain.audit.AuditLogEntry
 import com.lojasocial.app.domain.audit.AuditLogRequest
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.repository.auth.AuthRepository
-import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
