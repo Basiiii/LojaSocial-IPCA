@@ -32,7 +32,15 @@ class PickupRequestsViewModel @Inject constructor(
     private val _actionState = MutableStateFlow<ActionState>(ActionState.Idle)
     val actionState: StateFlow<ActionState> = _actionState.asStateFlow()
 
+    // Filter by userId if provided (for beneficiary portal)
+    private var filterUserId: String? = null
+
     init {
+        fetchRequests()
+    }
+
+    fun setFilterUserId(userId: String?) {
+        filterUserId = userId
         fetchRequests()
     }
 
@@ -43,7 +51,13 @@ class PickupRequestsViewModel @Inject constructor(
                     _uiState.value = PickupRequestsUiState.Error(exception.message ?: "Erro ao carregar pedidos")
                 }
                 .collect { requests ->
-                    _uiState.value = PickupRequestsUiState.Success(requests)
+                    // Filter by userId if filter is set
+                    val filteredRequests = if (filterUserId != null) {
+                        requests.filter { it.userId == filterUserId }
+                    } else {
+                        requests
+                    }
+                    _uiState.value = PickupRequestsUiState.Success(filteredRequests)
                 }
         }
     }

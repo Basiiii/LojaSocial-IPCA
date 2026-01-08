@@ -52,7 +52,8 @@ fun PickupRequestsView(
     viewModel: PickupRequestsViewModel = hiltViewModel(),
     userRepository: UserRepository? = null,
     requestsRepository: RequestsRepository? = null,
-    profilePictureRepository: ProfilePictureRepository? = null
+    profilePictureRepository: ProfilePictureRepository? = null,
+    filterByCurrentUser: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedRequest by viewModel.selectedRequest.collectAsState()
@@ -64,22 +65,44 @@ fun PickupRequestsView(
     // Cache for user profiles by userId
     var userProfilesCache by remember { mutableStateOf<Map<String, UserProfileData>>(emptyMap()) }
     
-    // Check if user is admin
+    // Check if user is admin and get current user ID
     var isAdmin by remember { mutableStateOf(false) }
+    var currentUserId by remember { mutableStateOf<String?>(null) }
+    
     LaunchedEffect(Unit) {
         if (userRepository != null) {
             val profile = userRepository.getCurrentUserProfile().firstOrNull()
             isAdmin = profile?.isAdmin == true
+            currentUserId = profile?.uid
+        }
+    }
+    
+    // Filter by current user if requested (for beneficiary portal)
+    LaunchedEffect(filterByCurrentUser, currentUserId) {
+        if (filterByCurrentUser && currentUserId != null) {
+            viewModel.setFilterUserId(currentUserId)
+        } else if (!filterByCurrentUser) {
+            viewModel.setFilterUserId(null)
         }
     }
     
     // Tab selection state
     var selectedTab by remember { mutableStateOf(RequestStatus.SUBMETIDO.label) }
     
-    // Get all status labels for tabs, excluding CANCELADO for admin users
-    val tabOptions = remember(isAdmin) {
+    // Get all status labels for tabs
+    // For beneficiaries viewing their own requests, show all statuses including CANCELADO
+    // For admin users viewing all requests, exclude CANCELADO
+    val tabOptions = remember(isAdmin, filterByCurrentUser) {
         RequestStatus.values()
-            .filter { if (isAdmin) it != RequestStatus.CANCELADO else true }
+            .filter { 
+                // If admin viewing all requests, exclude CANCELADO
+                // If beneficiary viewing own requests, show all including CANCELADO
+                if (isAdmin && !filterByCurrentUser) {
+                    it != RequestStatus.CANCELADO
+                } else {
+                    true
+                }
+            }
             .map { it.label }
     }
 
@@ -146,7 +169,8 @@ fun PickupRequestsView(
             onReject = { reason ->
                 viewModel.rejectRequest(request.id, reason)
             },
-            profilePictureRepository = profilePictureRepository
+            profilePictureRepository = profilePictureRepository,
+            canAcceptReject = !filterByCurrentUser // Beneficiaries can't accept/reject their own requests
         )
     }
 
@@ -155,7 +179,7 @@ fun PickupRequestsView(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Pedidos Pendentes",
+                        if (filterByCurrentUser) "Os Meus Pedidos" else "Pedidos Pendentes",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp

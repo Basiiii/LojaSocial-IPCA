@@ -445,11 +445,14 @@ fun NavigationGraph(
 
         // Pickup Requests
         composable(Screen.PickupRequests.route) {
+            // Check if we're coming from beneficiary portal by checking previous destination
+            val isFromBeneficiaryPortal = navController.previousBackStackEntry?.destination?.route?.startsWith(Screen.BeneficiaryPortal.route) == true
             com.lojasocial.app.ui.requests.PickupRequestsView(
                 onNavigateBack = { navController.navigateUp() },
                 userRepository = userRepository,
                 requestsRepository = requestsRepository,
-                profilePictureRepository = profilePictureRepository
+                profilePictureRepository = profilePictureRepository,
+                filterByCurrentUser = isFromBeneficiaryPortal
             )
         }
 
@@ -676,6 +679,7 @@ private fun BeneficiaryPortalTabContent(
         showPortalSelection = showPortalSelection,
         onPortalSelectionClick = { navController.navigate(Screen.PortalSelection.route) },
         onNavigateToOrders = { navController.navigate(Screen.RequestItems.route) },
+        onNavigateToPickups = { navController.navigate(Screen.PickupRequests.route) },
         authRepository = authRepository,
         userRepository = userRepository,
         profilePictureRepository = profilePictureRepository,

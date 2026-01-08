@@ -63,7 +63,8 @@ fun RequestDetailsDialog(
     onDismiss: () -> Unit,
     onAccept: (Date) -> Unit = {},
     onReject: (String?) -> Unit = {},
-    profilePictureRepository: ProfilePictureRepository? = null
+    profilePictureRepository: ProfilePictureRepository? = null,
+    canAcceptReject: Boolean = true
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
@@ -207,7 +208,7 @@ fun RequestDetailsDialog(
                     }
 
                     // Fixed Footer Buttons
-                    if (status == RequestStatus.SUBMETIDO) {
+                    if (status == RequestStatus.SUBMETIDO && canAcceptReject) {
                         ActionFooter(
                             isLoading = isLoading,
                             onAcceptClick = {
