@@ -13,7 +13,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,18 +55,21 @@ fun RequestItemsView(
     val submissionState by viewModel.submissionState.collectAsState()
 
     val isSubmitting = submissionState is SubmissionState.Loading
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(submissionState) {
         val currentSubmissionState = submissionState
         when (currentSubmissionState) {
             is SubmissionState.Success -> {
+                snackbarHostState.showSnackbar("Pedido criado com sucesso!")
+                delay(1500)
                 viewModel.resetSubmissionState()
                 onSubmitClick()
             }
 
             is SubmissionState.Error -> {
+                snackbarHostState.showSnackbar(currentSubmissionState.message)
                 viewModel.resetSubmissionState()
-                onSubmitClick()
             }
 
             else -> {}
@@ -73,26 +80,35 @@ fun RequestItemsView(
     val categories = RequestItemsConstants.PRODUCT_CATEGORIES
     var selectedCategory by remember { mutableStateOf(RequestItemsConstants.DEFAULT_CATEGORY) }
 
-    RequestItemsContent(
-        uiState = uiState,
-        productQuantities = productQuantities,
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        categories = categories,
-        selectedCategory = selectedCategory,
-        onCategorySelected = { selectedCategory = it },
-        onAddProduct = { viewModel.onAddProduct(it) },
-        onRemoveProduct = { viewModel.onRemoveProduct(it) },
-        onClearQuantities = { viewModel.clearQuantities() },
-        onBackClick = onBackClick,
-        isSubmitting = isSubmitting,
-        onSubmitClick = {
-            if (!isSubmitting) {
-                viewModel.submitRequest()
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { snackbarData ->
+                Snackbar(snackbarData = snackbarData)
             }
-        },
-        onLoadMore = { viewModel.fetchProducts(isLoadMore = true) }
-    )
+        }
+    ) { paddingValues ->
+        RequestItemsContent(
+            uiState = uiState,
+            productQuantities = productQuantities,
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
+            categories = categories,
+            selectedCategory = selectedCategory,
+            onCategorySelected = { selectedCategory = it },
+            onAddProduct = { viewModel.onAddProduct(it) },
+            onRemoveProduct = { viewModel.onRemoveProduct(it) },
+            onClearQuantities = { viewModel.clearQuantities() },
+            onBackClick = onBackClick,
+            isSubmitting = isSubmitting,
+            onSubmitClick = {
+                if (!isSubmitting) {
+                    viewModel.submitRequest()
+                }
+            },
+            onLoadMore = { viewModel.fetchProducts(isLoadMore = true) },
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
 }
 
 @Composable
@@ -110,26 +126,20 @@ fun RequestItemsContent(
     onBackClick: () -> Unit,
     onSubmitClick: () -> Unit,
     isSubmitting: Boolean = false,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val totalItemsSelected = productQuantities.values.sum()
     val maxItems = RequestItemsConstants.MAX_ITEMS
     val progress = (totalItemsSelected.toFloat() / maxItems.toFloat()).coerceIn(0f, 1f)
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = { RequestItemsTopAppBar(onBackClick = onBackClick) },
-        bottomBar = {
-            RequestItemsBottomBar(
-                onSubmitClick = onSubmitClick,
-                enabled = totalItemsSelected > 0 && !isSubmitting
-            )
-        }
-    ) { paddingValues ->
+    Column(modifier = modifier.fillMaxSize()) {
+        RequestItemsTopAppBar(onBackClick = onBackClick)
+        
         Box(
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize()
+                .weight(1f)
         ) {
             Column(
                 modifier = Modifier
@@ -240,6 +250,11 @@ fun RequestItemsContent(
                 }
             }
         }
+        
+        RequestItemsBottomBar(
+            onSubmitClick = onSubmitClick,
+            enabled = totalItemsSelected > 0 && !isSubmitting
+        )
     }
 }
 

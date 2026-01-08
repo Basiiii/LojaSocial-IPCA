@@ -3,6 +3,7 @@ package com.lojasocial.app.repository.request
 import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.domain.request.RequestItemDetail
@@ -179,49 +180,62 @@ class RequestsRepositoryImpl @Inject constructor(
             val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
             val rejectionReason = data["rejectionReason"] as? String
 
-            // Load items from subcollection
-            Log.d("RequestsRepository", "Fetching items subcollection for request: $requestId")
+            // Load items from request document
+            Log.d("RequestsRepository", "Fetching items for request: $requestId")
             val items = mutableListOf<RequestItemDetail>()
             
-            // Try to get items from subcollection first
             try {
-                val itemsSnapshot = doc.reference.collection("items").get().await()
-                Log.d("RequestsRepository", "Items subcollection fetched, count: ${itemsSnapshot.documents.size}")
-                
-                if (itemsSnapshot.documents.isEmpty()) {
-                    // Check if items are stored as an array in the request document itself
-                    val itemsArray = data["items"] as? List<Map<String, Any>>
-                    if (itemsArray != null && itemsArray.isNotEmpty()) {
-                        Log.d("RequestsRepository", "Found items array in request document, count: ${itemsArray.size}")
-                        for (itemData in itemsArray) {
-                            val productDocId = itemData["productDocId"] as? String ?: continue
-                            val quantity = (itemData["quantity"] as? Long)?.toInt() ?: 0
-                            processItem(productDocId, quantity, items)
+                // First, try to get items from the items map in the document
+                val itemsMap = data["items"] as? Map<*, *>
+                if (itemsMap != null && itemsMap.isNotEmpty()) {
+                    Log.d("RequestsRepository", "Found items map in request document, count: ${itemsMap.size}")
+                    // Items map: document ID -> quantity
+                    itemsMap.forEach { (docId, quantity) ->
+                        val documentId = docId as? String ?: return@forEach
+                        val itemQuantity = when (quantity) {
+                            is Long -> quantity.toInt()
+                            is Int -> quantity
+                            else -> 0
                         }
-                    } else {
-                        Log.w("RequestsRepository", "No items found in subcollection or document array")
+                        if (itemQuantity > 0) {
+                            processItem(documentId, itemQuantity, items)
+                        }
                     }
                 } else {
-                    // Process items from subcollection
-                    for (itemDoc in itemsSnapshot.documents) {
-                        val itemData = itemDoc.data ?: continue
-                        val productDocId = itemData["productDocId"] as? String ?: continue
-                        val quantity = (itemData["quantity"] as? Long)?.toInt() ?: 0
-                        processItem(productDocId, quantity, items)
+                    // Fallback: Try to get items from subcollection (for backward compatibility)
+                    Log.d("RequestsRepository", "No items map found, trying subcollection")
+                    try {
+                        val itemsSnapshot = doc.reference.collection("items").get().await()
+                        Log.d("RequestsRepository", "Items subcollection fetched, count: ${itemsSnapshot.documents.size}")
+                        
+                        if (itemsSnapshot.documents.isNotEmpty()) {
+                            // Process items from subcollection
+                            for (itemDoc in itemsSnapshot.documents) {
+                                val itemData = itemDoc.data ?: continue
+                                val productDocId = itemData["productDocId"] as? String ?: continue
+                                val quantity = (itemData["quantity"] as? Long)?.toInt() ?: 0
+                                processItem(productDocId, quantity, items)
+                            }
+                        } else {
+                            // Try legacy array format
+                            val itemsArray = data["items"] as? List<Map<String, Any>>
+                            if (itemsArray != null && itemsArray.isNotEmpty()) {
+                                Log.d("RequestsRepository", "Found items array in request document, count: ${itemsArray.size}")
+                                for (itemData in itemsArray) {
+                                    val productDocId = itemData["productDocId"] as? String ?: continue
+                                    val quantity = (itemData["quantity"] as? Long)?.toInt() ?: 0
+                                    processItem(productDocId, quantity, items)
+                                }
+                            } else {
+                                Log.w("RequestsRepository", "No items found in document map, subcollection, or array")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error fetching items subcollection: ${e.message}", e)
                     }
                 }
             } catch (e: Exception) {
-                Log.e("RequestsRepository", "Error fetching items subcollection: ${e.message}", e)
-                // Try fallback: check if items are in document as array
-                val itemsArray = data["items"] as? List<Map<String, Any>>
-                if (itemsArray != null && itemsArray.isNotEmpty()) {
-                    Log.d("RequestsRepository", "Using fallback: items array in document, count: ${itemsArray.size}")
-                    for (itemData in itemsArray) {
-                        val productDocId = itemData["productDocId"] as? String ?: continue
-                        val quantity = (itemData["quantity"] as? Long)?.toInt() ?: 0
-                        processItem(productDocId, quantity, items)
-                    }
-                }
+                Log.e("RequestsRepository", "Error processing items: ${e.message}", e)
             }
 
             val request = Request(
@@ -324,6 +338,116 @@ class RequestsRepositoryImpl @Inject constructor(
             Result.success(UserProfileData(name = name, email = email))
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    override suspend fun submitRequest(selectedItems: Map<String, Int>): Result<Unit> {
+        return try {
+            val currentUser = auth.currentUser ?: return Result.failure(Exception("User not authenticated"))
+
+            val itemsMap = mutableMapOf<String, Int>()
+
+            selectedItems.forEach { (productDocId, requestedQuantity) ->
+                try {
+                    // First check if it's a document ID
+                    val itemDoc = firestore.collection("items").document(productDocId).get().await()
+                    
+                    if (itemDoc.exists()) {
+                        val itemQuantity = ((itemDoc.data?.get("quantity") as? Long)?.toInt()
+                            ?: (itemDoc.data?.get("quantity") as? Int) ?: 0)
+                        if (itemQuantity > 0) {
+                            itemsMap[productDocId] = minOf(requestedQuantity, itemQuantity)
+                        }
+                    } else {
+                        // It's a productId/barcode, search for items by barcode or productId
+                        // Try barcode first (most common case)
+                        var itemsSnapshot = try {
+                            firestore.collection("items")
+                                .whereEqualTo("barcode", productDocId)
+                                .get()
+                                .await()
+                        } catch (e: Exception) {
+                            null
+                        }
+                        
+                        // If not found by barcode, try productId
+                        if (itemsSnapshot == null || itemsSnapshot.isEmpty) {
+                            itemsSnapshot = try {
+                                firestore.collection("items")
+                                    .whereEqualTo("productId", productDocId)
+                                    .get()
+                                    .await()
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        
+                        if (itemsSnapshot == null || itemsSnapshot.isEmpty) {
+                            return@forEach
+                        }
+                        
+                        // Filter items with quantity > 0 and sort by expiry date
+                        val availableItems = itemsSnapshot.documents.filter { doc ->
+                            val itemQuantity = ((doc.data?.get("quantity") as? Long)?.toInt()
+                                ?: (doc.data?.get("quantity") as? Int) ?: 0)
+                            itemQuantity > 0
+                        }
+                        
+                        if (availableItems.isEmpty()) {
+                            return@forEach
+                        }
+                        
+                        val sortedItems = availableItems.sortedWith(compareBy { doc ->
+                            val expiryDate = (doc.data?.get("expiryDate") as? Timestamp)
+                                ?: (doc.data?.get("expirationDate") as? Timestamp)
+                            expiryDate?.toDate()?.time ?: Long.MAX_VALUE
+                        })
+                        
+                        var remainingQuantity = requestedQuantity
+                        for (itemDoc in sortedItems) {
+                            if (remainingQuantity <= 0) break
+                            
+                            val itemQuantity = ((itemDoc.data?.get("quantity") as? Long)?.toInt()
+                                ?: (itemDoc.data?.get("quantity") as? Int) ?: 0)
+                            
+                            val quantityToUse = minOf(remainingQuantity, itemQuantity)
+                            itemsMap[itemDoc.id] = quantityToUse
+                            remainingQuantity -= quantityToUse
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Continue with other items
+                }
+            }
+
+            if (itemsMap.isEmpty()) {
+                return Result.failure(Exception("No items found to add to request. Selected items: ${selectedItems.keys.joinToString()}"))
+            }
+
+            val itemsMapForFirestore = HashMap<String, Any>().apply {
+                itemsMap.forEach { (docId, quantity) ->
+                    this[docId] = quantity.toLong()
+                }
+            }
+
+            val requestsData = hashMapOf<String, Any>(
+                "userId" to currentUser.uid,
+                "status" to 0,
+                "submissionDate" to FieldValue.serverTimestamp(),
+                "totalItems" to selectedItems.values.sum(),
+                "items" to itemsMapForFirestore
+            )
+
+            try {
+                firestore.collection("requests")
+                    .add(requestsData)
+                    .await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(Exception("Failed to create request: ${e.message}", e))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Error submitting request: ${e.message}", e))
         }
     }
 }

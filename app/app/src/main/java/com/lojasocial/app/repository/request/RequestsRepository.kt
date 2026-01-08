@@ -41,6 +41,12 @@ interface RequestsRepository {
      * Gets user profile data (name, email) by userId.
      */
     suspend fun getUserProfile(userId: String): Result<UserProfileData>
+    
+    /**
+     * Submits a new request with selected items.
+     * Creates a request document with an items map (document ID -> quantity).
+     */
+    suspend fun submitRequest(selectedItems: Map<String, Int>): Result<Unit>
 }
 
 /**
