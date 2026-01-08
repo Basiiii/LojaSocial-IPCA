@@ -62,13 +62,9 @@ fun ChatView(
                     viewModel.sendMessage()
                     keyboardController?.hide()
                 },
-                modifier = if (embeddedInAppLayout) {
-                    Modifier.imePadding()
-                } else {
-                    Modifier
-                        .navigationBarsPadding()
-                        .imePadding()
-                }
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding()
             )
         },
         containerColor = Color.White

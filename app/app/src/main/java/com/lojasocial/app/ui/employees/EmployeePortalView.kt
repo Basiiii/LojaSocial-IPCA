@@ -136,7 +136,7 @@ fun EmployeePortalView(
                 ) {
                     if (isChatOpen) {
                         ChatView(
-                            embeddedInAppLayout = true,
+                            embeddedInAppLayout = false,
                             onClose = { isChatOpen = false }
                         )
                     } else {
@@ -164,11 +164,16 @@ fun EmployeePortalView(
             AppLayout(
                 selectedTab = selectedTab,
                 onTabSelected = { tab ->
+                    if (tab != "support") {
+                        isChatOpen = false
+                    }
                     onTabChange?.invoke(tab) ?: run {
                         // Fallback for preview/legacy usage
                     }
                 },
                 subtitle = "Portal Funcionários",
+                showTopBar = !(selectedTab == "support" && isChatOpen),
+                showBottomBar = !(selectedTab == "support" && isChatOpen),
                 showPortalSelection = showPortalSelection,
                 onPortalSelectionClick = onPortalSelectionClick
             ) { paddingValues ->
