@@ -286,23 +286,47 @@ fun AuditLogCard(
                 )
             }
             
-            // User ID
-            log.userId?.let { userId ->
+            if (log.userId != null || log.userName != null) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Text(
-                        text = "Utilizador: ",
-                        fontSize = 12.sp,
-                        color = TextGray,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = userId,
-                        fontSize = 12.sp,
-                        color = TextDark
-                    )
+                    // User Name
+                    if (log.userName != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Utilizador: ",
+                                fontSize = 12.sp,
+                                color = TextGray,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = log.userName,
+                                fontSize = 12.sp,
+                                color = TextDark
+                            )
+                        }
+                    }
+                    // User ID
+                    if (log.userId != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "ID: ",
+                                fontSize = 12.sp,
+                                color = TextGray,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = log.userId,
+                                fontSize = 12.sp,
+                                color = TextDark
+                            )
+                        }
+                    }
                 }
             }
             
@@ -333,14 +357,7 @@ fun AuditLogCard(
 
 fun formatActionName(action: String, details: Map<String, Any>? = null): String {
     return when (action) {
-        "add_item" -> {
-            // Check if it's a campaign product
-            if (details?.containsKey("campaignId") == true) {
-                "Receber Produto em Campanha"
-            } else {
-                "Adicionar Item"
-            }
-        }
+        "add_item" -> "Adicionar Item"
         "remove_item" -> "Remover Item"
         "accept_request" -> "Aceitar Pedido"
         "decline_request" -> "Rejeitar Pedido"

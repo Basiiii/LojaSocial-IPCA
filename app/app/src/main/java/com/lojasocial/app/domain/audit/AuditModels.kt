@@ -7,11 +7,13 @@ import com.lojasocial.app.domain.product.Product
  * 
  * @param action The action type (e.g., "add_item", "remove_item", "accept_request", etc.)
  * @param userId Optional user ID who performed the action
+ * @param userName Optional user name who performed the action
  * @param details Optional map of additional details about the action
  */
 data class AuditLogRequest(
     val action: String,
     val userId: String? = null,
+    val userName: String? = null,
     val details: Map<String, Any>? = null
 )
 
@@ -21,12 +23,14 @@ data class AuditLogRequest(
  * @param action The action type
  * @param timestamp ISO 8601 formatted timestamp
  * @param userId Optional user ID who performed the action
+ * @param userName Optional user name who performed the action
  * @param details Optional map of additional details
  */
 data class AuditLogEntry(
     val action: String,
     val timestamp: String,
     val userId: String? = null,
+    val userName: String? = null,
     val details: Map<String, Any>? = null
 )
 
@@ -59,6 +63,7 @@ data class CampaignProductReceiptApiModel(
     val barcode: String,
     val timestamp: String?,
     val userId: String?,
+    val userName: String?,
     val product: CampaignProductApiModel?
 )
 

@@ -23,7 +23,7 @@ router.post('/log', async (req, res) => {
   }
 
   try {
-    const { action, userId, details } = req.body;
+    const { action, userId, userName, details } = req.body;
 
     // Validate action type
     if (!action || !VALID_ACTIONS.includes(action)) {
@@ -34,10 +34,12 @@ router.post('/log', async (req, res) => {
     }
 
     // Create audit log document
+    // Ensure both userId and userName are set together (both or neither)
     const auditLog = {
       action,
       timestamp: admin.firestore.Timestamp.now(),
       userId: userId || null,
+      userName: (userId && userName) ? userName : null, // Only set userName if userId exists
       details: details || null
     };
 
@@ -94,17 +96,35 @@ router.get('/logs', async (req, res) => {
       .get();
 
     // Convert Firestore documents to JSON
-    const logs = logsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      
-      return {
-        id: doc.id,
-        action: data.action,
-        timestamp: data.timestamp.toDate().toISOString(),
-        userId: data.userId,
-        details: data.details || {}
-      };
-    });
+    // For logs without userName, try to fetch it from users collection
+    const logs = await Promise.all(
+      logsSnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        let userName = data.userName || null;
+        
+        // If we have userId but no userName, try to fetch it
+        if (data.userId && !userName) {
+          try {
+            const userDoc = await db.collection('users').doc(data.userId).get();
+            if (userDoc.exists) {
+              const userData = userDoc.data();
+              userName = userData.name || null;
+            }
+          } catch (error) {
+            logger.error(`Error fetching user name for userId ${data.userId}: ${error.message}`);
+          }
+        }
+        
+        return {
+          id: doc.id,
+          action: data.action,
+          timestamp: data.timestamp.toDate().toISOString(),
+          userId: data.userId,
+          userName: userName,
+          details: data.details || {}
+        };
+      })
+    );
 
     logger.server(`Retrieved ${logs.length} audit logs`, { startDate, endDate });
     
@@ -175,6 +195,20 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
           const barcode = details.barcode || '';
           const userId = data.userId || null;
           
+          // Fetch user name from users collection if userId is available
+          let userName = data.userName || null;
+          if (!userName && userId) {
+            try {
+              const userDoc = await db.collection('users').doc(userId).get();
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                userName = userData.name || null;
+              }
+            } catch (error) {
+              logger.error(`Error fetching user name for userId ${userId}: ${error.message}`);
+            }
+          }
+          
           // Convert timestamp
           let timestamp = null;
           if (data.timestamp) {
@@ -211,6 +245,7 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
             barcode,
             timestamp,
             userId,
+            userName,
             product
           };
         } catch (error) {

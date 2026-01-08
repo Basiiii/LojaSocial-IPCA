@@ -7,6 +7,8 @@ import com.lojasocial.app.domain.audit.AuditLogEntry
 import com.lojasocial.app.domain.audit.AuditLogRequest
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.user.UserRepository
+import kotlinx.coroutines.flow.firstOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -18,6 +20,7 @@ import javax.inject.Singleton
 class AuditRepositoryImpl @Inject constructor(
     private val auditApiService: AuditApiService,
     private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val firestore: FirebaseFirestore
 ) : AuditRepository {
 
@@ -34,10 +37,25 @@ class AuditRepositoryImpl @Inject constructor(
         try {
             // Use provided userId or get current user ID
             val finalUserId = userId ?: authRepository.getCurrentUser()?.uid
+            
+            val (logUserId, logUserName) = if (finalUserId != null) {
+                try {
+                    val userProfile = userRepository.getUserProfile(finalUserId).firstOrNull()
+                    Pair(finalUserId, userProfile?.name)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error fetching user name for audit log: ${e.message}")
+                    // If we can't get the name, still log with userId
+                    Pair(finalUserId, null)
+                }
+            } else {
+                // If no userId, both should be null
+                Pair(null, null)
+            }
 
             val request = AuditLogRequest(
                 action = action,
-                userId = finalUserId,
+                userId = logUserId,
+                userName = logUserName,
                 details = details
             )
 
@@ -74,6 +92,7 @@ class AuditRepositoryImpl @Inject constructor(
                         action = apiEntry.action,
                         timestamp = apiEntry.timestamp,
                         userId = apiEntry.userId,
+                        userName = apiEntry.userName,
                         details = apiEntry.details
                     )
                 } ?: emptyList()
@@ -136,6 +155,7 @@ class AuditRepositoryImpl @Inject constructor(
                             barcode = apiReceipt.barcode,
                             timestamp = timestamp,
                             userId = apiReceipt.userId,
+                            userName = apiReceipt.userName,
                             product = product
                         )
                     } catch (e: Exception) {

@@ -13,5 +13,6 @@ data class CampaignProductReceipt(
     val barcode: String,
     val timestamp: Date?,
     val userId: String?,
+    val userName: String? = null,
     val product: Product? = null // Product information loaded separately
 )
