@@ -30,11 +30,13 @@ fun ActivityItem(
     time: String,
     icon: ImageVector,
     iconBg: Color,
-    iconTint: Color
+    iconTint: Color,
+    includeBottomPadding: Boolean = true
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .then(if (includeBottomPadding) Modifier.padding(bottom = 12.dp) else Modifier),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFFE5E7EB))

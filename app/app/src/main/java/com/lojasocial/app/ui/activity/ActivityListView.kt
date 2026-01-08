@@ -211,7 +211,8 @@ fun ActivityListView(
                                 time = formatTimeAgo(activity.timestamp),
                                 icon = icon,
                                 iconBg = iconBg,
-                                iconTint = iconTint
+                                iconTint = iconTint,
+                                includeBottomPadding = false
                             )
                         }
                     }
