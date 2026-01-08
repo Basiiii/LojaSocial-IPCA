@@ -2,9 +2,9 @@ package com.lojasocial.app.ui.requestitems
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.RequestItem
-import com.lojasocial.app.repository.ItemsRepository
-import com.lojasocial.app.repository.OrdersRepository
+import com.lojasocial.app.domain.request.RequestItem
+import com.lojasocial.app.repository.request.ItemsRepository
+import com.lojasocial.app.repository.request.OrdersRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

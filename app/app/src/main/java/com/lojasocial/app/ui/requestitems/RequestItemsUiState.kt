@@ -1,6 +1,6 @@
 package com.lojasocial.app.ui.requestitems
 
-import com.lojasocial.app.domain.RequestItem
+import com.lojasocial.app.domain.request.RequestItem
 
 sealed interface RequestItemsUiState {
     object Loading : RequestItemsUiState

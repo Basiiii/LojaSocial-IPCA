@@ -16,7 +16,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lojasocial.app.R
-import com.lojasocial.app.domain.PendingRequest
+import com.lojasocial.app.domain.request.PendingRequest
 import com.lojasocial.app.ui.requests.components.RequestItem
 import com.lojasocial.app.ui.theme.*
 

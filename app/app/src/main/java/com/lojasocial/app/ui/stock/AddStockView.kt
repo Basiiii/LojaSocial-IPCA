@@ -51,7 +51,7 @@ import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.utils.AppConstants
 import com.lojasocial.app.viewmodel.AddStockViewModel
 import com.lojasocial.app.viewmodel.AddStockUiState
-import com.lojasocial.app.data.model.ProductCategory
+import com.lojasocial.app.domain.product.ProductCategory
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
@@ -299,7 +299,7 @@ fun ScanStepScreen(
 fun FormStepScreen(
     viewModel: AddStockViewModel,
     uiState: AddStockUiState,
-    productData: com.lojasocial.app.data.model.Product?,
+    productData: com.lojasocial.app.domain.product.Product?,
     onNavigateBack: () -> Unit,
 ) {
     Log.e("AddStockView_DEBUG", "=== FORM STEP SCREEN CALLED ===")

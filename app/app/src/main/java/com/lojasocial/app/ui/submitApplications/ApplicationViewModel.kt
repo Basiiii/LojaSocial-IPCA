@@ -3,8 +3,9 @@ package com.lojasocial.app.ui.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.data.model.*
-import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.domain.application.*
+import com.lojasocial.app.repository.application.ApplicationRepository
+import com.lojasocial.app.repository.application.ApplicationRepositoryImpl
 import com.lojasocial.app.utils.ValidationUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -283,6 +284,6 @@ class ApplicationViewModel @Inject constructor(
     }
     
     fun setContext(context: android.content.Context) {
-        (applicationRepository as? com.lojasocial.app.repository.ApplicationRepositoryImpl)?.setContext(context)
+        (applicationRepository as? ApplicationRepositoryImpl)?.setContext(context)
     }
 }

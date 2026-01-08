@@ -15,9 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.lojasocial.app.data.model.Product
-import com.lojasocial.app.data.model.StockItem
-import com.lojasocial.app.domain.ExpiringItemWithProduct
+import com.lojasocial.app.domain.product.Product
+import com.lojasocial.app.domain.stock.StockItem
+import com.lojasocial.app.domain.stock.ExpiringItemWithProduct
 import com.lojasocial.app.ui.theme.*
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.utils.AppConstants

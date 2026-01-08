@@ -31,9 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.data.model.Application
-import com.lojasocial.app.data.model.ApplicationStatus
-import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.domain.application.Application
+import com.lojasocial.app.domain.application.ApplicationStatus
+import com.lojasocial.app.repository.application.ApplicationRepository
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import java.util.Date
 import java.util.concurrent.TimeUnit

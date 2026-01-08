@@ -2,8 +2,8 @@ package com.lojasocial.app.ui.requests
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.Request
-import com.lojasocial.app.repository.RequestsRepository
+import com.lojasocial.app.domain.request.Request
+import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.utils.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,8 +26,8 @@ class PickupRequestsViewModel @Inject constructor(
     private val _selectedRequest = MutableStateFlow<Request?>(null)
     val selectedRequest: StateFlow<Request?> = _selectedRequest.asStateFlow()
 
-    private val _userProfile = MutableStateFlow<com.lojasocial.app.repository.UserProfileData?>(null)
-    val userProfile: StateFlow<com.lojasocial.app.repository.UserProfileData?> = _userProfile.asStateFlow()
+    private val _userProfile = MutableStateFlow<com.lojasocial.app.repository.request.UserProfileData?>(null)
+    val userProfile: StateFlow<com.lojasocial.app.repository.request.UserProfileData?> = _userProfile.asStateFlow()
 
     private val _actionState = MutableStateFlow<ActionState>(ActionState.Idle)
     val actionState: StateFlow<ActionState> = _actionState.asStateFlow()
@@ -62,7 +62,7 @@ class PickupRequestsViewModel @Inject constructor(
                             _userProfile.value = profile
                         },
                         onFailure = {
-                            _userProfile.value = com.lojasocial.app.repository.UserProfileData()
+                            _userProfile.value = com.lojasocial.app.repository.request.UserProfileData()
                         }
                     )
                     _actionState.value = ActionState.Idle

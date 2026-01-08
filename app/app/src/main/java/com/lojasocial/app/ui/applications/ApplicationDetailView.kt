@@ -24,9 +24,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.data.model.Application
-import com.lojasocial.app.data.model.ApplicationStatus
-import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.domain.application.Application
+import com.lojasocial.app.domain.application.ApplicationStatus
+import com.lojasocial.app.repository.application.ApplicationRepository
 import com.lojasocial.app.ui.applications.formatTimeAgo
 import com.lojasocial.app.ui.applications.StatusChip
 import com.lojasocial.app.utils.FileUtils
@@ -37,7 +37,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import com.lojasocial.app.data.model.ApplicationDocument
+import com.lojasocial.app.domain.application.ApplicationDocument
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)

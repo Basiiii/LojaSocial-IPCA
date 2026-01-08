@@ -12,11 +12,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.api.ExpirationCheckResponse
-import com.lojasocial.app.data.model.Product
-import com.lojasocial.app.data.model.StockItem
-import com.lojasocial.app.domain.ExpiringItemWithProduct
-import com.lojasocial.app.domain.ExpiringItemsUiState
-import com.lojasocial.app.repository.ExpirationRepository
+import com.lojasocial.app.domain.product.Product
+import com.lojasocial.app.domain.stock.StockItem
+import com.lojasocial.app.domain.stock.ExpiringItemWithProduct
+import com.lojasocial.app.domain.stock.ExpiringItemsUiState
+import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.ui.expiringitems.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import com.lojasocial.app.ui.theme.LojaSocialTheme

@@ -25,8 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.lojasocial.app.data.model.Campaign
-import com.lojasocial.app.domain.PickupRequest
+import com.lojasocial.app.domain.campaign.Campaign
+import com.lojasocial.app.domain.request.PickupRequest
 import com.lojasocial.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*

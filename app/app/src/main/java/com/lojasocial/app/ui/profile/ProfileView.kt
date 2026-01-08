@@ -12,9 +12,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.ui.profile.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import kotlinx.coroutines.flow.flow

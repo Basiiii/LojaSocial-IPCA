@@ -17,9 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView

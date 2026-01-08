@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import java.util.Calendar
-import com.lojasocial.app.data.model.RequestStatus
-import com.lojasocial.app.domain.Request
+import com.lojasocial.app.domain.request.RequestStatus
+import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
 import com.lojasocial.app.ui.theme.BodyText
 import com.lojasocial.app.ui.theme.ButtonGreen

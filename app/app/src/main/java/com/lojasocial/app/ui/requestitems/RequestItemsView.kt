@@ -38,6 +38,7 @@ import com.lojasocial.app.ui.theme.BorderColor
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.TextGray
 import com.lojasocial.app.ui.requestitems.RequestItemsConstants
+import com.lojasocial.app.domain.request.RequestItem
 
 @Composable
 fun RequestItemsView(
@@ -247,8 +248,8 @@ val previewCategories = RequestItemsConstants.PRODUCT_CATEGORIES
 @Preview(showBackground = true)
 @Composable
 fun RequestItemsViewPreview() {
-    val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(
+    val mockProducts: List<RequestItem> = listOf(
+        com.lojasocial.app.domain.request.RequestItem(
             docId = 1.toString(),
             id = 1,
             name = "Arroz Agulha",
@@ -299,8 +300,8 @@ fun PreviewLoading() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewSubmitting() {
-    val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(
+    val mockProducts: List<RequestItem> = listOf(
+        RequestItem(
             docId = 1.toString(),
             id = 1,
             name = "Arroz Agulha",
@@ -371,15 +372,15 @@ fun PreviewEmptyList() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewLimitReached() {
-    val mockProducts = listOf(
-        com.lojasocial.app.domain.RequestItem(
+    val mockProducts: List<RequestItem> = listOf(
+        RequestItem(
             docId = 1.toString(),
             id = 1,
             name = "Arroz",
             category = "Alimentar",
             quantity = 50
         ),
-        com.lojasocial.app.domain.RequestItem(
+        RequestItem(
             docId = 2.toString(),
             id = 2,
             name = "Massa",

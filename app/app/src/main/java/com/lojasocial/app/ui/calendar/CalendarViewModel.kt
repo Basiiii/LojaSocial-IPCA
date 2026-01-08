@@ -2,11 +2,11 @@ package com.lojasocial.app.ui.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.data.model.Campaign
-import com.lojasocial.app.domain.PickupRequest
-import com.lojasocial.app.repository.CalendarRepository
-import com.lojasocial.app.repository.CampaignRepository
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.domain.campaign.Campaign
+import com.lojasocial.app.domain.request.PickupRequest
+import com.lojasocial.app.repository.calendar.CalendarRepository
+import com.lojasocial.app.repository.campaign.CampaignRepository
+import com.lojasocial.app.repository.user.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

@@ -1,7 +1,7 @@
 package com.lojasocial.app.di
 
-import com.lojasocial.app.repository.RequestsRepository
-import com.lojasocial.app.repository.RequestsRepositoryImpl
+import com.lojasocial.app.repository.request.RequestsRepository
+import com.lojasocial.app.repository.request.RequestsRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

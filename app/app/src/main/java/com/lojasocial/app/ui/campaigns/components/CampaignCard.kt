@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.data.model.Campaign
+import com.lojasocial.app.domain.campaign.Campaign
 import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 import java.text.SimpleDateFormat

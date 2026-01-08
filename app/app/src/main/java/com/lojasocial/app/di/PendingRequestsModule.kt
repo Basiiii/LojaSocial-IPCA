@@ -1,6 +1,6 @@
 package com.lojasocial.app.di
 
-import com.lojasocial.app.repository.PendingRequestsRepository
+import com.lojasocial.app.repository.request.PendingRequestsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

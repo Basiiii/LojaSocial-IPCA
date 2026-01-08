@@ -1,8 +1,8 @@
 package com.lojasocial.app.navigation
 
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.UserRepository
 import kotlinx.coroutines.flow.first
 
 /**

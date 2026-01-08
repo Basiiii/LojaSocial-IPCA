@@ -3,10 +3,10 @@ package com.lojasocial.app.ui.expiringitems
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.ExpiringItemWithProduct
-import com.lojasocial.app.domain.ExpiringItemsUiState
-import com.lojasocial.app.repository.ProductRepository
-import com.lojasocial.app.repository.StockItemRepository
+import com.lojasocial.app.domain.stock.ExpiringItemWithProduct
+import com.lojasocial.app.domain.stock.ExpiringItemsUiState
+import com.lojasocial.app.repository.product.ProductRepository
+import com.lojasocial.app.repository.product.StockItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,9 +18,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.lojasocial.app.data.model.RequestStatus
-import com.lojasocial.app.domain.Request
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.domain.request.RequestStatus
+import com.lojasocial.app.domain.request.Request
+import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.request.UserProfileData
 import com.lojasocial.app.ui.components.RequestItemCard
 import com.lojasocial.app.ui.components.StatusTabSelector
 import com.lojasocial.app.ui.requests.components.RequestDetailsDialog

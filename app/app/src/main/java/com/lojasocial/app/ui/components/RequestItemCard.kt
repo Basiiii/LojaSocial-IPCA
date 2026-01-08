@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.data.model.RequestStatus
+import com.lojasocial.app.domain.request.RequestStatus
 
 @Composable
 fun RequestItemCard(

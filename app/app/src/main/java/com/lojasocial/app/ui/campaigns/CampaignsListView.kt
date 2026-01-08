@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.data.model.Campaign
-import com.lojasocial.app.repository.CampaignRepository
+import com.lojasocial.app.domain.campaign.Campaign
+import com.lojasocial.app.repository.campaign.CampaignRepository
 import com.lojasocial.app.ui.campaigns.components.CampaignCard
 import com.lojasocial.app.ui.components.StatusTabSelector
 import com.lojasocial.app.ui.theme.LojaSocialPrimary

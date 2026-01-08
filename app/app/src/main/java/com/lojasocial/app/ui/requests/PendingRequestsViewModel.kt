@@ -2,7 +2,7 @@ package com.lojasocial.app.ui.requests
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.repository.PendingRequestsRepository
+import com.lojasocial.app.repository.request.PendingRequestsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
