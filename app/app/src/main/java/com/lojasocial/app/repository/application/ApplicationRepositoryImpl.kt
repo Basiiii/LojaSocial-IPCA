@@ -767,4 +767,90 @@ class ApplicationRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun getBeneficiaryApplication(userId: String): Result<Application?> {
+        return try {
+            // Query for approved application for this user
+            val snapshot = firestore.collection("applications")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("status", ApplicationStatus.APPROVED.value)
+                .limit(1)
+                .get()
+                .await()
+
+            if (snapshot.documents.isEmpty()) {
+                return Result.success(null)
+            }
+
+            val doc = snapshot.documents.first()
+            val data = doc.data ?: return Result.success(null)
+
+            val personalInfoData = data["personalInfo"] as? Map<String, Any>
+            val academicInfoData = data["academicInfo"] as? Map<String, Any>
+            val documentsData = data["documents"] as? List<Map<String, Any>>
+
+            // Helper function to convert Firestore date to Date
+            fun convertToDate(value: Any?): Date? {
+                return when {
+                    value is Date -> value
+                    value != null && value.javaClass.name == "com.google.firebase.Timestamp" -> {
+                        try {
+                            val toDateMethod = value.javaClass.getMethod("toDate")
+                            toDateMethod.invoke(value) as? Date
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    value != null && value.javaClass.name == "com.google.firebase.firestore.Timestamp" -> {
+                        try {
+                            val toDateMethod = value.javaClass.getMethod("toDate")
+                            toDateMethod.invoke(value) as? Date
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    else -> null
+                }
+            }
+
+            val application = Application(
+                id = data["id"] as? String ?: doc.id,
+                userId = userId,
+                personalInfo = PersonalInfo(
+                    name = personalInfoData?.get("name") as? String ?: "",
+                    dateOfBirth = convertToDate(personalInfoData?.get("dateOfBirth")),
+                    idPassport = personalInfoData?.get("idPassport") as? String ?: "",
+                    email = personalInfoData?.get("email") as? String ?: "",
+                    phone = personalInfoData?.get("phone") as? String ?: ""
+                ),
+                academicInfo = AcademicInfo(
+                    academicDegree = academicInfoData?.get("academicDegree") as? String ?: "",
+                    course = academicInfoData?.get("course") as? String ?: "",
+                    studentNumber = academicInfoData?.get("studentNumber") as? String ?: "",
+                    faesSupport = (academicInfoData?.get("faesSupport") as? Boolean) ?: false,
+                    hasScholarship = (academicInfoData?.get("hasScholarship") as? Boolean) ?: false
+                ),
+                documents = documentsData?.mapIndexedNotNull { index, docData ->
+                    try {
+                        ApplicationDocument(
+                            id = index,
+                            name = docData["name"] as? String ?: "",
+                            uri = null,
+                            fileName = docData["fileName"] as? String,
+                            base64Data = docData["base64Data"] as? String
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                } ?: emptyList(),
+                submissionDate = convertToDate(data["submissionDate"]) ?: Date(),
+                status = ApplicationStatus.APPROVED,
+                rejectionMessage = data["rejectionMessage"] as? String
+            )
+
+            Result.success(application)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

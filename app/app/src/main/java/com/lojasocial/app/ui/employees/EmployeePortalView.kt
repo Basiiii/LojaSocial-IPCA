@@ -49,6 +49,7 @@ fun EmployeePortalView(
     onNavigateToCampaigns: () -> Unit = {},
     onNavigateToPickupRequests: () -> Unit = {},
     onNavigateToAuditLogs: () -> Unit = {},
+    onNavigateToBeneficiaries: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -124,7 +125,8 @@ fun EmployeePortalView(
                     onNavigateToApplications = onNavigateToMyApplications, // Use separate callback for own applications
                     onNavigateToExpiringItems = onNavigateToExpiringItems,
                     onNavigateToCampaigns = onNavigateToCampaigns,
-                    onNavigateToAuditLogs = onNavigateToAuditLogs
+                    onNavigateToAuditLogs = onNavigateToAuditLogs,
+                    onNavigateToBeneficiaries = onNavigateToBeneficiaries
                 )
             }
 
@@ -234,6 +236,9 @@ fun EmployeeScreenPreview() {
             override suspend fun updateProfile(profile: UserProfile) = TODO()
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
+            override suspend fun getAllBeneficiaries() = flow {
+                emit(emptyList<UserProfile>())
+            }
         }
         
         val mockProfilePictureRepository = object : ProfilePictureRepository {

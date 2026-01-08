@@ -17,4 +17,11 @@ interface UserRepository {
     suspend fun updateProfile(profile: UserProfile): Result<Unit>
     suspend fun createProfile(profile: UserProfile): Result<Unit>
     suspend fun saveFcmToken(token: String): Result<Unit>
+    
+    /**
+     * Retrieves all users who are beneficiaries (isBeneficiary == true).
+     * 
+     * @return Flow emitting lists of beneficiary user profiles
+     */
+    suspend fun getAllBeneficiaries(): Flow<List<UserProfile>>
 }

@@ -116,7 +116,8 @@ fun ActivityListView(
                     Text(
                         text = "Atividade Recente",
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = Color.Black
                     )
                 },
                 navigationIcon = {

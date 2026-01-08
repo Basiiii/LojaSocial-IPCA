@@ -22,7 +22,8 @@ import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.applications.ApplicationDetailView
 import com.lojasocial.app.ui.applications.ApplicationsListView
-import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
+import com.lojasocial.app.ui.beneficiaries.BeneficiariesListView
+import com.lojasocial.app.ui.beneficiaries.BeneficiaryDetailView
 import com.lojasocial.app.ui.employees.EmployeePortalView
 import com.lojasocial.app.ui.login.LoginScreen
 import com.lojasocial.app.ui.nonbeneficiaries.NonBeneficiaryPortalView
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
 import com.lojasocial.app.ui.campaigns.CreateCampaignScreen
 
 /**
@@ -454,6 +456,30 @@ fun NavigationGraph(
             )
         }
 
+        // Beneficiaries List
+        composable(Screen.BeneficiariesList.route) {
+            BeneficiariesListView(
+                userRepository = userRepository,
+                profilePictureRepository = profilePictureRepository,
+                onNavigateBack = { navController.navigateUp() },
+                onItemClick = { userId ->
+                    navController.navigate(Screen.BeneficiaryDetail.createRoute(userId))
+                }
+            )
+        }
+
+        // Beneficiary Detail
+        composable(Screen.BeneficiaryDetail().route) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            BeneficiaryDetailView(
+                userId = userId,
+                userRepository = userRepository,
+                applicationRepository = applicationRepository,
+                profilePictureRepository = profilePictureRepository,
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+
         // Pickup Requests
         composable(Screen.PickupRequests.route) {
             // Check if we're coming from beneficiary portal by checking previous destination
@@ -665,6 +691,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToAuditLogs = {
             navController.navigate(Screen.AuditLogs.route)
+        },
+        onNavigateToBeneficiaries = {
+            navController.navigate(Screen.BeneficiariesList.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

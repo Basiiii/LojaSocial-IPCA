@@ -76,4 +76,12 @@ sealed class Screen(val route: String) {
     
     // Audit Logs
     object AuditLogs : Screen("auditLogs")
+    
+    // Beneficiaries
+    object BeneficiariesList : Screen("beneficiariesList")
+    data class BeneficiaryDetail(val userId: String = "{userId}") : Screen("beneficiaryDetail/{userId}") {
+        companion object {
+            fun createRoute(userId: String) = "beneficiaryDetail/$userId"
+        }
+    }
 }

@@ -119,7 +119,11 @@ fun CandidaturaAcademicDataView(
                 title = {
                     Text(
                         "Realizar Candidatura",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color.Black
+                        )
                     )
                 },
                 navigationIcon = {

@@ -42,6 +42,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
  * @param onNavigateToExpiringItems Callback invoked when navigating to expiring items
  * @param onNavigateToCampaigns Callback invoked when navigating to campaigns
  * @param onNavigateToAuditLogs Callback invoked when navigating to audit logs
+ * @param onNavigateToBeneficiaries Callback invoked when navigating to beneficiaries
  */
 @Composable
 fun ProfileView(
@@ -55,7 +56,8 @@ fun ProfileView(
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToCampaigns: () -> Unit = {},
-    onNavigateToAuditLogs: () -> Unit = {}
+    onNavigateToAuditLogs: () -> Unit = {},
+    onNavigateToBeneficiaries: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
@@ -116,7 +118,8 @@ fun ProfileView(
             onApplicationsClick = onNavigateToApplications,
             onExpiringItemsClick = onNavigateToExpiringItems,
             onCampaignsClick = onNavigateToCampaigns,
-            onAuditLogsClick = onNavigateToAuditLogs
+            onAuditLogsClick = onNavigateToAuditLogs,
+            onBeneficiariesClick = onNavigateToBeneficiaries
         )
 
         Spacer(modifier = Modifier.height(40.dp))
@@ -239,6 +242,9 @@ fun ProfileViewPreview() {
         override suspend fun updateProfile(profile: UserProfile) = TODO()
         override suspend fun createProfile(profile: UserProfile) = TODO()
         override suspend fun saveFcmToken(token: String) = Result.success(Unit)
+        override suspend fun getAllBeneficiaries() = flow {
+            emit(emptyList<UserProfile>())
+        }
     }
     
     val mockProfilePictureRepository = object : ProfilePictureRepository {

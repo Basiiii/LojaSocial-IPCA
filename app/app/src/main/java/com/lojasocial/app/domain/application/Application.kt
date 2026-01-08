@@ -99,16 +99,12 @@ data class ApplicationDocument(
  * 
  * Each status represents a different stage in the application review process:
  * - PENDING: Application submitted and awaiting review
- * - UNDER_REVIEW: Application is currently being reviewed
  * - APPROVED: Application has been approved
  * - REJECTED: Application has been rejected
  */
 enum class ApplicationStatus(val value: Int) {
     /** Application submitted and awaiting initial review */
     PENDING(0),
-    
-    /** Application is currently under review by administrators */
-    UNDER_REVIEW(1),
     
     /** Application has been approved for scholarship */
     APPROVED(2),
@@ -122,9 +118,12 @@ enum class ApplicationStatus(val value: Int) {
          * 
          * @param value The integer value to convert
          * @return The corresponding ApplicationStatus, or PENDING if value is invalid
+         * Note: Status value 1 (formerly UNDER_REVIEW) is mapped to PENDING for backward compatibility
          */
         fun fromInt(value: Int?): ApplicationStatus {
-            return values().find { it.value == value } ?: PENDING
+            // Map status 1 (formerly UNDER_REVIEW) to PENDING for backward compatibility
+            val normalizedValue = if (value == 1) 0 else value
+            return values().find { it.value == normalizedValue } ?: PENDING
         }
         
         /**

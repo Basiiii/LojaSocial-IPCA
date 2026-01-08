@@ -113,4 +113,15 @@ interface ApplicationRepository {
      * @param context The Android application context
      */
     fun setContext(context: Context)
+    
+    /**
+     * Retrieves the approved application for a specific user (beneficiary).
+     * 
+     * This method fetches the application with APPROVED status for a given userId.
+     * Used to display beneficiary application information.
+     * 
+     * @param userId The unique identifier of the beneficiary user
+     * @return Result containing the approved application if found, or null if not found
+     */
+    suspend fun getBeneficiaryApplication(userId: String): Result<Application?>
 }

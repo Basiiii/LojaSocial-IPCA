@@ -39,7 +39,8 @@ fun CampaignProductsView(
                         campaign.name,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            fontSize = 18.sp,
+                            color = Color.Black
                         )
                     )
                 },

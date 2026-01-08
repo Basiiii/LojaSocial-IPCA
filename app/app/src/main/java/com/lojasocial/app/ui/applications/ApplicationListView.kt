@@ -79,7 +79,6 @@ fun formatTimeAgo(date: Date): String {
 fun ApplicationStatus.toPortugueseLabel(): String {
     return when (this) {
         ApplicationStatus.PENDING -> "Pendente"
-        ApplicationStatus.UNDER_REVIEW -> "Em Revisão"
         ApplicationStatus.APPROVED -> "Aprovado"
         ApplicationStatus.REJECTED -> "Rejeitado"
     }
@@ -144,7 +143,8 @@ fun ApplicationsListView(
                         title ?: if (showAllApplications) "Todas as Candidaturas" else "Candidaturas",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            fontSize = 18.sp,
+                            color = Color.Black
                         )
                     )
                 },
