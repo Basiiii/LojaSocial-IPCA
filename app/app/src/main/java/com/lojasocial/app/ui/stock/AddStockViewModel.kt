@@ -358,11 +358,12 @@ class AddStockViewModel @Inject constructor(
                     productId = currentBarcode // Use barcode as product ID reference
                 )
 
-                productRepository.saveStockItem(stockItem)
+                val itemId = productRepository.saveStockItem(stockItem)
 
                 // Log audit action
                 val currentUser = authRepository.getCurrentUser()
                 viewModelScope.launch {
+                    // Log general add_item action (existing API-based audit)
                     auditRepository.logAction(
                         action = "add_item",
                         userId = currentUser?.uid,
@@ -372,6 +373,17 @@ class AddStockViewModel @Inject constructor(
                             "productName" to productToSave.name
                         )
                     )
+                    
+                    // Log campaign product receipt to Firestore if campaignId is present
+                    if (campaignId != null && campaignId.isNotEmpty()) {
+                        auditRepository.logCampaignProductReceipt(
+                            campaignId = campaignId,
+                            itemId = itemId,
+                            quantity = quantity,
+                            barcode = currentBarcode,
+                            userId = currentUser?.uid
+                        )
+                    }
                 }
 
                 _uiState.value = _uiState.value.copy(

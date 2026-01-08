@@ -36,4 +36,32 @@ interface AuditRepository {
         startDate: String,
         endDate: String
     ): Result<List<AuditLogEntry>>
+    
+    /**
+     * Logs a campaign product receipt directly to Firestore audit_logs collection.
+     * 
+     * This method is specifically designed for tracking products received in campaigns.
+     * It stores: action, campaignId, itemId, quantity, barcode, timestamp, and userId.
+     * 
+     * @param campaignId The ID of the campaign receiving the product
+     * @param itemId The document ID from the items collection
+     * @param quantity The quantity of products received
+     * @param barcode The barcode of the product (for product info lookup)
+     * @param userId Optional user ID who received the product. If null, current user ID will be used.
+     */
+    suspend fun logCampaignProductReceipt(
+        campaignId: String,
+        itemId: String,
+        quantity: Int,
+        barcode: String,
+        userId: String? = null
+    )
+    
+    /**
+     * Retrieves all products received for a specific campaign from audit_logs.
+     * 
+     * @param campaignId The ID of the campaign
+     * @return Result containing list of campaign product receipts with product information
+     */
+    suspend fun getCampaignProducts(campaignId: String): Result<List<CampaignProductReceipt>>
 }

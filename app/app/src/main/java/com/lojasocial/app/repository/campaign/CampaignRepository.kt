@@ -297,4 +297,32 @@ class CampaignRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    
+    suspend fun getCampaignById(campaignId: String): Campaign? {
+        return try {
+            val doc = campaignsCollection.document(campaignId).get().await()
+            if (doc.exists()) {
+                val data = doc.data ?: return null
+                val name = data["name"] as? String ?: ""
+                val startDate = convertTimestampToDate(data["startDate"])
+                val endDate = convertTimestampToDate(data["endDate"])
+                
+                if (startDate != null && endDate != null) {
+                    Campaign(
+                        id = doc.id,
+                        name = name,
+                        startDate = startDate,
+                        endDate = endDate
+                    )
+                } else {
+                    null
+                }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("CampaignRepository", "Error fetching campaign by ID: ${e.message}", e)
+            null
+        }
+    }
 }

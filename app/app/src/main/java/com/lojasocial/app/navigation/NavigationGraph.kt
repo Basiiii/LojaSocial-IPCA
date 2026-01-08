@@ -2,6 +2,7 @@ package com.lojasocial.app.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.lojasocial.app.ui.campaigns.CreateCampaignScreen
 
@@ -477,6 +479,10 @@ fun NavigationGraph(
                     onEditClick = { campaign ->
                         // Navigate to edit campaign screen
                         navController.navigate(Screen.CreateCampaign.Edit.createRoute(campaign.id))
+                    },
+                    onCampaignClick = { campaign ->
+                        // Navigate to campaign products view
+                        navController.navigate(Screen.CampaignProducts.createRoute(campaign.id))
                     }
                 )
             } ?: run {
@@ -513,6 +519,53 @@ fun NavigationGraph(
                     navController.popBackStack()
                 }
             )
+        }
+        
+        // Campaign Products
+        composable(Screen.CampaignProducts().route) { backStackEntry ->
+            val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+            campaignRepository?.let { repository ->
+                // Fetch campaign to pass to view
+                var campaign by remember { mutableStateOf<com.lojasocial.app.domain.campaign.Campaign?>(null) }
+                var isLoading by remember { mutableStateOf(true) }
+                
+                LaunchedEffect(campaignId) {
+                    campaign = repository.getCampaignById(campaignId)
+                    isLoading = false
+                }
+                
+                when {
+                    isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    campaign != null -> {
+                        com.lojasocial.app.ui.campaigns.CampaignProductsView(
+                            campaign = campaign!!,
+                            onNavigateBack = { navController.navigateUp() }
+                        )
+                    }
+                    else -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Campanha não encontrada")
+                        }
+                    }
+                }
+            } ?: run {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Erro ao carregar campanha")
+                }
+            }
         }
     }
 }

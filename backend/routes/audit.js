@@ -121,4 +121,124 @@ router.get('/logs', async (req, res) => {
   }
 });
 
+
+// GET /api/audit/campaign/:campaignId/products - Retrieve all products received for a campaign
+router.get('/campaign/:campaignId/products', async (req, res) => {
+  if (!validateAuth(req)) {
+    logger.error('Unauthorized campaign products retrieval request');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const { campaignId } = req.params;
+
+    if (!campaignId) {
+      return res.status(400).json({ 
+        error: 'Campaign ID is required'
+      });
+    }
+
+    logger.server(`Fetching campaign products for campaignId: ${campaignId}`);
+
+    // Query audit_logs collection for campaign_receive_product actions with this campaignId
+    let snapshot;
+    try {
+      snapshot = await db.collection('audit_logs')
+        .where('action', '==', 'campaign_receive_product')
+        .where('campaignId', '==', campaignId)
+        .orderBy('timestamp', 'desc')
+        .get();
+    } catch (error) {
+      // If orderBy fails (index missing), try without ordering
+      logger.server(`OrderBy failed, fetching without order: ${error.message}`);
+      snapshot = await db.collection('audit_logs')
+        .where('action', '==', 'campaign_receive_product')
+        .where('campaignId', '==', campaignId)
+        .get();
+      
+      // Sort manually by timestamp descending
+      const docs = snapshot.docs.sort((a, b) => {
+        const aTime = a.data().timestamp?.toMillis?.() || 0;
+        const bTime = b.data().timestamp?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+      snapshot = { docs };
+    }
+
+    logger.server(`Found ${snapshot.docs.length} product receipts for campaign`);
+
+    // Process each receipt and fetch product information
+    const receipts = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        try {
+          const data = doc.data();
+          const itemId = data.itemId;
+          const quantity = data.quantity || 0;
+          const barcode = data.barcode;
+          const userId = data.userId || null;
+          
+          // Convert timestamp
+          let timestamp = null;
+          if (data.timestamp) {
+            if (data.timestamp.toDate) {
+              timestamp = data.timestamp.toDate().toISOString();
+            } else if (data.timestamp instanceof Date) {
+              timestamp = data.timestamp.toISOString();
+            }
+          }
+
+          // Fetch product information from products collection
+          let product = null;
+          if (barcode) {
+            try {
+              const productDoc = await db.collection('products').doc(barcode).get();
+              if (productDoc.exists) {
+                const productData = productDoc.data();
+                product = {
+                  id: productDoc.id,
+                  name: productData.name || '',
+                  brand: productData.brand || '',
+                  category: productData.category || 1,
+                  imageUrl: productData.imageUrl || ''
+                };
+              }
+            } catch (error) {
+              logger.error(`Error fetching product for barcode ${barcode}: ${error.message}`);
+            }
+          }
+
+          return {
+            itemId,
+            quantity,
+            barcode,
+            timestamp,
+            userId,
+            product
+          };
+        } catch (error) {
+          logger.error(`Error parsing audit log document ${doc.id}: ${error.message}`);
+          return null;
+        }
+      })
+    );
+
+    // Filter out null results
+    const validReceipts = receipts.filter(receipt => receipt !== null);
+
+    logger.server(`Successfully loaded ${validReceipts.length} campaign products`);
+    
+    res.json({
+      success: true,
+      count: validReceipts.length,
+      products: validReceipts
+    });
+  } catch (error) {
+    logger.error('Campaign products retrieval failed', error);
+    res.status(500).json({
+      error: 'Failed to retrieve campaign products',
+      details: error.message
+    });
+  }
+});
+
 export default router;

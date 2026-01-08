@@ -24,6 +24,7 @@ fun CampaignCard(
     campaign: Campaign,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onClick: () -> Unit = {},
     isFinished: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -33,7 +34,9 @@ fun CampaignCard(
     val endDateStr = dateFormatter.format(campaign.endDate)
     
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White

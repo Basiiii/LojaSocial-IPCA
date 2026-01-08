@@ -2,11 +2,13 @@ package com.lojasocial.app.api
 
 import com.lojasocial.app.domain.audit.AuditLogRequest
 import com.lojasocial.app.domain.audit.AuditLogResponse
+import com.lojasocial.app.domain.audit.CampaignProductsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -48,4 +50,17 @@ interface AuditApiService {
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String
     ): Response<AuditLogResponse>
+
+    /**
+     * Retrieves all products received for a specific campaign.
+     * 
+     * @param authorization The Bearer token for API authentication (format: "Bearer lojasocial2025")
+     * @param campaignId The ID of the campaign
+     * @return Response containing list of campaign product receipts with product information
+     */
+    @GET("api/audit/campaign/{campaignId}/products")
+    suspend fun getCampaignProducts(
+        @Header("Authorization") authorization: String,
+        @Path("campaignId") campaignId: String
+    ): Response<CampaignProductsResponse>
 }

@@ -42,7 +42,8 @@ fun CampaignsListView(
     campaignRepository: CampaignRepository,
     onNavigateBack: () -> Unit = {},
     onAddClick: () -> Unit = {},
-    onEditClick: (Campaign) -> Unit = {}
+    onEditClick: (Campaign) -> Unit = {},
+    onCampaignClick: (Campaign) -> Unit = {}
 ) {
     var campaigns by remember { mutableStateOf<List<Campaign>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -329,6 +330,9 @@ fun CampaignsListView(
                             CampaignCard(
                                 campaign = campaign,
                                 isFinished = isFinished,
+                                onClick = {
+                                    onCampaignClick(campaign)
+                                },
                                 onEditClick = {
                                     onEditClick(campaign)
                                 },
