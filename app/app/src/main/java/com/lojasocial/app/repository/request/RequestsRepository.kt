@@ -71,6 +71,12 @@ interface RequestsRepository {
      * Decreases both quantity and reservedQuantity for all items in the request.
      */
     suspend fun completeRequest(requestId: String): Result<Unit>
+    
+    /**
+     * Gets the total count of pending requests (status 0 = SUBMETIDO).
+     * This is an efficient query that only counts documents without fetching them.
+     */
+    suspend fun getPendingRequestsCount(): Result<Int>
 }
 
 /**

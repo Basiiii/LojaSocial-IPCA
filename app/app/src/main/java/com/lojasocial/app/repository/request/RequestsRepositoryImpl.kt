@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.AggregateSource
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.domain.request.RequestItemDetail
 import com.lojasocial.app.repository.audit.AuditRepository
@@ -12,6 +13,9 @@ import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.product.ProductRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -98,36 +102,52 @@ class RequestsRepositoryImpl @Inject constructor(
     /**
      * Helper function to get the category of items in a request (for list display).
      * Returns the category if all items have the same category, or null if there are multiple categories.
-     * This is a lightweight operation that fetches categories for all items.
+     * Optimized to batch fetch all item documents and products in parallel.
      */
     private suspend fun getRequestCategory(itemsMap: Map<*, *>?): Int? {
         if (itemsMap == null || itemsMap.isEmpty()) return null
         
         return try {
-            val categories = mutableSetOf<Int>()
+            val itemDocIds = itemsMap.keys.mapNotNull { it as? String }
+            if (itemDocIds.isEmpty()) return null
             
-            // Get categories for all items
-            for (itemDocIdObj in itemsMap.keys) {
-                val itemDocId = itemDocIdObj as? String ?: continue
-                val itemDoc = firestore.collection("items").document(itemDocId).get().await()
-                
-                if (!itemDoc.exists()) continue
-                
-                val itemData = itemDoc.data
-                // Get barcode or productId from the item
-                val barcode = (itemData?.get("barcode") as? String) 
+            // Batch fetch all item documents in parallel using coroutines
+            val itemDocs = coroutineScope {
+                itemDocIds.map { itemDocId ->
+                    async {
+                        firestore.collection("items").document(itemDocId).get().await()
+                    }
+                }.awaitAll()
+            }
+            
+            // Extract all barcodes/productIds
+            val barcodes = itemDocs.mapNotNull { doc ->
+                if (!doc.exists()) return@mapNotNull null
+                val itemData = doc.data
+                (itemData?.get("barcode") as? String) 
                     ?: (itemData?.get("productId") as? String)
                     ?: itemData?.get("productId")?.toString()
-                
-                if (barcode != null) {
-                    // Fetch product to get category
-                    val product = productRepository.getProductByBarcodeId(barcode)
-                    val category = product?.category ?: 1
-                    categories.add(category)
-                } else {
-                    categories.add(1) // Default to ALIMENTAR
-                }
             }
+            
+            // Batch fetch all products in parallel (deduplicated)
+            val uniqueBarcodes = barcodes.distinct()
+            val products = coroutineScope {
+                uniqueBarcodes.map { barcode ->
+                    async {
+                        productRepository.getProductByBarcodeId(barcode)
+                    }
+                }.awaitAll()
+            }
+            
+            // Create a map for quick lookup
+            val barcodeToCategory = uniqueBarcodes.zip(products).associate { (barcode, product) ->
+                barcode to (product?.category ?: 1)
+            }
+            
+            // Get categories for all items
+            val categories = barcodes.mapNotNull { barcode ->
+                barcodeToCategory[barcode] ?: 1
+            }.toSet()
             
             // If all items have the same category, return it; otherwise return null (multiple categories)
             if (categories.size == 1) {
@@ -226,29 +246,30 @@ class RequestsRepositoryImpl @Inject constructor(
                 }
             }
             
-            // Load categories for requests with items (in suspend context)
-            val requestsWithCategories = mutableListOf<Request>()
-            for (request in requests) {
-                if (request.items.isNotEmpty()) {
-                    val doc = snapshot.documents.find { it.id == request.id }
-                    val itemsMap = doc?.data?.get("items") as? Map<*, *>
-                    if (itemsMap != null && itemsMap.isNotEmpty()) {
-                        val requestCategory = getRequestCategory(itemsMap)
-                        // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
-                        val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
-                        requestsWithCategories.add(
-                            request.copy(
-                                items = listOf(
-                                    request.items.first().copy(category = categoryToUse)
+            // Load categories for requests with items in parallel
+            val requestsWithCategories = coroutineScope {
+                requests.map { request ->
+                    async {
+                        if (request.items.isNotEmpty()) {
+                            val doc = snapshot.documents.find { it.id == request.id }
+                            val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                                val requestCategory = getRequestCategory(itemsMap)
+                                // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                                val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                                request.copy(
+                                    items = listOf(
+                                        request.items.first().copy(category = categoryToUse)
+                                    )
                                 )
-                            )
-                        )
-                    } else {
-                        requestsWithCategories.add(request)
+                            } else {
+                                request
+                            }
+                        } else {
+                            request
+                        }
                     }
-                } else {
-                    requestsWithCategories.add(request)
-                }
+                }.awaitAll()
             }
 
             // Sort manually if we couldn't use orderBy
@@ -337,29 +358,30 @@ class RequestsRepositoryImpl @Inject constructor(
                 }
             }
             
-            // Load categories for requests with items (in suspend context)
-            val requestsWithCategories = mutableListOf<Request>()
-            for (request in requests) {
-                if (request.items.isNotEmpty()) {
-                    val doc = snapshot.documents.find { it.id == request.id }
-                    val itemsMap = doc?.data?.get("items") as? Map<*, *>
-                    if (itemsMap != null && itemsMap.isNotEmpty()) {
-                        val requestCategory = getRequestCategory(itemsMap)
-                        // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
-                        val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
-                        requestsWithCategories.add(
-                            request.copy(
-                                items = listOf(
-                                    request.items.first().copy(category = categoryToUse)
+            // Load categories for requests with items in parallel
+            val requestsWithCategories = coroutineScope {
+                requests.map { request ->
+                    async {
+                        if (request.items.isNotEmpty()) {
+                            val doc = snapshot.documents.find { it.id == request.id }
+                            val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                                val requestCategory = getRequestCategory(itemsMap)
+                                // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                                val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                                request.copy(
+                                    items = listOf(
+                                        request.items.first().copy(category = categoryToUse)
+                                    )
                                 )
-                            )
-                        )
-                    } else {
-                        requestsWithCategories.add(request)
+                            } else {
+                                request
+                            }
+                        } else {
+                            request
+                        }
                     }
-                } else {
-                    requestsWithCategories.add(request)
-                }
+                }.awaitAll()
             }
 
             // Sort manually if we couldn't use orderBy
@@ -448,29 +470,30 @@ class RequestsRepositoryImpl @Inject constructor(
                 }
             }
             
-            // Load categories for requests with items (in suspend context)
-            val requestsWithCategories = mutableListOf<Request>()
-            for (request in requests) {
-                if (request.items.isNotEmpty()) {
-                    val doc = documentsToProcess.find { it.id == request.id }
-                    val itemsMap = doc?.data?.get("items") as? Map<*, *>
-                    if (itemsMap != null && itemsMap.isNotEmpty()) {
-                        val requestCategory = getRequestCategory(itemsMap)
-                        // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
-                        val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
-                        requestsWithCategories.add(
-                            request.copy(
-                                items = listOf(
-                                    request.items.first().copy(category = categoryToUse)
+            // Load categories for requests with items in parallel
+            val requestsWithCategories = coroutineScope {
+                requests.map { request ->
+                    async {
+                        if (request.items.isNotEmpty()) {
+                            val doc = documentsToProcess.find { it.id == request.id }
+                            val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                                val requestCategory = getRequestCategory(itemsMap)
+                                // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                                val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                                request.copy(
+                                    items = listOf(
+                                        request.items.first().copy(category = categoryToUse)
+                                    )
                                 )
-                            )
-                        )
-                    } else {
-                        requestsWithCategories.add(request)
+                            } else {
+                                request
+                            }
+                        } else {
+                            request
+                        }
                     }
-                } else {
-                    requestsWithCategories.add(request)
-                }
+                }.awaitAll()
             }
             
             Pair(requestsWithCategories, hasMore)
@@ -677,6 +700,34 @@ class RequestsRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("RequestsRepository", "Error rejecting request: ${e.message}", e)
             Result.failure(e)
+        }
+    }
+
+    override suspend fun getPendingRequestsCount(): Result<Int> {
+        return try {
+            // Use a count aggregation query to efficiently get the total number of pending requests
+            // This only counts documents without fetching their data
+            val query = firestore.collection("requests")
+                .whereEqualTo("status", 0) // SUBMETIDO
+            
+            val aggregateQuery = query.count()
+            val snapshot = aggregateQuery.get(AggregateSource.SERVER).await()
+            
+            val count = snapshot.count.toInt()
+            Result.success(count)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error getting pending requests count: ${e.message}", e)
+            // Fallback: if count aggregation is not available, use a lightweight query
+            try {
+                val snapshot = firestore.collection("requests")
+                    .whereEqualTo("status", 0)
+                    .limit(1000) // Reasonable limit for counting
+                    .get()
+                    .await()
+                Result.success(snapshot.size())
+            } catch (fallbackError: Exception) {
+                Result.failure(fallbackError)
+            }
         }
     }
 

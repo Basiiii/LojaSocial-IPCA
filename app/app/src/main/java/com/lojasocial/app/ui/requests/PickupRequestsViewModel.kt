@@ -1,5 +1,6 @@
 package com.lojasocial.app.ui.requests
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.domain.request.Request
@@ -41,10 +42,14 @@ class PickupRequestsViewModel @Inject constructor(
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
+    private val _pendingRequestsCount = MutableStateFlow<Int?>(null)
+    val pendingRequestsCount: StateFlow<Int?> = _pendingRequestsCount.asStateFlow()
+
     private var lastLoadedSubmissionDate: Date? = null
 
     init {
         fetchRequests()
+        fetchPendingRequestsCount()
     }
 
     fun setFilterUserId(userId: String?) {
@@ -169,6 +174,7 @@ class PickupRequestsViewModel @Inject constructor(
                         )
                         // Refresh list after notification (reset pagination)
                         fetchRequests()
+                        fetchPendingRequestsCount() // Refresh count
                     }
                 },
                 onFailure = { error ->
@@ -193,6 +199,7 @@ class PickupRequestsViewModel @Inject constructor(
                     // Refresh list in background (non-blocking)
                     launch {
                         fetchRequests()
+                        fetchPendingRequestsCount() // Refresh count
                     }
                 },
                 onFailure = { error ->
@@ -211,6 +218,7 @@ class PickupRequestsViewModel @Inject constructor(
                     _actionState.value = ActionState.Success("Pedido concluído")
                     clearSelectedRequest()
                     fetchRequests() // Refresh list
+                    fetchPendingRequestsCount() // Refresh count
                 },
                 onFailure = { error ->
                     _actionState.value = ActionState.Error(error.message ?: "Erro ao concluir pedido")
@@ -226,6 +234,24 @@ class PickupRequestsViewModel @Inject constructor(
 
     fun resetActionState() {
         _actionState.value = ActionState.Idle
+    }
+
+    private fun fetchPendingRequestsCount() {
+        viewModelScope.launch {
+            // Only fetch count for admin view (not for filtered user requests)
+            if (filterUserId == null) {
+                val result = repository.getPendingRequestsCount()
+                result.fold(
+                    onSuccess = { count ->
+                        _pendingRequestsCount.value = count
+                    },
+                    onFailure = {
+                        // On error, keep previous count or null
+                        Log.e("PickupRequestsViewModel", "Failed to fetch pending count: ${it.message}")
+                    }
+                )
+            }
+        }
     }
 
     private suspend fun sendAcceptanceNotification(userId: String, pickupDate: Date) {

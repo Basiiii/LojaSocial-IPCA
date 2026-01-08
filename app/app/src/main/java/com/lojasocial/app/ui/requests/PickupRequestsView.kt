@@ -66,6 +66,7 @@ fun PickupRequestsView(
     val actionState by viewModel.actionState.collectAsState()
     val hasMoreRequests by viewModel.hasMoreRequests.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+    val pendingRequestsCount by viewModel.pendingRequestsCount.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -263,17 +264,15 @@ fun PickupRequestsView(
             // --- Status Header (Blue strip) ---
             when (currentUiState) {
                 is PickupRequestsUiState.Success -> {
-                    val pendingCount = currentUiState.requests.count { it.status == 0 } // SUBMETIDO
+                    // Use the total count from repository if available, otherwise fallback to fetched count
+                    val pendingCount = pendingRequestsCount 
+                        ?: currentUiState.requests.count { it.status == 0 } // SUBMETIDO
                     StatusHeader(pendingCount = pendingCount)
                 }
                 else -> {
-                    // Empty info bar for loading/error states
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFEEF4F8))
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    )
+                    // Show count even during loading if we have it cached
+                    val displayCount = pendingRequestsCount ?: 0
+                    StatusHeader(pendingCount = displayCount)
                 }
             }
 
