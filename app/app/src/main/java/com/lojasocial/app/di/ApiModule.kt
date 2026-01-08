@@ -2,6 +2,7 @@ package com.lojasocial.app.di
 
 import android.util.Log
 import com.lojasocial.app.BuildConfig
+import com.lojasocial.app.api.AuditApiService
 import com.lojasocial.app.api.ExpirationApiService
 import com.lojasocial.app.api.ProductApiService
 import com.lojasocial.app.utils.AppConstants
@@ -93,5 +94,16 @@ object ApiModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         return expirationRetrofit.create(ExpirationApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuditApiService(okHttpClient: OkHttpClient): AuditApiService {
+        val auditRetrofit = Retrofit.Builder()
+            .baseUrl(AppConstants.API_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        return auditRetrofit.create(AuditApiService::class.java)
     }
 }

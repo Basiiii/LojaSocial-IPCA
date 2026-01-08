@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -37,6 +38,7 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * @param onApplicationsClick Callback invoked when applications option is clicked
  * @param onExpiringItemsClick Callback invoked when expiring items option is clicked (admins only)
  * @param onCampaignsClick Callback invoked when campaigns option is clicked (admins only)
+ * @param onAuditLogsClick Callback invoked when audit logs option is clicked (admins only)
  */
 @Composable
 fun QuickActionsCard(
@@ -45,7 +47,8 @@ fun QuickActionsCard(
     onCalendarClick: () -> Unit,
     onApplicationsClick: () -> Unit = {},
     onExpiringItemsClick: () -> Unit = {},
-    onCampaignsClick: () -> Unit = {}
+    onCampaignsClick: () -> Unit = {},
+    onAuditLogsClick: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -104,6 +107,16 @@ fun QuickActionsCard(
                     subtitle = "Gerir campanhas",
                     iconColor = Color(0xFF06B6D4),
                     onClick = onCampaignsClick
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+                
+                ProfileOption(
+                    icon = Icons.Default.History,
+                    title = "Registos de Auditoria",
+                    subtitle = "Ver registos de ações",
+                    iconColor = Color(0xFF6366F1),
+                    onClick = onAuditLogsClick
                 )
             }
         }

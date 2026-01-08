@@ -45,7 +45,8 @@ fun ProfileView(
     onTabSelected: (String) -> Unit,
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
-    onNavigateToCampaigns: () -> Unit = {}
+    onNavigateToCampaigns: () -> Unit = {},
+    onNavigateToAuditLogs: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
@@ -84,7 +85,8 @@ fun ProfileView(
             onCalendarClick = { onTabSelected("calendar") },
             onApplicationsClick = onNavigateToApplications,
             onExpiringItemsClick = onNavigateToExpiringItems,
-            onCampaignsClick = onNavigateToCampaigns
+            onCampaignsClick = onNavigateToCampaigns,
+            onAuditLogsClick = onNavigateToAuditLogs
         )
 
         Spacer(modifier = Modifier.height(40.dp))

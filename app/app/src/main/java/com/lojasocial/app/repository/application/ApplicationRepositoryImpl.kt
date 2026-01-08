@@ -10,11 +10,16 @@ import com.lojasocial.app.domain.application.Application
 import com.lojasocial.app.domain.application.ApplicationDocument
 import com.lojasocial.app.domain.application.ApplicationStatus
 import com.lojasocial.app.domain.application.PersonalInfo
+import com.lojasocial.app.repository.audit.AuditRepository
+import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.utils.FileUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 import javax.inject.Inject
@@ -43,7 +48,9 @@ import javax.inject.Singleton
 @Singleton
 class ApplicationRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val auditRepository: AuditRepository,
+    private val authRepository: com.lojasocial.app.repository.auth.AuthRepository
 ) : ApplicationRepository {
 
     /** Android context for file operations */
@@ -738,6 +745,21 @@ class ApplicationRepositoryImpl @Inject constructor(
                     .document(userId)
                     .update("isBeneficiary", true)
                     .await()
+            }
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            val action = if (status == ApplicationStatus.APPROVED) "accept_application" else "decline_application"
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = action,
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "applicationId" to applicationId,
+                        "userId" to userId,
+                        "status" to status.value
+                    )
+                )
             }
             
             Result.success(Unit)

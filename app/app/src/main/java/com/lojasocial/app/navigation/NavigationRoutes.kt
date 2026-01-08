@@ -68,4 +68,7 @@ sealed class Screen(val route: String) {
             }
         }
     }
+    
+    // Audit Logs
+    object AuditLogs : Screen("auditLogs")
 }

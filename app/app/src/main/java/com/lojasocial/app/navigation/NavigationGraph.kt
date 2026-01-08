@@ -426,6 +426,21 @@ fun NavigationGraph(
             )
         }
 
+        // Audit Logs
+        composable(Screen.AuditLogs.route) {
+            com.lojasocial.app.ui.audit.AuditLogsView(
+                onNavigateBack = {
+                    // Try to pop back if there's a back stack entry
+                    // If not (e.g., from notification), navigate to employee portal profile
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.EmployeePortal.Profile.route) {
+                            popUpTo(Screen.AuditLogs.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+
         // Pickup Requests
         composable(Screen.PickupRequests.route) {
             com.lojasocial.app.ui.requests.PickupRequestsView(
@@ -565,6 +580,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToPickupRequests = {
             navController.navigate(Screen.PickupRequests.route)
+        },
+        onNavigateToAuditLogs = {
+            navController.navigate(Screen.AuditLogs.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

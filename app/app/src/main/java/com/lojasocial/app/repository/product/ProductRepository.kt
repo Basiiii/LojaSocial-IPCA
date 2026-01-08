@@ -7,9 +7,14 @@ import com.lojasocial.app.api.BarcodeProduct
 import com.lojasocial.app.api.ProductApiService
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.domain.stock.StockItem
+import com.lojasocial.app.repository.audit.AuditRepository
+import com.lojasocial.app.repository.auth.AuthRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import retrofit2.Response
 import java.util.Date
@@ -20,7 +25,9 @@ import kotlin.math.pow
 @Singleton
 class ProductRepository @Inject constructor(
     private val apiService: ProductApiService,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val auditRepository: AuditRepository,
+    private val authRepository: AuthRepository
 ) {
     private val productsCollection = firestore.collection("products")
     private val itemsCollection = firestore.collection("items")
@@ -95,10 +102,36 @@ class ProductRepository @Inject constructor(
     suspend fun updateStockItemQuantity(stockItemId: String, newQuantity: Int) {
         try {
             Log.d("ProductRepository", "Updating stock item $stockItemId quantity to: $newQuantity")
+            
+            // Get old quantity for audit logging
+            val oldQuantity = try {
+                val doc = itemsCollection.document(stockItemId).get().await()
+                (doc.data?.get("quantity") as? Long)?.toInt() ?: 0
+            } catch (e: Exception) {
+                Log.w("ProductRepository", "Could not fetch old quantity for audit: ${e.message}")
+                0
+            }
+            
             itemsCollection.document(stockItemId)
                 .update("quantity", newQuantity)
                 .await()
             Log.d("ProductRepository", "Stock item quantity updated successfully")
+            
+            // Log audit action if quantity was reduced
+            if (newQuantity < oldQuantity) {
+                val currentUser = authRepository.getCurrentUser()
+                CoroutineScope(Dispatchers.IO).launch {
+                    auditRepository.logAction(
+                        action = "remove_item",
+                        userId = currentUser?.uid,
+                        details = mapOf(
+                            "stockItemId" to stockItemId,
+                            "oldQuantity" to oldQuantity,
+                            "newQuantity" to newQuantity
+                        )
+                    )
+                }
+            }
         } catch (e: Exception) {
             Log.e("ProductRepository", "Error updating stock item quantity", e)
             throw e

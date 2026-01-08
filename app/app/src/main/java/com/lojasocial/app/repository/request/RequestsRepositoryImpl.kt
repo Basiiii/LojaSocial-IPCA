@@ -6,9 +6,14 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.domain.request.RequestItemDetail
+import com.lojasocial.app.repository.audit.AuditRepository
+import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.product.ProductRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 import javax.inject.Inject
@@ -18,7 +23,9 @@ import javax.inject.Singleton
 class RequestsRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val auditRepository: AuditRepository,
+    private val authRepository: AuthRepository
 ) : RequestsRepository {
 
     /**
@@ -247,6 +254,20 @@ class RequestsRepositoryImpl @Inject constructor(
                     )
                 )
                 .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "accept_request",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "scheduledPickupDate" to scheduledPickupDate.toString()
+                    )
+                )
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -264,6 +285,20 @@ class RequestsRepositoryImpl @Inject constructor(
             firestore.collection("requests").document(requestId)
                 .update(updates)
                 .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "decline_request",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "reason" to (reason ?: "")
+                    )
+                )
+            }
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
