@@ -30,10 +30,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.repository.request.UserProfileData
 import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.ui.components.StatusTabSelector
 import com.lojasocial.app.ui.requests.components.RequestDetailsDialog
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.LaunchedEffect
+import com.lojasocial.app.utils.FileUtils
 import kotlinx.coroutines.flow.firstOrNull
 import java.util.*
 
@@ -43,7 +51,8 @@ fun PickupRequestsView(
     onNavigateBack: () -> Unit,
     viewModel: PickupRequestsViewModel = hiltViewModel(),
     userRepository: UserRepository? = null,
-    requestsRepository: RequestsRepository? = null
+    requestsRepository: RequestsRepository? = null,
+    profilePictureRepository: ProfilePictureRepository? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedRequest by viewModel.selectedRequest.collectAsState()
@@ -136,7 +145,8 @@ fun PickupRequestsView(
             },
             onReject = { reason ->
                 viewModel.rejectRequest(request.id, reason)
-            }
+            },
+            profilePictureRepository = profilePictureRepository
         )
     }
 
@@ -146,8 +156,10 @@ fun PickupRequestsView(
                 title = {
                     Text(
                         "Pedidos Pendentes",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
                     )
                 },
                 navigationIcon = {
@@ -307,6 +319,7 @@ fun PickupRequestsView(
                                 }
                                 
                                 PedidoItem(
+                                    userId = request.userId,
                                     name = userName,
                                     timeAgo = timeAgo,
                                     category = category,
@@ -314,7 +327,8 @@ fun PickupRequestsView(
                                     status = status,
                                     onClick = {
                                         viewModel.selectRequest(request.id)
-                                    }
+                                    },
+                                    profilePictureRepository = profilePictureRepository
                                 )
                                 HorizontalDivider(
                                     thickness = 0.5.dp,
@@ -364,13 +378,38 @@ fun StatusHeader(pendingCount: Int) {
 
 @Composable
 fun PedidoItem(
+    userId: String,
     name: String,
     timeAgo: String,
     category: String,
     categoryIcon: ImageVector,
     status: RequestStatus,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    profilePictureRepository: ProfilePictureRepository? = null
 ) {
+    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    
+    // Fetch profile picture
+    LaunchedEffect(userId, profilePictureRepository) {
+        if (profilePictureRepository != null) {
+            try {
+                profilePictureRepository.getProfilePicture(userId)
+                    .firstOrNull()
+                    ?.let { base64 ->
+                        // Decode Base64 to ImageBitmap
+                        if (!base64.isNullOrBlank()) {
+                            val bytes = FileUtils.convertBase64ToFile(base64).getOrNull()
+                            bytes?.let {
+                                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+                                imageBitmap = bitmap?.asImageBitmap()
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                // Handle error silently, fallback to initials
+            }
+        }
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -378,7 +417,7 @@ fun PedidoItem(
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar (Placeholder with initials)
+        // Avatar (Profile picture or initials)
         Box(
             modifier = Modifier
                 .size(50.dp)
@@ -386,12 +425,23 @@ fun PedidoItem(
                 .background(Color(0xFFE5E7EB)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = name.take(2).uppercase(),
-                color = Color(0xFF6B7280),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+            if (imageBitmap != null) {
+                Image(
+                    bitmap = imageBitmap!!,
+                    contentDescription = "Profile picture",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                )
+            } else {
+                Text(
+                    text = name.take(2).uppercase(),
+                    color = Color(0xFF6B7280),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))

@@ -446,7 +446,8 @@ fun NavigationGraph(
             com.lojasocial.app.ui.requests.PickupRequestsView(
                 onNavigateBack = { navController.navigateUp() },
                 userRepository = userRepository,
-                requestsRepository = requestsRepository
+                requestsRepository = requestsRepository,
+                profilePictureRepository = profilePictureRepository
             )
         }
 

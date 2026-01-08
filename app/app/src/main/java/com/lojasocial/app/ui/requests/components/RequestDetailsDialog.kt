@@ -3,28 +3,57 @@ package com.lojasocial.app.ui.requests.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import android.app.Activity
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.flow.firstOrNull
+import com.lojasocial.app.repository.user.ProfilePictureRepository
+import com.lojasocial.app.utils.FileUtils
 import java.util.Calendar
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
-import com.lojasocial.app.ui.theme.BodyText
-import com.lojasocial.app.ui.theme.ButtonGreen
-import com.lojasocial.app.ui.theme.HeaderText
+import com.lojasocial.app.ui.theme.LojaSocialBackground
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RequestDetailsDialog(
     request: Request,
@@ -33,15 +62,19 @@ fun RequestDetailsDialog(
     isLoading: Boolean = false,
     onDismiss: () -> Unit,
     onAccept: (Date) -> Unit = {},
-    onReject: (String?) -> Unit = {}
+    onReject: (String?) -> Unit = {},
+    profilePictureRepository: ProfilePictureRepository? = null
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
     var rejectReason by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf<Date?>(null) }
 
+    val scrollState = rememberScrollState()
+
     // Format date for display
-    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "PT")) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
+    val submissionDateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
     val formattedPickupDate = request.scheduledPickupDate?.let { dateFormat.format(it) }
 
     // Determine status enum from status int
@@ -49,231 +82,164 @@ fun RequestDetailsDialog(
         0 -> RequestStatus.SUBMETIDO
         1 -> RequestStatus.PENDENTE_LEVANTAMENTO
         2 -> RequestStatus.CONCLUIDO
-        3 -> RequestStatus.CANCELADO 
+        3 -> RequestStatus.CANCELADO
         4 -> RequestStatus.REJEITADO
         else -> RequestStatus.SUBMETIDO
     }
 
-    // Format products list
-    val productsList = request.items.map { item ->
-        "${item.quantity}x ${item.productName}"
+    // Format products list with icons
+    val productItems = request.items.map { item ->
+        val category = getProductCategoryFromName(item.productName)
+        ProductItemData(
+            name = item.productName,
+            quantity = item.quantity,
+            icon = getCategoryIcon(category),
+            iconBgColor = getCategoryBgColor(category),
+            iconTint = getCategoryTintColor(category)
+        )
     }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
+    // Determine request category
+    val requestCategory = when {
+        request.items.isEmpty() -> "Vários"
+        request.items.size > 1 -> "Vários"
+        else -> {
+            val firstItemName = request.items.firstOrNull()?.productName?.lowercase() ?: ""
+            when {
+                firstItemName.contains("limpeza") || firstItemName.contains("detergente") -> "Limpeza"
+                firstItemName.contains("comida") || firstItemName.contains("alimento") -> "Alimentar"
+                firstItemName.contains("higiene") || firstItemName.contains("sabonete") -> "Higiene"
+                else -> "Vários"
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false // Essential for edge-to-edge
+        )
+    ) {
+        val view = LocalView.current
+        val themeColor = MaterialTheme.colorScheme.background.toArgb()
+
+        SideEffect {
+            val window = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                ?: (view.context as? android.app.Activity)?.window
+
+            if (window != null) {
+                window.statusBarColor = themeColor
+                androidx.core.view.WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            }
+        }
+
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                .fillMaxSize()
+                .background(Color.White)
         ) {
-            Column(
+            Scaffold(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // 1. Header Section (Icon + Status Title)
-                Row(
+                    .fillMaxSize()
+                    .systemBarsPadding(),
+                containerColor = Color(0xFFF8F9FA),
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        title = {
+                            Text(
+                                when (status) {
+                                    RequestStatus.SUBMETIDO -> "Pedido Pendente"
+                                    RequestStatus.PENDENTE_LEVANTAMENTO -> "Pedido Aceite"
+                                    RequestStatus.CONCLUIDO -> "Pedido Concluído"
+                                    RequestStatus.REJEITADO -> "Pedido Rejeitado"
+                                    RequestStatus.CANCELADO -> "Pedido Cancelado"
+                                },
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = Color.White // This matches the status bar color we set
+                        )
+                    )
+                }
+            ) { paddingValues ->
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(paddingValues)
+                        .fillMaxSize()
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(status.iconBgColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = status.icon,
-                            contentDescription = null,
-                            tint = status.iconTint,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(
-                        text = status.label,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = HeaderText
-                    )
-                }
-
-                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-
-                // 2. User Information Section
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        text = "Informações do utilizador",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = HeaderText
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (userName.isNotEmpty()) {
-                        Text(
-                            text = "Nome: $userName",
-                            fontSize = 15.sp,
-                            color = BodyText,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                    }
-                    if (userEmail.isNotEmpty()) {
-                        Text(
-                            text = "Email: $userEmail",
-                            fontSize = 15.sp,
-                            color = BodyText
-                        )
-                    }
-                }
-
-                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-
-                // 3. Products List Section
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Text(
-                        text = "Produtos no cabaz",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = HeaderText
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (productsList.isEmpty()) {
-                        Text(
-                            text = "Nenhum produto",
-                            fontSize = 15.sp,
-                            color = BodyText,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                        )
-                    } else {
-                        productsList.forEach { product ->
-                            Text(
-                                text = product,
-                                fontSize = 15.sp,
-                                color = BodyText,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                        }
-                    }
-                }
-
-                Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-
-                // 4. Dynamic Section (Date OR Rejection Reason)
-                if (status != RequestStatus.SUBMETIDO) {
-                    Column(modifier = Modifier.padding(24.dp)) {
-                        if (status == RequestStatus.REJEITADO) {
-                            Text(
-                                text = "Motivo da rejeição",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = HeaderText
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = request.rejectionReason ?: "Sem motivo especificado.",
-                                fontSize = 15.sp,
-                                color = BodyText,
-                                lineHeight = 22.sp
-                            )
-                        } else {
-                            val label = if (status == RequestStatus.CONCLUIDO)
-                                "Levantado em" else "Data de levantamento"
-
-                            Text(
-                                text = label,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = HeaderText
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = formattedPickupDate ?: "Data a definir",
-                                fontSize = 15.sp,
-                                color = BodyText
-                            )
-                        }
-                    }
-                    Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-                }
-
-                // 5. Action Buttons (only for SUBMETIDO status)
-                if (status == RequestStatus.SUBMETIDO) {
+                    // Scrollable Content
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                            .weight(1f)
+                            .verticalScroll(scrollState)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Accept Button
-                        Button(
-                            onClick = { showDatePicker = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            enabled = !isLoading,
-                            colors = ButtonDefaults.buttonColors(containerColor = ButtonGreen),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(
-                                    text = "Aceitar",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.White
-                                )
-                            }
-                        }
+                        // 1. User Info Card
+                        UserHeaderCard(
+                            userId = request.userId,
+                            userName = userName,
+                            category = requestCategory,
+                            status = status,
+                            profilePictureRepository = profilePictureRepository
+                        )
 
-                        // Reject Button
-                        OutlinedButton(
-                            onClick = { showRejectDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            enabled = !isLoading,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color(0xFFDC2626) // Red
-                            )
-                        ) {
-                            Text(
-                                text = "Rejeitar",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
+                        // 2. Product List Card
+                        ProductListCard(productItems = productItems)
+
+                        // 3. Collection Info Card
+                        if (status != RequestStatus.SUBMETIDO && status != RequestStatus.REJEITADO) {
+                            CollectionInfoCard(
+                                pickupDate = formattedPickupDate ?: "",
+                                rejectionReason = if (status == RequestStatus.REJEITADO) request.rejectionReason else null
                             )
                         }
                     }
-                } else {
-                    // Close Button for other statuses
-                    Box(modifier = Modifier.padding(24.dp)) {
-                        Button(
-                            onClick = onDismiss,
+
+                    // Fixed Footer Buttons
+                    if (status == RequestStatus.SUBMETIDO) {
+                        ActionFooter(
+                            isLoading = isLoading,
+                            onAcceptClick = {
+                                val today = Calendar.getInstance().apply {
+                                    set(Calendar.HOUR_OF_DAY, 0)
+                                    set(Calendar.MINUTE, 0)
+                                    set(Calendar.SECOND, 0)
+                                    set(Calendar.MILLISECOND, 0)
+                                }.time
+                                onAccept(today)
+                            },
+                            onProposeDateClick = { showDatePicker = true },
+                            onRejectClick = { showRejectDialog = true }
+                        )
+                    } else {
+                        // Close Button
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ButtonGreen),
-                            shape = RoundedCornerShape(12.dp)
+                                .background(Color.White)
+                                .padding(16.dp)
                         ) {
-                            Text(
-                                text = "Fechar",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.White
-                            )
+                            Button(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Fechar", fontSize = 16.sp, color = Color.White)
+                            }
                         }
                     }
                 }
@@ -281,13 +247,14 @@ fun RequestDetailsDialog(
         }
     }
 
-    // Date Picker Dialog (using CustomDatePickerDialog)
+    // ... (Keep your DatePicker and RejectDialog code here exactly as before) ...
+    // Date Picker Dialog
     CustomDatePickerDialog(
         showDialog = showDatePicker,
         onDateSelected = { day, month, year ->
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.YEAR, year)
-                set(Calendar.MONTH, month - 1) // month is 1-based in callback, convert to 0-based
+                set(Calendar.MONTH, month - 1)
                 set(Calendar.DAY_OF_MONTH, day)
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -305,7 +272,7 @@ fun RequestDetailsDialog(
         },
         initialMonth = selectedDate?.let {
             val cal = Calendar.getInstance().apply { time = it }
-            cal.get(Calendar.MONTH) + 1 // Convert to 1-based
+            cal.get(Calendar.MONTH) + 1
         },
         initialDay = selectedDate?.let {
             val cal = Calendar.getInstance().apply { time = it }
@@ -319,7 +286,7 @@ fun RequestDetailsDialog(
         }.timeInMillis
     )
 
-    // Reject Confirmation Dialog
+    // Reject Dialog
     if (showRejectDialog) {
         AlertDialog(
             onDismissRequest = { showRejectDialog = false },
@@ -354,5 +321,385 @@ fun RequestDetailsDialog(
                 }
             }
         )
+    }
+}
+
+// Data class for product items
+data class ProductItemData(
+    val name: String,
+    val quantity: Int,
+    val icon: ImageVector,
+    val iconBgColor: Color,
+    val iconTint: Color
+)
+
+@Composable
+fun UserHeaderCard(
+    userId: String,
+    userName: String,
+    category: String,
+    status: RequestStatus,
+    profilePictureRepository: ProfilePictureRepository? = null
+) {
+    var profilePictureBase64 by remember { mutableStateOf<String?>(null) }
+    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    
+    // Fetch profile picture
+    LaunchedEffect(userId, profilePictureRepository) {
+        if (profilePictureRepository != null) {
+            try {
+                profilePictureRepository.getProfilePicture(userId)
+                    .firstOrNull()
+                    ?.let { base64 ->
+                        profilePictureBase64 = base64
+                        // Decode Base64 to ImageBitmap
+                        if (!base64.isNullOrBlank()) {
+                            val bytes = FileUtils.convertBase64ToFile(base64).getOrNull()
+                            bytes?.let {
+                                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+                                imageBitmap = bitmap?.asImageBitmap()
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                // Handle error silently, fallback to initials
+            }
+        }
+    }
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar (Profile picture or initials)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE5E7EB)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (imageBitmap != null) {
+                    Image(
+                        bitmap = imageBitmap!!,
+                        contentDescription = "Profile picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Text(
+                        text = userName.take(2).uppercase(),
+                        color = Color(0xFF6B7280),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Name and Date
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = userName.ifEmpty { "Utilizador" },
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = category,
+                    color = Color.Gray,
+                    fontSize = 14.sp
+                )
+            }
+
+            // Status Badge
+            Surface(
+                color = status.iconBgColor.copy(alpha = 0.2f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = status.label,
+                    color = status.iconTint,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductListCard(productItems: List<ProductItemData>) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (productItems.isEmpty()) {
+                Text(
+                    text = "Nenhum produto",
+                    fontSize = 15.sp,
+                    color = Color.Gray,
+                    fontStyle = FontStyle.Italic
+                )
+            } else {
+                productItems.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8F9FA), RoundedCornerShape(8.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Icon Box
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(item.iconBgColor, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                                tint = item.iconTint,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Name
+                        Text(
+                            text = item.name,
+                            fontSize = 15.sp,
+                            modifier = Modifier.weight(1f),
+                            color = Color.Black
+                        )
+
+                        // Quantity
+                        Text(
+                            text = "Qtd: ${item.quantity}",
+                            fontSize = 14.sp,
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CollectionInfoCard(
+    pickupDate: String,
+    rejectionReason: String?
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            if (rejectionReason != null) {
+                Text(
+                    text = "Motivo da rejeição",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = rejectionReason.ifEmpty { "Sem motivo especificado." },
+                    fontSize = 15.sp,
+                    color = Color.Gray
+                )
+            } else {
+                Text(
+                    text = "Data de recolha",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Blue Arrow Icon
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color(0xFFD1E4FF), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowUpward,
+                            contentDescription = null,
+                            tint = Color(0xFF2D75F0),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = "Recolha",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        if (pickupDate.isNotEmpty()) {
+                            Text(
+                                text = pickupDate,
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        } else {
+                            Text(
+                                text = "Data a definir",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+                        Text(
+                            text = "Campus do IPCA, Barcelos",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionFooter(
+    isLoading: Boolean,
+    onAcceptClick: () -> Unit,
+    onProposeDateClick: () -> Unit,
+    onRejectClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Accept Button (Green)
+        Button(
+            onClick = onAcceptClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)), // Dark Green
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Aceitar Recolha", fontSize = 16.sp)
+            }
+        }
+
+        // Secondary Buttons Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Propose Date (Blue)
+            Button(
+                onClick = onProposeDateClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D75F0)), // Blue
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Propor data", fontSize = 16.sp)
+            }
+
+            // Reject (Red)
+            Button(
+                onClick = onRejectClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)), // Red
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Rejeitar", fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+// Helper function to determine category from product name
+fun getProductCategoryFromName(productName: String): String {
+    val nameLower = productName.lowercase()
+    return when {
+        nameLower.contains("limpeza") || nameLower.contains("detergente") || nameLower.contains("sabão") -> "Limpeza"
+        nameLower.contains("comida") || nameLower.contains("alimento") || nameLower.contains("arroz") ||
+        nameLower.contains("massa") || nameLower.contains("pão") || nameLower.contains("leite") -> "Alimentar"
+        nameLower.contains("higiene") || nameLower.contains("sabonete") || nameLower.contains("desodorizante") ||
+        nameLower.contains("shampoo") || nameLower.contains("pasta") && nameLower.contains("dente") -> "Higiene"
+        else -> "Vários"
+    }
+}
+
+// Helper function to get category icon
+fun getCategoryIcon(category: String): ImageVector {
+    return when (category.lowercase()) {
+        "limpeza" -> Icons.Default.CleaningServices
+        "alimentar" -> Icons.Default.Restaurant
+        "higiene" -> Icons.Default.Spa
+        else -> Icons.Default.Work // Default for "Vários"
+    }
+}
+
+// Helper function to get category background color
+fun getCategoryBgColor(category: String): Color {
+    return when (category.lowercase()) {
+        "limpeza" -> Color(0xFFD1E4FF) // Light Blue
+        "alimentar" -> Color(0xFFD1E4FF) // Light Blue
+        "higiene" -> Color(0xFFDFF7E2) // Light Green
+        else -> Color(0xFFE5E7EB) // Light Gray
+    }
+}
+
+// Helper function to get category tint color
+fun getCategoryTintColor(category: String): Color {
+    return when (category.lowercase()) {
+        "limpeza" -> Color(0xFF2D75F0) // Blue
+        "alimentar" -> Color(0xFF2D75F0) // Blue
+        "higiene" -> Color(0xFF1B5E20) // Green
+        else -> Color(0xFF6B7280) // Gray
     }
 }
