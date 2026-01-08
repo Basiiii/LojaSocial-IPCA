@@ -34,7 +34,9 @@ import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.lojasocial.app.ui.campaigns.CreateCampaignScreen
 
 /**
@@ -527,10 +529,24 @@ private fun EmployeePortalTabContent(
     // Update profile when current user changes
     LaunchedEffect(currentUser?.uid) {
         if (currentUser != null) {
-            userRepository.getCurrentUserProfile().collect { newProfile ->
-                if (newProfile != null && newProfile.uid == currentUser.uid) {
-                    currentProfile = newProfile
-                }
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            currentProfile = null
+                        }
+                    }
+                    .collect { newProfile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null && newProfile != null && newProfile.uid == currentUser.uid) {
+                            currentProfile = newProfile
+                        } else {
+                            currentProfile = null
+                        }
+                    }
+            } catch (e: Exception) {
+                currentProfile = null
             }
         } else {
             currentProfile = null
@@ -621,10 +637,24 @@ private fun BeneficiaryPortalTabContent(
     // Update profile when current user changes
     LaunchedEffect(currentUser?.uid) {
         if (currentUser != null) {
-            userRepository.getCurrentUserProfile().collect { newProfile ->
-                if (newProfile != null && newProfile.uid == currentUser.uid) {
-                    currentProfile = newProfile
-                }
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            currentProfile = null
+                        }
+                    }
+                    .collect { newProfile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null && newProfile != null && newProfile.uid == currentUser.uid) {
+                            currentProfile = newProfile
+                        } else {
+                            currentProfile = null
+                        }
+                    }
+            } catch (e: Exception) {
+                currentProfile = null
             }
         } else {
             currentProfile = null
@@ -699,10 +729,24 @@ private fun NonBeneficiaryPortalTabContent(
     // Update profile when current user changes
     LaunchedEffect(currentUser?.uid) {
         if (currentUser != null) {
-            userRepository.getCurrentUserProfile().collect { newProfile ->
-                if (newProfile != null && newProfile.uid == currentUser.uid) {
-                    currentProfile = newProfile
-                }
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            currentProfile = null
+                        }
+                    }
+                    .collect { newProfile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null && newProfile != null && newProfile.uid == currentUser.uid) {
+                            currentProfile = newProfile
+                        } else {
+                            currentProfile = null
+                        }
+                    }
+            } catch (e: Exception) {
+                currentProfile = null
             }
         } else {
             currentProfile = null

@@ -19,8 +19,10 @@ import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.profile.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import kotlin.math.log
+import kotlinx.coroutines.Dispatchers
+import com.google.firebase.firestore.FirebaseFirestoreException
 
 /**
  * Main profile view component.
@@ -63,11 +65,31 @@ fun ProfileView(
     val userProfile = remember { mutableStateOf<UserProfile?>(null) }
     val currentUser = authRepository.getCurrentUser()
 
-    LaunchedEffect(currentUser) {
+    LaunchedEffect(currentUser?.uid) {
         if (currentUser != null) {
-            userRepository.getUserProfile(currentUser.uid).collect { profile ->
-                userProfile.value = profile
+            try {
+                userRepository.getUserProfile(currentUser.uid)
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            // Silently handle - user may have logged out
+                            userProfile.value = null
+                        }
+                    }
+                    .collect { profile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null) {
+                            userProfile.value = profile
+                        } else {
+                            userProfile.value = null
+                        }
+                    }
+            } catch (e: Exception) {
+                // Handle any other errors during collection (e.g., user logged out)
+                userProfile.value = null
             }
+        } else {
+            userProfile.value = null
         }
     }
 
@@ -101,9 +123,14 @@ fun ProfileView(
 
         LogoutButton(
             onClick = {
-                coroutineScope.launch {
+                coroutineScope.launch(Dispatchers.Main) {
                     try {
+                        // Clear profile immediately to prevent Firestore access
+                        userProfile.value = null
+                        // Sign out
                         authRepository.signOut()
+                        // Small delay to ensure LaunchedEffect cancels and Firestore listeners are cleaned up
+                        kotlinx.coroutines.delay(50)
                         onLogout()
                     } catch (e: Exception) {
                         showLogoutError = true

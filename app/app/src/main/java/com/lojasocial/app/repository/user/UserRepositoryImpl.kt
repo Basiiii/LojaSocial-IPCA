@@ -35,6 +35,16 @@ class UserRepositoryImpl @Inject constructor(
             
             val listener = docRef.addSnapshotListener { snapshot, error ->
                 if (error != null) {
+                    // Don't close the channel on permission errors - just emit null
+                    // This prevents crashes when user logs out
+                    if (error is com.google.firebase.firestore.FirebaseFirestoreException) {
+                        val firestoreException = error as com.google.firebase.firestore.FirebaseFirestoreException
+                        if (firestoreException.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            trySend(null)
+                            return@addSnapshotListener
+                        }
+                    }
+                    // For other errors, close the channel
                     close(error)
                     return@addSnapshotListener
                 }

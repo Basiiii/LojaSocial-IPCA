@@ -77,15 +77,33 @@ class CalendarViewModel @Inject constructor(
             val currentUser = authRepository.getCurrentUser()
             _currentUserId.value = currentUser?.uid
             
-            userRepository.getCurrentUserProfile().collect { profile ->
-                _isEmployee.value = profile?.isAdmin == true
-                _isBeneficiary.value = profile?.isBeneficiary == true
-                // Load initial month data
-                loadMonthData()
-                // Load campaigns
-                loadCampaigns()
-                // Load accepted requests
-                loadAcceptedRequests()
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        _isEmployee.value = false
+                        _isBeneficiary.value = false
+                    }
+                    .collect { profile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null) {
+                            _isEmployee.value = profile?.isAdmin == true
+                            _isBeneficiary.value = profile?.isBeneficiary == true
+                            // Load initial month data
+                            loadMonthData()
+                            // Load campaigns
+                            loadCampaigns()
+                            // Load accepted requests
+                            loadAcceptedRequests()
+                        } else {
+                            _isEmployee.value = false
+                            _isBeneficiary.value = false
+                        }
+                    }
+            } catch (e: Exception) {
+                // Handle any other errors
+                _isEmployee.value = false
+                _isBeneficiary.value = false
             }
         }
     }
