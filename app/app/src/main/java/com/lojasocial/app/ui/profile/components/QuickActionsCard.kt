@@ -30,9 +30,12 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * Visibility rules:
  * - Support and Calendar: Always visible
  * - Applications ("As minhas Candidaturas"): Visible for all users (beneficiaries, non-beneficiaries, and employees)
- * - Expiring Items ("Itens Próximos do Prazo"): Only visible for admins/employees
+ * - Expiring Items ("Itens Próximos do Prazo"): Only visible for admins/employees in Employee Portal
+ * - Campaigns: Only visible for admins/employees in Employee Portal
+ * - Audit Logs: Only visible for admins/employees in Employee Portal
  * 
  * @param userProfile The user profile data to determine which options should be shown
+ * @param isBeneficiaryPortal Whether the user is currently in the Beneficiary Portal (hides employee actions)
  * @param onSupportClick Callback invoked when support option is clicked
  * @param onCalendarClick Callback invoked when calendar option is clicked
  * @param onApplicationsClick Callback invoked when applications option is clicked
@@ -43,6 +46,7 @@ import com.lojasocial.app.ui.theme.BrandPurple
 @Composable
 fun QuickActionsCard(
     userProfile: UserProfile?,
+    isBeneficiaryPortal: Boolean = false,
     onSupportClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onApplicationsClick: () -> Unit = {},
@@ -87,8 +91,8 @@ fun QuickActionsCard(
                 onClick = onApplicationsClick
             )
             
-            // Show expiring items option only for admins/employees
-            if (userProfile?.isAdmin == true) {
+            // Show expiring items option only for admins/employees in Employee Portal
+            if (userProfile?.isAdmin == true && !isBeneficiaryPortal) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
                 
                 ProfileOption(

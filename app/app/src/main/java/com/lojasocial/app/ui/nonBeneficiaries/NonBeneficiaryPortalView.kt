@@ -124,6 +124,7 @@ fun NonBeneficiaryPortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
+                    isBeneficiaryPortal = false,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,

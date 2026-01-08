@@ -32,8 +32,14 @@ import kotlin.math.log
  * @param paddingValues Padding values for proper screen layout
  * @param authRepository Repository for authentication operations
  * @param userRepository Repository for user profile operations
+ * @param profilePictureRepository Repository for profile picture operations
+ * @param isBeneficiaryPortal Whether the user is currently in the Beneficiary Portal (hides employee actions)
  * @param onLogout Callback invoked when user logs out
  * @param onTabSelected Callback invoked for tab navigation
+ * @param onNavigateToApplications Callback invoked when navigating to applications
+ * @param onNavigateToExpiringItems Callback invoked when navigating to expiring items
+ * @param onNavigateToCampaigns Callback invoked when navigating to campaigns
+ * @param onNavigateToAuditLogs Callback invoked when navigating to audit logs
  */
 @Composable
 fun ProfileView(
@@ -41,6 +47,7 @@ fun ProfileView(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     profilePictureRepository: ProfilePictureRepository,
+    isBeneficiaryPortal: Boolean = false,
     onLogout: () -> Unit,
     onTabSelected: (String) -> Unit,
     onNavigateToApplications: () -> Unit = {},
@@ -81,6 +88,7 @@ fun ProfileView(
 
         QuickActionsCard(
             userProfile = userProfile.value,
+            isBeneficiaryPortal = isBeneficiaryPortal,
             onSupportClick = { onTabSelected("support") },
             onCalendarClick = { onTabSelected("calendar") },
             onApplicationsClick = onNavigateToApplications,

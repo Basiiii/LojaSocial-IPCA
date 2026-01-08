@@ -85,6 +85,7 @@ fun BeneficiaryPortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
+                    isBeneficiaryPortal = true,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,

@@ -118,6 +118,7 @@ fun EmployeePortalView(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
+                    isBeneficiaryPortal = false,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToMyApplications, // Use separate callback for own applications
