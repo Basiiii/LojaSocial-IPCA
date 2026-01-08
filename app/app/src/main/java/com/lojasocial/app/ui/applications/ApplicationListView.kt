@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -43,7 +44,8 @@ data class CandidaturaItemUi(
     val id: String,
     val nome: String,
     val estado: String, // ex: "Pendente", "Aprovado", "Rejeitado"
-    val tempoAtras: String
+    val tempoAtras: String,
+    val isOwnApplication: Boolean = false // True if this is the current user's own application
 )
 
 /**
@@ -92,7 +94,7 @@ fun ApplicationsListView(
     onAddClick: () -> Unit = {},
     onItemClick: (String) -> Unit = {},
     showAllApplications: Boolean = false, // If true, shows all applications regardless of userId
-    excludeCurrentUserId: String? = null, // If provided, excludes applications from this user ID when showAllApplications is true
+    currentUserId: String? = null, // Current user ID to identify own applications (for disabling interaction)
     isBeneficiary: Boolean = false, // If true, hides the add button (user is already a beneficiary)
     title: String? = null // Custom title. If null, uses default based on showAllApplications
 ) {
@@ -114,18 +116,11 @@ fun ApplicationsListView(
         }
     }
 
-    // Filter applications: exclude current user's applications if showAllApplications is true and excludeCurrentUserId is provided
-    var filteredApplications = if (showAllApplications && excludeCurrentUserId != null) {
-        applications.filter { it.userId != excludeCurrentUserId }
+    // Filter applications by selected status (no longer excluding current user's applications)
+    var filteredApplications = if (selectedStatusFilter != null) {
+        applications.filter { it.status == selectedStatusFilter }
     } else {
         applications
-    }
-
-    // Filter applications by selected status
-    filteredApplications = if (selectedStatusFilter != null) {
-        filteredApplications.filter { it.status == selectedStatusFilter }
-    } else {
-        filteredApplications
     }
 
     // Map Application domain objects to UI model and sort by date (most recent first)
@@ -136,7 +131,8 @@ fun ApplicationsListView(
                 id = app.id,
                 nome = app.personalInfo.name,
                 estado = app.status.toPortugueseLabel(),
-                tempoAtras = formatTimeAgo(app.submissionDate)
+                tempoAtras = formatTimeAgo(app.submissionDate),
+                isOwnApplication = currentUserId != null && app.userId == currentUserId
             )
         }
 
@@ -239,7 +235,13 @@ fun ApplicationsListView(
                             items(candidaturas) { candidatura ->
                                 ApplicationListItem(
                                     item = candidatura,
-                                    onClick = { onItemClick(candidatura.id) }
+                                    onClick = { 
+                                        // Only allow click if it's not the user's own application
+                                        if (!candidatura.isOwnApplication) {
+                                            onItemClick(candidatura.id)
+                                        }
+                                    },
+                                    enabled = !candidatura.isOwnApplication
                                 )
                                 HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
                             }
@@ -254,13 +256,15 @@ fun ApplicationsListView(
 @Composable
 fun ApplicationListItem(
     item: CandidaturaItemUi,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .then(if (!enabled) Modifier.alpha(0.6f) else Modifier),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 1. Avatar (Imagem de Perfil)
@@ -286,7 +290,7 @@ fun ApplicationListItem(
             Text(
                 text = item.nome,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.Black
+                color = if (enabled) Color.Black else Color.Gray
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -295,22 +299,37 @@ fun ApplicationListItem(
             StatusChip(status = item.estado)
         }
 
-        // 3. Coluna Direita (Tempo e Seta)
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        // 3. Coluna Direita (Tempo e Seta/Indicador)
+        Column(
+            horizontalAlignment = Alignment.End
         ) {
-            Text(
-                text = item.tempoAtras,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Ver detalhes",
-                tint = Color.Gray,
-                modifier = Modifier.size(20.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = item.tempoAtras,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                if (enabled) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = "Ver detalhes",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            if (!enabled) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "A tua candidatura",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    fontSize = 11.sp
+                )
+            }
         }
     }
 }

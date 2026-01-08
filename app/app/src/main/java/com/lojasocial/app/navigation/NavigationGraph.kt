@@ -368,7 +368,7 @@ fun NavigationGraph(
             )
         }
 
-        // All Applications List (for employees - shows all applications except their own)
+        // All Applications List (for employees - shows all applications including their own, but disabled)
         composable(Screen.AllApplicationsList.route) {
             val currentUserId = authRepository.getCurrentUser()?.uid
             
@@ -380,7 +380,7 @@ fun NavigationGraph(
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
                 },
                 showAllApplications = true,
-                excludeCurrentUserId = currentUserId // Exclude employee's own applications
+                currentUserId = currentUserId // Pass currentUserId to disable own applications
             )
         }
 
