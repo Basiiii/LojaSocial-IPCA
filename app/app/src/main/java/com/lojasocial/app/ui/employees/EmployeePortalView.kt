@@ -150,7 +150,10 @@ fun EmployeePortalView(
             }
 
             "calendar" -> {
-                CalendarView(paddingValues = paddingValues)
+                CalendarView(
+                    paddingValues = paddingValues,
+                    isBeneficiaryPortal = false
+                )
             }
         }
     }

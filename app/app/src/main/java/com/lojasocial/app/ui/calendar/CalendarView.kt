@@ -3,8 +3,6 @@ package com.lojasocial.app.ui.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.domain.campaign.Campaign
 import com.lojasocial.app.domain.request.PickupRequest
+import com.lojasocial.app.domain.request.Request
+import com.lojasocial.app.ui.requests.components.RequestDetailsDialog
 import com.lojasocial.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,14 +37,24 @@ import java.util.*
 @Composable
 fun CalendarView(
     viewModel: CalendarViewModel = hiltViewModel(),
-    paddingValues: PaddingValues = PaddingValues(0.dp)
+    paddingValues: PaddingValues = PaddingValues(0.dp),
+    isBeneficiaryPortal: Boolean = false
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
     val pickupRequests by viewModel.pickupRequests.collectAsState()
     val pickupCounts by viewModel.pickupCounts.collectAsState()
     val campaignsByDate by viewModel.campaignsByDate.collectAsState()
+    val acceptedRequestsByDate by viewModel.acceptedRequestsByDate.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val selectedRequest by viewModel.selectedRequest.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
+    val isLoadingRequest by viewModel.isLoadingRequest.collectAsState()
+    
+    // Update ViewModel with portal context
+    LaunchedEffect(isBeneficiaryPortal) {
+        viewModel.setBeneficiaryPortalContext(isBeneficiaryPortal)
+    }
     
     Column(
         modifier = Modifier
@@ -73,6 +83,7 @@ fun CalendarView(
             selectedDate = selectedDate,
             pickupCounts = pickupCounts,
             campaignsByDate = campaignsByDate,
+            acceptedRequestsByDate = acceptedRequestsByDate,
             onDateSelected = { date ->
                 viewModel.selectDate(date)
             }
@@ -83,13 +94,7 @@ fun CalendarView(
         // Pickup requests and campaigns list
         if (selectedDate != null) {
             Column {
-                PickupRequestsSection(
-                    date = selectedDate!!,
-                    requests = pickupRequests,
-                    isLoading = isLoading
-                )
-                
-                // Show campaigns for selected date - normalize date for lookup
+                // Normalize date for lookup
                 val normalizedDate = Calendar.getInstance().apply {
                     time = selectedDate!!
                     set(Calendar.HOUR_OF_DAY, 0)
@@ -98,6 +103,20 @@ fun CalendarView(
                     set(Calendar.MILLISECOND, 0)
                 }.time
                 
+                // Get accepted requests for this date
+                val dateAcceptedRequests = acceptedRequestsByDate[normalizedDate] ?: emptyList()
+                
+                PickupRequestsSection(
+                    date = selectedDate!!,
+                    requests = pickupRequests,
+                    acceptedRequests = dateAcceptedRequests,
+                    isLoading = isLoading,
+                    onRequestClick = { requestId ->
+                        viewModel.selectRequest(requestId)
+                    }
+                )
+                
+                // Show campaigns for selected date
                 val dateCampaigns = campaignsByDate[normalizedDate]
                 if (!dateCampaigns.isNullOrEmpty()) {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -122,6 +141,29 @@ fun CalendarView(
                 )
             }
         }
+    }
+    
+    // Show request details dialog when a request is selected
+    selectedRequest?.let { request ->
+        RequestDetailsDialog(
+            request = request,
+            userName = userProfile?.name ?: "",
+            userEmail = userProfile?.email ?: "",
+            isLoading = isLoadingRequest,
+            onDismiss = {
+                viewModel.clearSelectedRequest()
+            },
+            onAccept = { date ->
+                // Request is already accepted, so this might not be needed
+                // But keeping for consistency
+                viewModel.clearSelectedRequest()
+            },
+            onReject = { reason ->
+                // Request is already accepted, so this might not be needed
+                // But keeping for consistency
+                viewModel.clearSelectedRequest()
+            }
+        )
     }
 }
 
@@ -189,6 +231,7 @@ private fun CalendarGrid(
     selectedDate: Date?,
     pickupCounts: Map<Date, Int>,
     campaignsByDate: Map<Date, List<Campaign>>,
+    acceptedRequestsByDate: Map<Date, List<Request>>,
     onDateSelected: (Date) -> Unit
 ) {
     val calendar = Calendar.getInstance().apply { time = currentMonth.time }
@@ -271,6 +314,7 @@ private fun CalendarGrid(
                         selectedDate = selectedDate,
                         pickupCounts = pickupCounts,
                         campaignsByDate = campaignsByDate,
+                        acceptedRequestsByDate = acceptedRequestsByDate,
                         onDateSelected = onDateSelected,
                         modifier = Modifier.weight(1f)
                     )
@@ -291,6 +335,7 @@ private fun DayCell(
     selectedDate: Date?,
     pickupCounts: Map<Date, Int>,
     campaignsByDate: Map<Date, List<Campaign>>,
+    acceptedRequestsByDate: Map<Date, List<Request>>,
     onDateSelected: (Date) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -336,35 +381,73 @@ private fun DayCell(
         
         val pickupCount = pickupCounts[normalizedDate] ?: 0
         val dateCampaigns = campaignsByDate[normalizedDate] ?: emptyList()
+        val dateAcceptedRequests = acceptedRequestsByDate[normalizedDate] ?: emptyList()
         val hasCampaigns = dateCampaigns.isNotEmpty()
+        val hasAcceptedRequests = dateAcceptedRequests.isNotEmpty()
+        val hasBoth = hasCampaigns && hasAcceptedRequests
         
         Box(
             modifier = modifier
                 .aspectRatio(1f)
                 .padding(4.dp)
                 .clip(CircleShape)
-                .background(
-                    when {
-                        isSelected -> LojaSocialPrimary
-                        hasCampaigns -> Color(0xFFFFE5B4) // Light orange/amber for campaign days
-                        isToday -> LojaSocialPrimary.copy(alpha = 0.1f)
-                        else -> LojaSocialSurface
+                .then(
+                    if (isSelected) {
+                        Modifier.background(LojaSocialPrimary)
+                    } else if (hasBoth) {
+                        // Half-half background when both exist
+                        Modifier.background(Color.Transparent)
+                    } else {
+                        Modifier.background(
+                            when {
+                                hasCampaigns -> Color(0xFFFFE5B4) // Light orange/amber for campaign days
+                                hasAcceptedRequests -> Color(0xFFE0F2FE) // Light blue for accepted request days
+                                isToday -> LojaSocialPrimary.copy(alpha = 0.1f)
+                                else -> LojaSocialSurface
+                            }
+                        )
                     }
                 )
                 .clickable { onDateSelected(date) },
             contentAlignment = Alignment.Center
         ) {
+            // Half-half background when both campaign and accepted request exist
+            if (hasBoth && !isSelected) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                ) {
+                    // Left half - Campaign color
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color(0xFFFFE5B4))
+                    )
+                    // Right half - Accepted request color
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color(0xFFE0F2FE))
+                    )
+                }
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
                 Text(
                     text = day.toString(),
                     fontSize = 14.sp,
-                    fontWeight = if (isSelected || isToday || hasCampaigns) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isSelected || isToday || hasCampaigns || hasAcceptedRequests) FontWeight.Bold else FontWeight.Normal,
                     color = when {
                         isSelected -> LojaSocialOnPrimary
+                        hasBoth -> TextDark // Use default text color when both exist (background provides visual distinction)
                         hasCampaigns -> Color(0xFFD97706) // Orange text for campaign days
+                        hasAcceptedRequests -> Color(0xFF0284C7) // Blue text for accepted request days
                         isToday -> LojaSocialPrimary
                         else -> TextDark
                     }
@@ -392,6 +475,14 @@ private fun DayCell(
                             tint = if (isSelected) LojaSocialOnPrimary else Color(0xFFD97706)
                         )
                     }
+                    if (hasAcceptedRequests) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Pedido Aceite",
+                            modifier = Modifier.size(8.dp),
+                            tint = if (isSelected) LojaSocialOnPrimary else Color(0xFF0284C7)
+                        )
+                    }
                 }
             }
         }
@@ -405,7 +496,9 @@ private fun DayCell(
 private fun PickupRequestsSection(
     date: Date,
     requests: List<PickupRequest>,
-    isLoading: Boolean
+    acceptedRequests: List<Request>,
+    isLoading: Boolean,
+    onRequestClick: (String) -> Unit
 ) {
     val dateFormatter = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale("pt", "PT"))
     val formattedDate = dateFormatter.format(date).replaceFirstChar { 
@@ -431,7 +524,7 @@ private fun PickupRequestsSection(
             ) {
                 CircularProgressIndicator()
             }
-        } else if (requests.isEmpty()) {
+        } else if (requests.isEmpty() && acceptedRequests.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -445,11 +538,20 @@ private fun PickupRequestsSection(
                 )
             }
         } else {
-            LazyColumn(
+            Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(requests) { request ->
+                // Show completed pickup requests
+                requests.forEach { request ->
                     PickupRequestItem(request = request)
+                }
+                
+                // Show accepted requests (Pedido Aceite)
+                acceptedRequests.forEach { request ->
+                    AcceptedRequestItem(
+                        request = request,
+                        onClick = { onRequestClick(request.id) }
+                    )
                 }
             }
         }
@@ -544,6 +646,75 @@ private fun CampaignItem(
                     fontSize = 14.sp,
                     color = TextGray
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Individual accepted request item.
+ */
+@Composable
+private fun AcceptedRequestItem(
+    request: Request,
+    onClick: () -> Unit
+) {
+    val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "PT"))
+    val pickupDateStr = request.scheduledPickupDate?.let { dateFormatter.format(it) } ?: ""
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFE0F2FE) // Light blue background
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF0284C7).copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = Color(0xFF0284C7),
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Pedido Aceite",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextDark
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (pickupDateStr.isNotEmpty()) "Levantamento: $pickupDateStr" else "Data não definida",
+                    fontSize = 14.sp,
+                    color = TextGray
+                )
+                if (request.totalItems > 0) {
+                    Text(
+                        text = "${request.totalItems} item${if (request.totalItems != 1) "s" else ""}",
+                        fontSize = 12.sp,
+                        color = TextGray
+                    )
+                }
             }
         }
     }

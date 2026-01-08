@@ -117,7 +117,10 @@ fun BeneficiaryPortalView(
             }
 
             "calendar" -> {
-                CalendarView(paddingValues = paddingValues)
+                CalendarView(
+                    paddingValues = paddingValues,
+                    isBeneficiaryPortal = true
+                )
             }
         }
     }

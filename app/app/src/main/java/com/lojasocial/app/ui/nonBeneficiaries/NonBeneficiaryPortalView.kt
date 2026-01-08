@@ -156,7 +156,10 @@ fun NonBeneficiaryPortalView(
             }
 
             "calendar" -> {
-                CalendarView(paddingValues = paddingValues)
+                CalendarView(
+                    paddingValues = paddingValues,
+                    isBeneficiaryPortal = false
+                )
             }
         }
     }
