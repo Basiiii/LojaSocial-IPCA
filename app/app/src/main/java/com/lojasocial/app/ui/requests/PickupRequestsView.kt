@@ -420,9 +420,9 @@ fun PedidoItem(
 
             // Badges Row
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Status Badge
+                // Status Badge - using status-specific icon and colors
                 Surface(
-                    color = Color(0xFFFCECDD), // Very light orange
+                    color = status.iconBgColor.copy(alpha = 0.2f), // Use status background color with transparency
                     shape = RoundedCornerShape(16.dp),
                 ) {
                     Row(
@@ -430,15 +430,15 @@ fun PedidoItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Schedule,
+                            imageVector = status.icon,
                             contentDescription = null,
-                            tint = Color(0xFFC86E39), // Darker Orange
+                            tint = status.iconTint,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = status.label,
-                            color = Color(0xFFC86E39),
+                            color = status.iconTint,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )

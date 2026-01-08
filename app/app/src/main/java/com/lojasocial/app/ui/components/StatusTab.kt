@@ -32,7 +32,7 @@ fun StatusTabSelector(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(vertical = 16.dp), // Outer padding
+            .padding(horizontal = 6.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally) // Gap between tabs
 
     ) {
