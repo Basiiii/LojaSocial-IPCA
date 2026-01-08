@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,6 +18,8 @@ import coil.compose.AsyncImage
 import com.lojasocial.app.repository.audit.CampaignProductReceipt
 import com.lojasocial.app.ui.theme.*
 import com.lojasocial.app.utils.AppConstants
+import java.text.SimpleDateFormat
+import java.util.*
 
 /**
  * Card component displaying a product received in a campaign.
@@ -24,6 +27,9 @@ import com.lojasocial.app.utils.AppConstants
  */
 @Composable
 fun CampaignProductCard(receipt: CampaignProductReceipt) {
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale("pt", "PT")) }
+    val formattedDate = receipt.timestamp?.let { dateFormatter.format(it) }
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = LojaSocialSurface),
@@ -75,6 +81,14 @@ fun CampaignProductCard(receipt: CampaignProductReceipt) {
                     style = MaterialTheme.typography.bodySmall,
                     color = TextGray
                 )
+                
+                if (formattedDate != null) {
+                    Text(
+                        text = "Adicionado em: $formattedDate",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextGray
+                    )
+                }
             }
         }
     }

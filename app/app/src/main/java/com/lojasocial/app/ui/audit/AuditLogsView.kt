@@ -261,7 +261,7 @@ fun AuditLogCard(
         ) {
             // Action type
             Text(
-                text = formatActionName(log.action),
+                text = formatActionName(log.action, log.details),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextDark
@@ -319,7 +319,7 @@ fun AuditLogCard(
                     Spacer(modifier = Modifier.height(4.dp))
                     details.forEach { (key, value) ->
                         Text(
-                            text = "  • $key: ${formatDetailValue(value)}",
+                            text = "  • ${formatDetailKey(key)}: ${formatDetailValue(value)}",
                             fontSize = 12.sp,
                             color = TextDark,
                             modifier = Modifier.padding(start = 8.dp)
@@ -331,15 +331,35 @@ fun AuditLogCard(
     }
 }
 
-fun formatActionName(action: String): String {
+fun formatActionName(action: String, details: Map<String, Any>? = null): String {
     return when (action) {
-        "add_item" -> "Adicionar Item"
+        "add_item" -> {
+            // Check if it's a campaign product
+            if (details?.containsKey("campaignId") == true) {
+                "Receber Produto em Campanha"
+            } else {
+                "Adicionar Item"
+            }
+        }
         "remove_item" -> "Remover Item"
         "accept_request" -> "Aceitar Pedido"
         "decline_request" -> "Rejeitar Pedido"
         "accept_application" -> "Aceitar Candidatura"
         "decline_application" -> "Rejeitar Candidatura"
         else -> action.replace("_", " ").replaceFirstChar { it.uppercaseChar() }
+    }
+}
+
+fun formatDetailKey(key: String): String {
+    return when (key) {
+        "campaignId" -> "ID da Campanha"
+        "itemId" -> "ID do Item"
+        "quantity" -> "Quantidade"
+        "barcode" -> "Código de Barras"
+        "barcode_number" -> "Código de Barras"
+        "productName" -> "Nome do Produto"
+        "userId" -> "ID do Utilizador"
+        else -> key.replace("_", " ").replaceFirstChar { it.uppercaseChar() }
     }
 }
 

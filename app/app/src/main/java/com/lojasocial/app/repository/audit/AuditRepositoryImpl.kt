@@ -90,39 +90,6 @@ class AuditRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun logCampaignProductReceipt(
-        campaignId: String,
-        itemId: String,
-        quantity: Int,
-        barcode: String,
-        userId: String?
-    ) {
-        try {
-            // Use provided userId or get current user ID
-            val finalUserId = userId ?: authRepository.getCurrentUser()?.uid
-            
-            // Create audit log document in Firestore
-            val auditLogData = hashMapOf<String, Any>(
-                "action" to "campaign_receive_product",
-                "campaignId" to campaignId,
-                "itemId" to itemId,
-                "quantity" to quantity,
-                "barcode" to barcode,
-                "timestamp" to FieldValue.serverTimestamp(),
-                "userId" to (finalUserId ?: "")
-            )
-            
-            firestore.collection("audit_logs")
-                .add(auditLogData)
-                .await()
-            
-            Log.d(TAG, "Campaign product receipt logged: campaignId=$campaignId, itemId=$itemId, quantity=$quantity")
-        } catch (e: Exception) {
-            // Silently handle errors to avoid impacting main operations
-            Log.e(TAG, "Error logging campaign product receipt: ${e.message}", e)
-        }
-    }
-    
     override suspend fun getCampaignProducts(campaignId: String): Result<List<CampaignProductReceipt>> {
         return try {
             Log.d(TAG, "Fetching campaign products for campaignId: $campaignId")

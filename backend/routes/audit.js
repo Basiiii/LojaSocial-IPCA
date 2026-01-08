@@ -96,12 +96,13 @@ router.get('/logs', async (req, res) => {
     // Convert Firestore documents to JSON
     const logs = logsSnapshot.docs.map(doc => {
       const data = doc.data();
+      
       return {
         id: doc.id,
         action: data.action,
         timestamp: data.timestamp.toDate().toISOString(),
         userId: data.userId,
-        details: data.details
+        details: data.details || {}
       };
     });
 
@@ -140,29 +141,23 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
 
     logger.server(`Fetching campaign products for campaignId: ${campaignId}`);
 
-    // Query audit_logs collection for campaign_receive_product actions with this campaignId
     let snapshot;
     try {
-      snapshot = await db.collection('audit_logs')
-        .where('action', '==', 'campaign_receive_product')
-        .where('campaignId', '==', campaignId)
+      const addItemSnapshot = await db.collection('audit_logs')
+        .where('action', '==', 'add_item')
         .orderBy('timestamp', 'desc')
         .get();
-    } catch (error) {
-      // If orderBy fails (index missing), try without ordering
-      logger.server(`OrderBy failed, fetching without order: ${error.message}`);
-      snapshot = await db.collection('audit_logs')
-        .where('action', '==', 'campaign_receive_product')
-        .where('campaignId', '==', campaignId)
-        .get();
       
-      // Sort manually by timestamp descending
-      const docs = snapshot.docs.sort((a, b) => {
-        const aTime = a.data().timestamp?.toMillis?.() || 0;
-        const bTime = b.data().timestamp?.toMillis?.() || 0;
-        return bTime - aTime;
+      // Filter client-side for campaignId in details
+      const campaignAddItems = addItemSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.details && data.details.campaignId === campaignId;
       });
-      snapshot = { docs };
+      
+      snapshot = { docs: campaignAddItems };
+    } catch (error) {
+      logger.server(`Error fetching campaign products: ${error.message}`);
+      snapshot = { docs: [] };
     }
 
     logger.server(`Found ${snapshot.docs.length} product receipts for campaign`);
@@ -172,9 +167,12 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
       snapshot.docs.map(async (doc) => {
         try {
           const data = doc.data();
-          const itemId = data.itemId;
-          const quantity = data.quantity || 0;
-          const barcode = data.barcode;
+          
+          // Extract data from details (add_item with campaignId in details)
+          const details = data.details || {};
+          const itemId = details.itemId || '';
+          const quantity = details.quantity || 0;
+          const barcode = details.barcode || '';
           const userId = data.userId || null;
           
           // Convert timestamp

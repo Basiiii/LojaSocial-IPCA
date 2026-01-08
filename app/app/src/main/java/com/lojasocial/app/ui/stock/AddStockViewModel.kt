@@ -363,27 +363,25 @@ class AddStockViewModel @Inject constructor(
                 // Log audit action
                 val currentUser = authRepository.getCurrentUser()
                 viewModelScope.launch {
-                    // Log general add_item action (existing API-based audit)
+                    // Build details map
+                    val detailsMap = mutableMapOf<String, Any>(
+                        "barcode" to currentBarcode,
+                        "quantity" to quantity,
+                        "productName" to productToSave.name
+                    )
+                    
+                    // Add campaignId to details if present
+                    if (campaignId != null && campaignId.isNotEmpty()) {
+                        detailsMap["campaignId"] = campaignId
+                        detailsMap["itemId"] = itemId
+                    }
+                    
+                    // Log add_item action with campaignId in details if it's a campaign product
                     auditRepository.logAction(
                         action = "add_item",
                         userId = currentUser?.uid,
-                        details = mapOf(
-                            "barcode" to currentBarcode,
-                            "quantity" to quantity,
-                            "productName" to productToSave.name
-                        )
+                        details = detailsMap
                     )
-                    
-                    // Log campaign product receipt to Firestore if campaignId is present
-                    if (campaignId != null && campaignId.isNotEmpty()) {
-                        auditRepository.logCampaignProductReceipt(
-                            campaignId = campaignId,
-                            itemId = itemId,
-                            quantity = quantity,
-                            barcode = currentBarcode,
-                            userId = currentUser?.uid
-                        )
-                    }
                 }
 
                 _uiState.value = _uiState.value.copy(
