@@ -1,6 +1,9 @@
 package com.lojasocial.app.utils
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
@@ -132,5 +135,117 @@ object FileUtils {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+    
+    /**
+     * Compresses and resizes an image from a URI to a byte array.
+     * 
+     * This method reads an image from the given URI, resizes it to fit within
+     * the specified maximum dimensions while maintaining aspect ratio, and
+     * compresses it as a JPEG with the specified quality. This is useful for
+     * reducing image file sizes before storing them as Base64 strings in Firestore.
+     * 
+     * Process:
+     * 1. Decodes the image from URI using BitmapFactory
+     * 2. Calculates scaling factor to fit within maxWidth x maxHeight
+     * 3. Resizes the bitmap while maintaining aspect ratio
+     * 4. Compresses to JPEG format with specified quality
+     * 5. Returns compressed byte array
+     * 
+     * @param context Android context for ContentResolver access
+     * @param uri The URI of the image to compress
+     * @param maxWidth Maximum width in pixels (default: 800)
+     * @param maxHeight Maximum height in pixels (default: 800)
+     * @param quality Compression quality (0-100, default: 85)
+     * @return Result containing compressed byte array if successful, or error if failed
+     */
+    fun compressImage(
+        context: Context,
+        uri: Uri,
+        maxWidth: Int = 800,
+        maxHeight: Int = 800,
+        quality: Int = 85
+    ): Result<ByteArray> {
+        return try {
+            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+            inputStream?.use { stream ->
+                // Decode with options to get dimensions without loading full image
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeStream(stream, null, options)
+                
+                // Calculate scaling factor
+                val scale = minOf(
+                    maxWidth.toFloat() / options.outWidth,
+                    maxHeight.toFloat() / options.outHeight
+                ).coerceAtMost(1.0f)
+                
+                // Reset stream position by creating new input stream
+                val resizedStream = context.contentResolver.openInputStream(uri)
+                resizedStream?.use { resized ->
+                    // Decode with scaling
+                    val decodeOptions = BitmapFactory.Options().apply {
+                        inSampleSize = if (scale < 1.0f) {
+                            (1.0f / scale).toInt().coerceAtLeast(1)
+                        } else {
+                            1
+                        }
+                    }
+                    
+                    var bitmap = BitmapFactory.decodeStream(resized, null, decodeOptions)
+                        ?: return Result.failure(Exception("Failed to decode image"))
+                    
+                    // Further resize if needed to ensure exact dimensions
+                    if (bitmap.width > maxWidth || bitmap.height > maxHeight) {
+                        val width = bitmap.width
+                        val height = bitmap.height
+                        val ratio = minOf(
+                            maxWidth.toFloat() / width,
+                            maxHeight.toFloat() / height
+                        )
+                        val newWidth = (width * ratio).toInt()
+                        val newHeight = (height * ratio).toInt()
+                        bitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                    }
+                    
+                    // Compress to JPEG
+                    val outputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+                    bitmap.recycle()
+                    
+                    Result.success(outputStream.toByteArray())
+                } ?: Result.failure(Exception("Failed to open image stream"))
+            } ?: Result.failure(Exception("Failed to open input stream"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Converts an image URI to Base64 string with compression.
+     * 
+     * This is a convenience method that combines image compression and Base64 encoding.
+     * It compresses the image first, then converts it to a Base64 string suitable for
+     * storage in Firestore.
+     * 
+     * @param context Android context for ContentResolver access
+     * @param uri The URI of the image to convert
+     * @param maxWidth Maximum width in pixels (default: 800)
+     * @param maxHeight Maximum height in pixels (default: 800)
+     * @param quality Compression quality (0-100, default: 85)
+     * @return Result containing Base64 string if successful, or error if failed
+     */
+    fun convertImageToBase64(
+        context: Context,
+        uri: Uri,
+        maxWidth: Int = 800,
+        maxHeight: Int = 800,
+        quality: Int = 85
+    ): Result<String> {
+        return compressImage(context, uri, maxWidth, maxHeight, quality)
+            .mapCatching { bytes ->
+                Base64.encodeToString(bytes, Base64.DEFAULT)
+            }
     }
 }

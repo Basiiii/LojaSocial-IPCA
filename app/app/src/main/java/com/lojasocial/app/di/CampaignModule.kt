@@ -1,7 +1,7 @@
 package com.lojasocial.app.di
 
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lojasocial.app.repository.CampaignRepository
+import com.lojasocial.app.repository.campaign.CampaignRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

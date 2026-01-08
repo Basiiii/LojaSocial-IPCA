@@ -4,12 +4,14 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.api.BarcodeProduct
-import com.lojasocial.app.data.model.Campaign
-import com.lojasocial.app.data.model.Product
-import com.lojasocial.app.data.model.StockItem
-import com.lojasocial.app.repository.CampaignRepository
-import com.lojasocial.app.repository.ProductRepository
-import com.lojasocial.app.repository.StockItemRepository
+import com.lojasocial.app.domain.campaign.Campaign
+import com.lojasocial.app.domain.product.Product
+import com.lojasocial.app.domain.stock.StockItem
+import com.lojasocial.app.repository.audit.AuditRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.campaign.CampaignRepository
+import com.lojasocial.app.repository.product.ProductRepository
+import com.lojasocial.app.repository.product.StockItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +24,9 @@ import javax.inject.Inject
 class AddStockViewModel @Inject constructor(
     private val productRepository: ProductRepository,
     private val stockItemRepository: StockItemRepository,
-    private val campaignRepository: CampaignRepository
+    private val campaignRepository: CampaignRepository,
+    private val auditRepository: AuditRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
     
     // UI State
@@ -355,6 +359,20 @@ class AddStockViewModel @Inject constructor(
                 )
 
                 productRepository.saveStockItem(stockItem)
+
+                // Log audit action
+                val currentUser = authRepository.getCurrentUser()
+                viewModelScope.launch {
+                    auditRepository.logAction(
+                        action = "add_item",
+                        userId = currentUser?.uid,
+                        details = mapOf(
+                            "barcode" to currentBarcode,
+                            "quantity" to quantity,
+                            "productName" to productToSave.name
+                        )
+                    )
+                }
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

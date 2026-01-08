@@ -2,9 +2,9 @@ package com.lojasocial.app.ui.requestitems
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.RequestItem
-import com.lojasocial.app.repository.ItemsRepository
-import com.lojasocial.app.repository.OrdersRepository
+import com.lojasocial.app.domain.request.RequestItem
+import com.lojasocial.app.repository.request.ItemsRepository
+import com.lojasocial.app.repository.request.RequestsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RequestItemsViewModel @Inject constructor(
     private val itemsRepository: ItemsRepository,
-    private val ordersRepository: OrdersRepository
+    private val requestsRepository: RequestsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RequestItemsUiState>(RequestItemsUiState.Loading)
@@ -115,7 +115,7 @@ class RequestItemsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _submissionState.value = SubmissionState.Loading
-            val result = ordersRepository.submitOrder(itemsToSend)
+            val result = requestsRepository.submitRequest(itemsToSend)
             result.fold(
                 onSuccess = {
                     clearQuantities()

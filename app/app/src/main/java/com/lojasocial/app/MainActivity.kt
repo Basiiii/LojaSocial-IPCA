@@ -19,11 +19,14 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
 import com.lojasocial.app.navigation.NavigationGraph
 import com.lojasocial.app.navigation.loadUserProfileAndDestination
-import com.lojasocial.app.repository.ApplicationRepository
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.ExpirationRepository
-import com.lojasocial.app.repository.UserRepository
-import com.lojasocial.app.repository.UserProfile
+import com.lojasocial.app.repository.application.ApplicationRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.campaign.CampaignRepository
+import com.lojasocial.app.repository.product.ExpirationRepository
+import com.lojasocial.app.repository.request.RequestsRepository
+import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.utils.FcmTokenService
 import com.lojasocial.app.navigation.Screen
@@ -47,6 +50,15 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var expirationRepository: ExpirationRepository
+
+    @Inject
+    lateinit var campaignRepository: CampaignRepository
+
+    @Inject
+    lateinit var requestsRepository: RequestsRepository
+
+    @Inject
+    lateinit var profilePictureRepository: ProfilePictureRepository
 
     @Inject
     lateinit var fcmTokenService: FcmTokenService
@@ -135,7 +147,10 @@ class MainActivity : ComponentActivity() {
                             authRepository = authRepository,
                             userRepository = userRepository,
                             applicationRepository = applicationRepository,
-                            expirationRepository = expirationRepository
+                            expirationRepository = expirationRepository,
+                            campaignRepository = campaignRepository,
+                            requestsRepository = requestsRepository,
+                            profilePictureRepository = profilePictureRepository
                         )
                     }
                 }

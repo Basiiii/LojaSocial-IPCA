@@ -2,6 +2,7 @@ package com.lojasocial.app.ui.chat
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
@@ -40,9 +41,11 @@ fun ChatView(
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // Auto-scroll to latest message when messages change
+    // Auto-scroll to latest message when messages change (size or content)
+    // This triggers when new messages are added or when loading messages are updated
     LaunchedEffect(uiState.messages) {
         if (uiState.messages.isNotEmpty()) {
+            // Use animateScrollToItem for smooth scrolling to the latest message
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
@@ -62,20 +65,16 @@ fun ChatView(
                     viewModel.sendMessage()
                     keyboardController?.hide()
                 },
-                modifier = if (embeddedInAppLayout) {
-                    Modifier.imePadding()
-                } else {
-                    Modifier
-                        .navigationBarsPadding()
-                        .imePadding()
-                }
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding()
             )
         },
         containerColor = Color.White
     ) { paddingValues ->
         ChatMessageList(
             messages = uiState.messages,
-            isLoading = uiState.isLoading,
+            listState = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -87,40 +86,32 @@ fun ChatView(
  * Message list component for displaying chat messages.
  * 
  * This component handles the display of all chat messages with proper
- * scrolling and loading state management.
+ * scrolling. Messages are aligned to the bottom with new messages appearing
+ * at the bottom of the list.
  * 
  * @param messages The list of messages to display.
- * @param isLoading Whether the chat is currently loading.
+ * @param listState The LazyListState for controlling scroll position.
  * @param modifier Optional modifier for styling and layout.
  */
 @Composable
 private fun ChatMessageList(
     messages: List<ChatMessage>,
-    isLoading: Boolean,
+    listState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
-        LazyColumn(
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = 8.dp,
-                end = 16.dp,
-                bottom = 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(messages) { message ->
-                ChatMessageBubble(message = message)
-            }
-        }
-
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(16.dp)
-            )
+    LazyColumn(
+        state = listState,
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            top = 8.dp,
+            end = 16.dp,
+            bottom = 16.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxSize()
+    ) {
+        items(messages) { message ->
+            ChatMessageBubble(message = message)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.lojasocial.app.ui.components
 
 import android.app.DatePickerDialog
+import android.view.Gravity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +71,12 @@ fun CustomDatePickerDialog(
     LaunchedEffect(showDialog) {
         if (showDialog && !datePickerDialog.isShowing) {
             datePickerDialog.show()
+            // Center the dialog on the screen
+            datePickerDialog.window?.let { window ->
+                val layoutParams = window.attributes
+                layoutParams.gravity = Gravity.CENTER
+                window.attributes = layoutParams
+            }
         } else if (!showDialog && datePickerDialog.isShowing) {
             datePickerDialog.dismiss()
         }

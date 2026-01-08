@@ -12,13 +12,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.profile.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import com.google.firebase.firestore.FirebaseFirestoreException
 
 /**
  * Main profile view component.
@@ -30,29 +34,62 @@ import kotlinx.coroutines.launch
  * @param paddingValues Padding values for proper screen layout
  * @param authRepository Repository for authentication operations
  * @param userRepository Repository for user profile operations
+ * @param profilePictureRepository Repository for profile picture operations
+ * @param isBeneficiaryPortal Whether the user is currently in the Beneficiary Portal (hides employee actions)
  * @param onLogout Callback invoked when user logs out
  * @param onTabSelected Callback invoked for tab navigation
+ * @param onNavigateToApplications Callback invoked when navigating to applications
+ * @param onNavigateToExpiringItems Callback invoked when navigating to expiring items
+ * @param onNavigateToCampaigns Callback invoked when navigating to campaigns
+ * @param onNavigateToAuditLogs Callback invoked when navigating to audit logs
  */
 @Composable
 fun ProfileView(
     paddingValues: PaddingValues,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
+    isBeneficiaryPortal: Boolean = false,
     onLogout: () -> Unit,
     onTabSelected: (String) -> Unit,
     onNavigateToApplications: () -> Unit = {},
-    onNavigateToExpiringItems: () -> Unit = {}
+    onNavigateToExpiringItems: () -> Unit = {},
+    onNavigateToCampaigns: () -> Unit = {},
+    onNavigateToAuditLogs: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
+    var showProfilePictureDialog by remember { mutableStateOf(false) }
+    var isUploadingPicture by remember { mutableStateOf(false) }
+    var uploadError by remember { mutableStateOf<String?>(null) }
     val userProfile = remember { mutableStateOf<UserProfile?>(null) }
     val currentUser = authRepository.getCurrentUser()
 
-    LaunchedEffect(currentUser) {
+    LaunchedEffect(currentUser?.uid) {
         if (currentUser != null) {
-            userRepository.getUserProfile(currentUser.uid).collect { profile ->
-                userProfile.value = profile
+            try {
+                userRepository.getUserProfile(currentUser.uid)
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            // Silently handle - user may have logged out
+                            userProfile.value = null
+                        }
+                    }
+                    .collect { profile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null) {
+                            userProfile.value = profile
+                        } else {
+                            userProfile.value = null
+                        }
+                    }
+            } catch (e: Exception) {
+                // Handle any other errors during collection (e.g., user logged out)
+                userProfile.value = null
             }
+        } else {
+            userProfile.value = null
         }
     }
 
@@ -64,25 +101,36 @@ fun ProfileView(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        ProfileHeaderCard(userProfile.value)
+        ProfileHeaderCard(
+            profile = userProfile.value,
+            onEditPictureClick = { showProfilePictureDialog = true }
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         QuickActionsCard(
             userProfile = userProfile.value,
+            isBeneficiaryPortal = isBeneficiaryPortal,
             onSupportClick = { onTabSelected("support") },
             onCalendarClick = { onTabSelected("calendar") },
             onApplicationsClick = onNavigateToApplications,
-            onExpiringItemsClick = onNavigateToExpiringItems
+            onExpiringItemsClick = onNavigateToExpiringItems,
+            onCampaignsClick = onNavigateToCampaigns,
+            onAuditLogsClick = onNavigateToAuditLogs
         )
 
         Spacer(modifier = Modifier.height(40.dp))
 
         LogoutButton(
             onClick = {
-                coroutineScope.launch {
+                coroutineScope.launch(Dispatchers.Main) {
                     try {
+                        // Clear profile immediately to prevent Firestore access
+                        userProfile.value = null
+                        // Sign out
                         authRepository.signOut()
+                        // Small delay to ensure LaunchedEffect cancels and Firestore listeners are cleaned up
+                        kotlinx.coroutines.delay(50)
                         onLogout()
                     } catch (e: Exception) {
                         showLogoutError = true
@@ -95,7 +143,60 @@ fun ProfileView(
 
         AppVersion()
     }
-
+    
+    // Profile picture dialog
+    if (showProfilePictureDialog) {
+        ProfilePictureDialog(
+            onDismiss = {
+                showProfilePictureDialog = false
+                uploadError = null
+            },
+            onImageSelected = { base64 ->
+                coroutineScope.launch {
+                    isUploadingPicture = true
+                    uploadError = null
+                    val uid = currentUser?.uid
+                    if (uid != null) {
+                        val result = profilePictureRepository.uploadProfilePicture(uid, base64)
+                        result.fold(
+                            onSuccess = {
+                                isUploadingPicture = false
+                                showProfilePictureDialog = false
+                            },
+                            onFailure = { error ->
+                                isUploadingPicture = false
+                                uploadError = error.message ?: "Erro ao guardar foto de perfil"
+                            }
+                        )
+                    } else {
+                        isUploadingPicture = false
+                        uploadError = "Utilizador não autenticado"
+                    }
+                }
+            },
+            isLoading = isUploadingPicture
+        )
+    }
+    
+    // Upload error dialog
+    uploadError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { uploadError = null },
+            title = {
+                Text("Erro ao Guardar Foto")
+            },
+            text = {
+                Text(error)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { uploadError = null }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
     
     if (showLogoutError) {
         AlertDialog(
@@ -139,11 +240,17 @@ fun ProfileViewPreview() {
         override suspend fun createProfile(profile: UserProfile) = TODO()
         override suspend fun saveFcmToken(token: String) = Result.success(Unit)
     }
+    
+    val mockProfilePictureRepository = object : ProfilePictureRepository {
+        override suspend fun uploadProfilePicture(uid: String, imageBase64: String) = Result.success(Unit)
+        override suspend fun getProfilePicture(uid: String) = flow { emit(null) }
+    }
 
     ProfileView(
         paddingValues = PaddingValues(0.dp),
         authRepository = mockAuthRepository,
         userRepository = mockUserRepository,
+        profilePictureRepository = mockProfilePictureRepository,
         onLogout = { },
         onTabSelected = { }
     )

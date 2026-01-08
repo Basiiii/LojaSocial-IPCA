@@ -1,16 +1,24 @@
 package com.lojasocial.app.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
-import com.lojasocial.app.repository.ApplicationRepository
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.ExpirationRepository
-import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.application.ApplicationRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.campaign.CampaignRepository
+import com.lojasocial.app.repository.product.ExpirationRepository
+import com.lojasocial.app.repository.request.RequestsRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.applications.ApplicationDetailView
 import com.lojasocial.app.ui.applications.ApplicationsListView
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
@@ -26,7 +34,10 @@ import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.lojasocial.app.ui.campaigns.CreateCampaignScreen
 
 /**
  * Builds the complete navigation graph for the application.
@@ -53,7 +64,10 @@ fun NavigationGraph(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     applicationRepository: ApplicationRepository,
-    expirationRepository: ExpirationRepository? = null
+    expirationRepository: ExpirationRepository? = null,
+    campaignRepository: CampaignRepository? = null,
+    requestsRepository: RequestsRepository? = null,
+    profilePictureRepository: ProfilePictureRepository
 ) {
     NavHost(
         navController = navController,
@@ -127,7 +141,11 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    profilePictureRepository = profilePictureRepository,
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository,
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Profile.route) { backStackEntry ->
@@ -137,7 +155,11 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    profilePictureRepository = profilePictureRepository,
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository,
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Support.route) { backStackEntry ->
@@ -147,7 +169,11 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    profilePictureRepository = profilePictureRepository,
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository,
+                    applicationRepository = applicationRepository
                 )
             }
             composable(Screen.EmployeePortal.Calendar.route) { backStackEntry ->
@@ -157,7 +183,11 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
-                    expirationRepository = expirationRepository
+                    profilePictureRepository = profilePictureRepository,
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository,
+                    applicationRepository = applicationRepository
                 )
             }
         }
@@ -174,6 +204,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -184,6 +215,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -194,6 +226,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -204,6 +237,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -220,7 +254,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
             composable(Screen.NonBeneficiaryPortal.Profile.route) { backStackEntry ->
@@ -229,7 +264,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
             composable(Screen.NonBeneficiaryPortal.Support.route) { backStackEntry ->
@@ -238,7 +274,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
             composable(Screen.NonBeneficiaryPortal.Calendar.route) { backStackEntry ->
@@ -247,7 +284,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
         }
@@ -311,7 +349,7 @@ fun NavigationGraph(
             }
         }
 
-        // Applications List
+        // Applications List (for users - shows only their applications)
         composable(Screen.ApplicationsList.route) {
             ApplicationsListView(
                 applicationRepository = applicationRepository,
@@ -321,17 +359,39 @@ fun NavigationGraph(
                 },
                 onItemClick = { applicationId ->
                     navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
-                }
+                },
+                showAllApplications = false,
+                isBeneficiary = lastProfile?.isBeneficiary == true, // Hide add button if user is already a beneficiary
+                title = "As minhas Candidaturas" // Custom title for profile view
+            )
+        }
+
+        // All Applications List (for employees - shows all applications except their own)
+        composable(Screen.AllApplicationsList.route) {
+            val currentUserId = authRepository.getCurrentUser()?.uid
+            
+            ApplicationsListView(
+                applicationRepository = applicationRepository,
+                onNavigateBack = { navController.navigateUp() },
+                onAddClick = {}, // No add button for employees
+                onItemClick = { applicationId ->
+                    navController.navigate(Screen.ApplicationDetail.createRoute(applicationId))
+                },
+                showAllApplications = true,
+                excludeCurrentUserId = currentUserId // Exclude employee's own applications
             )
         }
 
         // Application Detail
         composable(Screen.ApplicationDetail().route) { backStackEntry ->
             val applicationId = backStackEntry.arguments?.getString("applicationId") ?: ""
+            // Check if we came from AllApplicationsList (employee view)
+            val isEmployeeView = navController.previousBackStackEntry?.destination?.route == Screen.AllApplicationsList.route
             ApplicationDetailView(
                 applicationId = applicationId,
                 applicationRepository = applicationRepository,
-                onNavigateBack = { navController.navigateUp() }
+                onNavigateBack = { navController.navigateUp() },
+                isEmployeeView = isEmployeeView
             )
         }
 
@@ -367,6 +427,81 @@ fun NavigationGraph(
                 onNavigateBack = { navController.navigateUp() }
             )
         }
+
+        // Audit Logs
+        composable(Screen.AuditLogs.route) {
+            com.lojasocial.app.ui.audit.AuditLogsView(
+                onNavigateBack = {
+                    // Try to pop back if there's a back stack entry
+                    // If not (e.g., from notification), navigate to employee portal profile
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.EmployeePortal.Profile.route) {
+                            popUpTo(Screen.AuditLogs.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+
+        // Pickup Requests
+        composable(Screen.PickupRequests.route) {
+            com.lojasocial.app.ui.requests.PickupRequestsView(
+                onNavigateBack = { navController.navigateUp() },
+                userRepository = userRepository,
+                requestsRepository = requestsRepository,
+                profilePictureRepository = profilePictureRepository
+            )
+        }
+
+        // Campaigns List
+        composable(Screen.CampaignsList.route) {
+            campaignRepository?.let { repository ->
+                com.lojasocial.app.ui.campaigns.CampaignsListView(
+                    campaignRepository = repository,
+                    onNavigateBack = { navController.navigateUp() },
+                    onAddClick = {
+                        navController.navigate(Screen.CreateCampaign.route)
+                    },
+                    onEditClick = { campaign ->
+                        // Navigate to edit campaign screen
+                        navController.navigate(Screen.CreateCampaign.Edit.createRoute(campaign.id))
+                    }
+                )
+            } ?: run {
+                // Show error if repository is not available
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Erro ao carregar campanhas")
+                }
+            }
+        }
+
+        // Create Campaign
+        composable(Screen.CreateCampaign.route) {
+            CreateCampaignScreen(
+                campaignRepository = campaignRepository,
+                campaignToEdit = null,
+                onNavigateBack = { navController.navigateUp() },
+                onCampaignSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Edit Campaign
+        composable(Screen.CreateCampaign.Edit().route) { backStackEntry ->
+            val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
+            CreateCampaignScreen(
+                campaignRepository = campaignRepository,
+                campaignId = campaignId,
+                onNavigateBack = { navController.navigateUp() },
+                onCampaignSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -381,24 +516,74 @@ private fun EmployeePortalTabContent(
     navController: NavHostController,
     authRepository: AuthRepository,
     userRepository: UserRepository,
-    expirationRepository: ExpirationRepository? = null
+    profilePictureRepository: ProfilePictureRepository,
+    expirationRepository: ExpirationRepository? = null,
+    campaignRepository: CampaignRepository? = null,
+    requestsRepository: RequestsRepository? = null,
+    applicationRepository: ApplicationRepository? = null
 ) {
-    val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
     
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            currentProfile = null
+                        }
+                    }
+                    .collect { newProfile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null && newProfile != null && newProfile.uid == currentUser.uid) {
+                            currentProfile = newProfile
+                        } else {
+                            currentProfile = null
+                        }
+                    }
+            } catch (e: Exception) {
+                currentProfile = null
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val showPortalSelection = currentProfile?.isAdmin == true && currentProfile?.isBeneficiary == true
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
+
     EmployeePortalView(
         userName = displayName,
         showPortalSelection = showPortalSelection,
         onPortalSelectionClick = { navController.navigate(Screen.PortalSelection.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        profilePictureRepository = profilePictureRepository,
         expirationRepository = expirationRepository,
+        requestsRepository = requestsRepository,
+        applicationRepository = applicationRepository,
         onLogout = {
-            navController.navigate(Screen.Login.route) { 
-                popUpTo(0) { inclusive = true } 
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
             }
         },
         onNavigateToApplications = {
+            // For "Ver Candidaturas" button in employee portal home - show all applications except employee's own
+            navController.navigate(Screen.AllApplicationsList.route)
+        },
+        onNavigateToMyApplications = {
+            // For "As minhas Candidaturas" in profile - show only user's own applications
             navController.navigate(Screen.ApplicationsList.route)
         },
         onNavigateToExpiringItems = {
@@ -406,6 +591,15 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToActivityList = {
             navController.navigate(Screen.ActivityList.route)
+        },
+        onNavigateToCampaigns = {
+            navController.navigate(Screen.CampaignsList.route)
+        },
+        onNavigateToPickupRequests = {
+            navController.navigate(Screen.PickupRequests.route)
+        },
+        onNavigateToAuditLogs = {
+            navController.navigate(Screen.AuditLogs.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->
@@ -433,10 +627,49 @@ private fun BeneficiaryPortalTabContent(
     navController: NavHostController,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null
 ) {
-    val showPortalSelection = profile?.isAdmin == true && profile.isBeneficiary
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            currentProfile = null
+                        }
+                    }
+                    .collect { newProfile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null && newProfile != null && newProfile.uid == currentUser.uid) {
+                            currentProfile = newProfile
+                        } else {
+                            currentProfile = null
+                        }
+                    }
+            } catch (e: Exception) {
+                currentProfile = null
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val showPortalSelection = currentProfile?.isAdmin == true && currentProfile?.isBeneficiary == true
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
     
     BeneficiaryPortalView(
         userName = displayName,
@@ -445,6 +678,7 @@ private fun BeneficiaryPortalTabContent(
         onNavigateToOrders = { navController.navigate(Screen.RequestItems.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        profilePictureRepository = profilePictureRepository,
         expirationRepository = expirationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) { 
@@ -485,9 +719,48 @@ private fun NonBeneficiaryPortalTabContent(
     profile: UserProfile?,
     navController: NavHostController,
     authRepository: AuthRepository,
-    userRepository: UserRepository
+    userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository
 ) {
-    val displayName = profile?.name?.substringBefore(" ") ?: "Utilizador"
+    // Observe current user to get fresh profile data - this ensures the name updates when user changes
+    val currentUser = authRepository.getCurrentUser()
+    var currentProfile by remember(currentUser?.uid) { mutableStateOf<UserProfile?>(profile) }
+    
+    // Update profile when current user changes
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
+            try {
+                userRepository.getCurrentUserProfile()
+                    .catch { e ->
+                        // Handle Firestore errors gracefully (e.g., permission denied after logout)
+                        if (e is FirebaseFirestoreException || e is Exception) {
+                            currentProfile = null
+                        }
+                    }
+                    .collect { newProfile ->
+                        // Only update if we still have a valid user
+                        if (authRepository.getCurrentUser() != null && newProfile != null && newProfile.uid == currentUser.uid) {
+                            currentProfile = newProfile
+                        } else {
+                            currentProfile = null
+                        }
+                    }
+            } catch (e: Exception) {
+                currentProfile = null
+            }
+        } else {
+            currentProfile = null
+        }
+    }
+    
+    // Also update when profile parameter changes (from navigation) - this handles initial load
+    LaunchedEffect(profile?.uid) {
+        if (profile != null && currentUser?.uid == profile.uid) {
+            currentProfile = profile
+        }
+    }
+    
+    val displayName = currentProfile?.name?.substringBefore(" ") ?: "Utilizador"
     
     NonBeneficiaryPortalView(
         userName = displayName,
@@ -495,6 +768,7 @@ private fun NonBeneficiaryPortalTabContent(
         onPortalSelectionClick = { navController.navigate(Screen.PortalSelection.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        profilePictureRepository = profilePictureRepository,
         onNavigateToApplication = {
             navController.navigate(Screen.ApplicationFlow.route)
         },

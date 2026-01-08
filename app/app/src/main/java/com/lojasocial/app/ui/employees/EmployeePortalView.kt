@@ -9,10 +9,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.ExpirationRepository
-import com.lojasocial.app.repository.UserProfile
-import com.lojasocial.app.repository.UserRepository
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.product.ExpirationRepository
+import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
+import com.lojasocial.app.repository.request.RequestsRepository
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
+import com.lojasocial.app.repository.application.ApplicationRepository
+import com.lojasocial.app.domain.application.ApplicationStatus
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
@@ -31,17 +37,48 @@ fun EmployeePortalView(
     onPortalSelectionClick: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null,
+    requestsRepository: RequestsRepository? = null,
+    applicationRepository: ApplicationRepository? = null,
     onLogout: () -> Unit = {},
-    onNavigateToApplications: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {}, // For viewing all applications (employee portal home)
+    onNavigateToMyApplications: () -> Unit = {}, // For viewing own applications (profile page)
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToActivityList: () -> Unit = {},
+    onNavigateToCampaigns: () -> Unit = {},
+    onNavigateToPickupRequests: () -> Unit = {},
+    onNavigateToAuditLogs: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
     var showAddStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
+    var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
     val selectedTab = currentTab
+    
+    // Get current user ID to exclude own applications
+    val currentUserId = authRepository.getCurrentUser()?.uid
+    
+    // Fetch pending applications count (excluding current user's applications)
+    var pendingApplicationsCount by remember { mutableStateOf(0) }
+    
+    // Fetch pending requests count
+    LaunchedEffect(requestsRepository) {
+        requestsRepository?.getAllRequests()?.collect { requests ->
+            // Count requests with status 0 (SUBMETIDO)
+            pendingRequestsCount = requests.count { it.status == 0 }
+        }
+    }
+    
+    LaunchedEffect(applicationRepository, currentUserId) {
+        applicationRepository?.getAllApplications()?.collect { applications ->
+            pendingApplicationsCount = applications.count { 
+                it.status == ApplicationStatus.PENDING && 
+                it.userId != currentUserId // Exclude current user's applications
+            }
+        }
+    }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (selectedTab) {
@@ -58,10 +95,14 @@ fun EmployeePortalView(
                         name = userName?.takeIf { it.isNotBlank() } ?: "Utilizador"
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    StatsSection()
+                    StatsSection(pendingApplicationsCount = pendingApplicationsCount)
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
-                        onNavigateToScanStock = { showAddStockScreen = true }
+                        onNavigateToScanStock = { showAddStockScreen = true },
+                        onNavigateToApplications = onNavigateToApplications,
+                        onNavigateToPickupRequests = onNavigateToPickupRequests,
+                        pendingRequestsCount = pendingRequestsCount,
+                        pendingApplicationsCount = pendingApplicationsCount
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     RecentActivitySection(
@@ -76,10 +117,14 @@ fun EmployeePortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
+                    isBeneficiaryPortal = false,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
-                    onNavigateToApplications = onNavigateToApplications,
-                    onNavigateToExpiringItems = onNavigateToExpiringItems
+                    onNavigateToApplications = onNavigateToMyApplications, // Use separate callback for own applications
+                    onNavigateToExpiringItems = onNavigateToExpiringItems,
+                    onNavigateToCampaigns = onNavigateToCampaigns,
+                    onNavigateToAuditLogs = onNavigateToAuditLogs
                 )
             }
 
@@ -97,7 +142,7 @@ fun EmployeePortalView(
                 ) {
                     if (isChatOpen) {
                         ChatView(
-                            embeddedInAppLayout = true,
+                            embeddedInAppLayout = false,
                             onClose = { isChatOpen = false }
                         )
                     } else {
@@ -111,7 +156,10 @@ fun EmployeePortalView(
             }
 
             "calendar" -> {
-                CalendarView(paddingValues = paddingValues)
+                CalendarView(
+                    paddingValues = paddingValues,
+                    isBeneficiaryPortal = false
+                )
             }
         }
     }
@@ -125,11 +173,16 @@ fun EmployeePortalView(
             AppLayout(
                 selectedTab = selectedTab,
                 onTabSelected = { tab ->
+                    if (tab != "support") {
+                        isChatOpen = false
+                    }
                     onTabChange?.invoke(tab) ?: run {
                         // Fallback for preview/legacy usage
                     }
                 },
                 subtitle = "Portal Funcionários",
+                showTopBar = !(selectedTab == "support" && isChatOpen),
+                showBottomBar = !(selectedTab == "support" && isChatOpen),
                 showPortalSelection = showPortalSelection,
                 onPortalSelectionClick = onPortalSelectionClick
             ) { paddingValues ->
@@ -182,6 +235,11 @@ fun EmployeeScreenPreview() {
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
         }
+        
+        val mockProfilePictureRepository = object : ProfilePictureRepository {
+            override suspend fun uploadProfilePicture(uid: String, imageBase64: String) = Result.success(Unit)
+            override suspend fun getProfilePicture(uid: String) = flow { emit(null) }
+        }
 
         AppLayout(
             selectedTab = "home",
@@ -191,7 +249,8 @@ fun EmployeeScreenPreview() {
             EmployeePortalView(
                 useAppLayout = false,
                 authRepository = mockAuthRepository,
-                userRepository = mockUserRepository
+                userRepository = mockUserRepository,
+                profilePictureRepository = mockProfilePictureRepository
             )
         }
     }

@@ -35,6 +35,7 @@ sealed class Screen(val route: String) {
     
     // Feature Screens
     object RequestItems : Screen("requestItems")
+    object PickupRequests : Screen("pickupRequests")
     
     // Application Flow
     object ApplicationFlow : Screen("applicationFlow") {
@@ -45,6 +46,7 @@ sealed class Screen(val route: String) {
     
     // Applications
     object ApplicationsList : Screen("applicationsList")
+    object AllApplicationsList : Screen("allApplicationsList") // For employees to review all applications
     data class ApplicationDetail(val applicationId: String = "{applicationId}") : Screen("applicationDetail/{applicationId}") {
         companion object {
             fun createRoute(applicationId: String) = "applicationDetail/$applicationId"
@@ -56,4 +58,17 @@ sealed class Screen(val route: String) {
     
     // Activity
     object ActivityList : Screen("activityList")
+    
+    // Campaigns
+    object CampaignsList : Screen("campaignsList")
+    object CreateCampaign : Screen("createCampaign") {
+        data class Edit(val campaignId: String = "{campaignId}") : Screen("createCampaign/{campaignId}") {
+            companion object {
+                fun createRoute(campaignId: String) = "createCampaign/$campaignId"
+            }
+        }
+    }
+    
+    // Audit Logs
+    object AuditLogs : Screen("auditLogs")
 }

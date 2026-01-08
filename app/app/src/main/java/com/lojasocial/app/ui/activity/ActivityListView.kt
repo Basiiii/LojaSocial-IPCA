@@ -19,8 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.lojasocial.app.domain.Activity
-import com.lojasocial.app.domain.ActivityType
+import com.lojasocial.app.domain.activity.Activity
+import com.lojasocial.app.domain.activity.ActivityType
 import com.lojasocial.app.ui.components.ActivityItem
 import com.lojasocial.app.ui.theme.*
 import java.util.concurrent.TimeUnit

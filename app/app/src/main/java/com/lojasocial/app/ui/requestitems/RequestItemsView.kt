@@ -46,7 +46,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,6 +77,7 @@ import com.lojasocial.app.ui.theme.BorderColor
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.TextGray
 import com.lojasocial.app.ui.requestitems.RequestItemsConstants
+import com.lojasocial.app.domain.request.RequestItem
 
 @Composable
 fun RequestItemsView(
@@ -85,18 +90,21 @@ fun RequestItemsView(
     val submissionState by viewModel.submissionState.collectAsState()
 
     val isSubmitting = submissionState is SubmissionState.Loading
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(submissionState) {
         val currentSubmissionState = submissionState
         when (currentSubmissionState) {
             is SubmissionState.Success -> {
+                snackbarHostState.showSnackbar("Pedido criado com sucesso!")
+                delay(1500)
                 viewModel.resetSubmissionState()
                 onSubmitClick()
             }
 
             is SubmissionState.Error -> {
+                snackbarHostState.showSnackbar(currentSubmissionState.message)
                 viewModel.resetSubmissionState()
-                onSubmitClick()
             }
 
             else -> {}
@@ -107,26 +115,35 @@ fun RequestItemsView(
     val categories = RequestItemsConstants.PRODUCT_CATEGORIES
     var selectedCategory by remember { mutableStateOf(RequestItemsConstants.DEFAULT_CATEGORY) }
 
-    RequestItemsContent(
-        uiState = uiState,
-        productQuantities = productQuantities,
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        categories = categories,
-        selectedCategory = selectedCategory,
-        onCategorySelected = { selectedCategory = it },
-        onAddProduct = { viewModel.onAddProduct(it) },
-        onRemoveProduct = { viewModel.onRemoveProduct(it) },
-        onClearQuantities = { viewModel.clearQuantities() },
-        onBackClick = onBackClick,
-        isSubmitting = isSubmitting,
-        onSubmitClick = {
-            if (!isSubmitting) {
-                viewModel.submitRequest()
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { snackbarData ->
+                Snackbar(snackbarData = snackbarData)
             }
-        },
-        onLoadMore = { viewModel.fetchProducts(isLoadMore = true) }
-    )
+        }
+    ) { paddingValues ->
+        RequestItemsContent(
+            uiState = uiState,
+            productQuantities = productQuantities,
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
+            categories = categories,
+            selectedCategory = selectedCategory,
+            onCategorySelected = { selectedCategory = it },
+            onAddProduct = { viewModel.onAddProduct(it) },
+            onRemoveProduct = { viewModel.onRemoveProduct(it) },
+            onClearQuantities = { viewModel.clearQuantities() },
+            onBackClick = onBackClick,
+            isSubmitting = isSubmitting,
+            onSubmitClick = {
+                if (!isSubmitting) {
+                    viewModel.submitRequest()
+                }
+            },
+            onLoadMore = { viewModel.fetchProducts(isLoadMore = true) },
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
 }
 
 /**
@@ -166,26 +183,20 @@ fun RequestItemsContent(
     onBackClick: () -> Unit,
     onSubmitClick: () -> Unit,
     isSubmitting: Boolean = false,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val totalItemsSelected = productQuantities.values.sum()
     val maxItems = RequestItemsConstants.MAX_ITEMS
     val progress = (totalItemsSelected.toFloat() / maxItems.toFloat()).coerceIn(0f, 1f)
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        topBar = { RequestItemsTopAppBar(onBackClick = onBackClick) },
-        bottomBar = {
-            RequestItemsBottomBar(
-                onSubmitClick = onSubmitClick,
-                enabled = totalItemsSelected > 0 && !isSubmitting
-            )
-        }
-    ) { paddingValues ->
+    Column(modifier = modifier.fillMaxSize()) {
+        RequestItemsTopAppBar(onBackClick = onBackClick)
+        
         Box(
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxSize()
+                .weight(1f)
         ) {
             Column(
                 modifier = Modifier
@@ -296,6 +307,11 @@ fun RequestItemsContent(
                 }
             }
         }
+        
+        RequestItemsBottomBar(
+            onSubmitClick = onSubmitClick,
+            enabled = totalItemsSelected > 0 && !isSubmitting
+        )
     }
 }
 
@@ -310,13 +326,13 @@ val previewCategories = RequestItemsConstants.PRODUCT_CATEGORIES
 @Preview(showBackground = true)
 @Composable
 fun RequestItemsViewPreview() {
-    val mockProducts = listOf(
-        RequestItem(
-            id = "1",
-            product = Product(
-                name = "Arroz Agulha",
-                category = 1,
-            )
+    val mockProducts: List<RequestItem> = listOf(
+        com.lojasocial.app.domain.request.RequestItem(
+            docId = 1.toString(),
+            id = 1,
+            name = "Arroz Agulha",
+            category = "Alimentar",
+            quantity = 50
         ),
     )
 
@@ -372,13 +388,13 @@ fun PreviewLoading() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewSubmitting() {
-    val mockProducts = listOf(
+    val mockProducts: List<RequestItem> = listOf(
         RequestItem(
-            id = "1",
-            product = Product(
-                name = "Arroz Agulha",
-                category = 1,
-            )
+            docId = 1.toString(),
+            id = 1,
+            name = "Arroz Agulha",
+            category = "Alimentar",
+            quantity = 50
         ),
     )
     RequestItemsContent(
@@ -420,6 +436,68 @@ fun PreviewError() {
         onClearQuantities = {},
         onBackClick = {},
         onSubmitClick = {},
+        isSubmitting = false,
+        onLoadMore = {}
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewEmptyList() {
+    RequestItemsContent(
+        uiState = RequestItemsUiState.Success(emptyList()),
+        productQuantities = emptyMap(),
+        searchQuery = "",
+        onSearchQueryChange = {},
+        categories = previewCategories,
+        selectedCategory = RequestItemsConstants.DEFAULT_CATEGORY,
+        onCategorySelected = {},
+        onAddProduct = {},
+        onRemoveProduct = {},
+        onClearQuantities = {},
+        onBackClick = {},
+        onSubmitClick = {},
+        isSubmitting = false,
+        onLoadMore = {}
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewLimitReached() {
+    val mockProducts: List<RequestItem> = listOf(
+        RequestItem(
+            docId = 1.toString(),
+            id = 1,
+            name = "Arroz",
+            category = "Alimentar",
+            quantity = 50
+        ),
+        RequestItem(
+            docId = 2.toString(),
+            id = 2,
+            name = "Massa",
+            category = "Alimentar",
+            quantity = 50
+        )
+    )
+
+    val quantities = mapOf("1" to 5, "2" to 5)
+
+    RequestItemsContent(
+        uiState = RequestItemsUiState.Success(mockProducts),
+        productQuantities = quantities,
+        searchQuery = "",
+        onSearchQueryChange = {},
+        categories = previewCategories,
+        selectedCategory = RequestItemsConstants.DEFAULT_CATEGORY,
+        onCategorySelected = {},
+        onAddProduct = {},
+        onRemoveProduct = {},
+        onClearQuantities = {},
+        onBackClick = {},
+        onSubmitClick = {},
+        isSubmitting = false,
         onLoadMore = {}
     )
 }

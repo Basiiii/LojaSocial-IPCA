@@ -21,7 +21,11 @@ import com.lojasocial.app.ui.theme.TextDark
 @Composable
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {},
-    onSupportClick: () -> Unit = {}
+    onSupportClick: () -> Unit = {},
+    onNavigateToApplications: () -> Unit = {},
+    onNavigateToPickupRequests: () -> Unit = {},
+    pendingRequestsCount: Int? = null,
+    pendingApplicationsCount: Int = 0
 ) {
     Column {
         Text(
@@ -49,9 +53,9 @@ fun QuickActionsSection(
             buttonText = "Gere Pedidos",
             backgroundColor = BrandPurple,
             icon = Icons.Default.Inventory2,
-            badgeCount = 12,
+            badgeCount = pendingRequestsCount ?: 0,
             badgeLabel = "Pendentes",
-            onClick = { /* Handle Orders */ }
+            onClick = onNavigateToPickupRequests
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -73,10 +77,10 @@ fun QuickActionsSection(
             buttonText = "Rever Candidaturas",
             backgroundColor = BrandBlue,
             icon = Icons.Default.Description,
-            badgeCount = 5,
-            badgeLabel = "Novas",
+            badgeCount = if (pendingApplicationsCount > 0) pendingApplicationsCount else null,
+            badgeLabel = if (pendingApplicationsCount > 0) "Novas" else null,
             isRedBadge = true,
-            onClick = { /* Handle Applications */ }
+            onClick = onNavigateToApplications
         )
     }
 }

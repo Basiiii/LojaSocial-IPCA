@@ -1,6 +1,6 @@
 package com.lojasocial.app.navigation
 
-import com.lojasocial.app.repository.UserProfile
+import com.lojasocial.app.repository.user.UserProfile
 
 /**
  * Helper functions for navigation logic.

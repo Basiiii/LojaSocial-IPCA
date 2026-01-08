@@ -18,13 +18,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationStatus
-import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.domain.application.Application
+import com.lojasocial.app.domain.application.ApplicationStatus
+import com.lojasocial.app.repository.application.ApplicationRepository
 import com.lojasocial.app.ui.applications.formatTimeAgo
 import com.lojasocial.app.ui.applications.StatusChip
 import com.lojasocial.app.utils.FileUtils
@@ -33,22 +35,34 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import com.lojasocial.app.domain.application.ApplicationDocument
+import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApplicationDetailView(
     applicationId: String,
     applicationRepository: ApplicationRepository,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    isEmployeeView: Boolean = false // If true, uses getApplicationByIdForEmployee
 ) {
     var application by remember { mutableStateOf<Application?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var refreshTrigger by remember { mutableStateOf(0) }
     val context = LocalContext.current
 
-    LaunchedEffect(applicationId) {
+    LaunchedEffect(applicationId, isEmployeeView, refreshTrigger) {
         try {
-            val result = applicationRepository.getApplicationById(applicationId)
+            isLoading = true
+            error = null
+            val result = if (isEmployeeView) {
+                applicationRepository.getApplicationByIdForEmployee(applicationId)
+            } else {
+                applicationRepository.getApplicationById(applicationId)
+            }
             if (result.isSuccess) {
                 application = result.getOrNull()
                 isLoading = false
@@ -129,7 +143,13 @@ fun ApplicationDetailView(
                 ApplicationDetailContent(
                     application = application!!,
                     context = context,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(paddingValues),
+                    isEmployeeView = isEmployeeView,
+                    applicationRepository = applicationRepository,
+                    onStatusUpdated = {
+                        // Reload the application after status update
+                        refreshTrigger++
+                    }
                 )
             }
         }
@@ -140,8 +160,16 @@ fun ApplicationDetailView(
 fun ApplicationDetailContent(
     application: Application,
     context: Context,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isEmployeeView: Boolean = false,
+    applicationRepository: ApplicationRepository? = null,
+    onStatusUpdated: () -> Unit = {}
 ) {
+    var showRejectionDialog by remember { mutableStateOf(false) }
+    var rejectionMessage by remember { mutableStateOf("") }
+    var isUpdating by remember { mutableStateOf(false) }
+    var updateError by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -234,6 +262,237 @@ fun ApplicationDetailContent(
             documents = application.documents,
             context = context
         )
+
+        // Rejection Message Section (if rejected)
+        if (application.status == ApplicationStatus.REJECTED) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Mensagem do suporte",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFC62828)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (application.rejectionMessage != null && application.rejectionMessage.isNotBlank()) {
+                        Text(
+                            text = application.rejectionMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFC62828)
+                        )
+                    } else {
+                        Text(
+                            text = "A tua candidatura foi rejeitada. Por favor, contacta o suporte para mais informações.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFFC62828),
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
+                }
+            }
+        }
+
+        // Employee Action Buttons
+        if (isEmployeeView && application.status != ApplicationStatus.APPROVED && application.status != ApplicationStatus.REJECTED) {
+            Spacer(modifier = Modifier.height(24.dp))
+            DecisionButtonsSection(
+                onAcceptClick = {
+                    isUpdating = true
+                    updateError = null
+                    coroutineScope.launch {
+                        applicationRepository?.let { repo ->
+                            val result = repo.updateApplicationStatus(
+                                application.id,
+                                ApplicationStatus.APPROVED
+                            )
+                            if (result.isSuccess) {
+                                Toast.makeText(
+                                    context,
+                                    "Candidatura aceite com sucesso!",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                onStatusUpdated()
+                            } else {
+                                updateError = result.exceptionOrNull()?.message ?: "Erro ao aprovar candidatura"
+                                isUpdating = false
+                            }
+                        }
+                    }
+                },
+                onRejectClick = { showRejectionDialog = true },
+                acceptColor = LojaSocialPrimary,
+                rejectColor = Color(0xFFC62828),
+                isUpdating = isUpdating
+            )
+        }
+
+        // Error message
+        if (updateError != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = updateError ?: "",
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+
+    // Rejection Dialog
+    if (showRejectionDialog) {
+        AlertDialog(
+            onDismissRequest = { showRejectionDialog = false },
+            containerColor = Color.White,
+            title = {
+                Text("Rejeitar Candidatura")
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Tens a certeza que queres rejeitar esta candidatura?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = rejectionMessage,
+                        onValueChange = { rejectionMessage = it },
+                        label = { Text("Mensagem (opcional)") },
+                        placeholder = { Text("Explica o motivo da rejeição...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4,
+                        minLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isUpdating = true
+                        updateError = null
+                        coroutineScope.launch {
+                            applicationRepository?.let { repo ->
+                                val result = repo.updateApplicationStatus(
+                                    application.id,
+                                    ApplicationStatus.REJECTED,
+                                    rejectionMessage.takeIf { it.isNotBlank() }
+                                )
+                                if (result.isSuccess) {
+                                    Toast.makeText(
+                                        context,
+                                        "Candidatura rejeitada com sucesso!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    showRejectionDialog = false
+                                    rejectionMessage = ""
+                                    onStatusUpdated()
+                                } else {
+                                    updateError = result.exceptionOrNull()?.message ?: "Erro ao rejeitar candidatura"
+                                    isUpdating = false
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFC62828)
+                    ),
+                    enabled = !isUpdating
+                ) {
+                    Text("Rejeitar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showRejectionDialog = false },
+                    enabled = !isUpdating
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun DecisionButtonsSection(
+    onAcceptClick: () -> Unit,
+    onRejectClick: () -> Unit,
+    acceptColor: Color,
+    rejectColor: Color,
+    isUpdating: Boolean = false
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Accept Button
+        DecisionButton(
+            text = "Aceitar Candidatura",
+            icon = Icons.Default.Check,
+            backgroundColor = acceptColor,
+            onClick = onAcceptClick,
+            enabled = !isUpdating
+        )
+
+        // Reject Button
+        DecisionButton(
+            text = "Rejeitar Candidatura",
+            icon = Icons.Default.Close,
+            backgroundColor = rejectColor,
+            onClick = onRejectClick,
+            enabled = !isUpdating
+        )
+    }
+}
+
+@Composable
+fun DecisionButton(
+    text: String,
+    icon: ImageVector,
+    backgroundColor: Color,
+    onClick: () -> Unit,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(45.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor,
+            contentColor = Color.White,
+            disabledContainerColor = backgroundColor.copy(alpha = 0.6f),
+            disabledContentColor = Color.White.copy(alpha = 0.6f)
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
+        ),
+        enabled = enabled
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = text,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -294,7 +553,7 @@ fun InformationSection(
 
 @Composable
 fun DocumentsSection(
-    documents: List<com.lojasocial.app.domain.ApplicationDocument>,
+    documents: List<ApplicationDocument>,
     context: Context
 ) {
     Card(
@@ -339,7 +598,7 @@ fun DocumentsSection(
 
 @Composable
 fun DocumentItem(
-    document: com.lojasocial.app.domain.ApplicationDocument,
+    document: ApplicationDocument,
     context: Context,
     modifier: Modifier = Modifier
 ) {

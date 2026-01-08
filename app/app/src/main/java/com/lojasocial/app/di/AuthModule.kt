@@ -2,10 +2,10 @@ package com.lojasocial.app.di
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lojasocial.app.repository.AuthRepository
-import com.lojasocial.app.repository.AuthRepositoryImpl
-import com.lojasocial.app.repository.UserRepository
-import com.lojasocial.app.repository.UserRepositoryImpl
+import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.auth.AuthRepositoryImpl
+import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.UserRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.Provides

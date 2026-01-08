@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -12,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.lojasocial.app.repository.UserProfile
+import com.lojasocial.app.repository.user.UserProfile
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandOrange
 import com.lojasocial.app.ui.theme.BrandPurple
@@ -27,22 +29,30 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * 
  * Visibility rules:
  * - Support and Calendar: Always visible
- * - Applications ("As minhas Candidaturas"): Only visible for beneficiaries
- * - Expiring Items ("Itens Próximos do Prazo"): Only visible for admins/employees
+ * - Applications ("As minhas Candidaturas"): Visible for all users (beneficiaries, non-beneficiaries, and employees)
+ * - Expiring Items ("Itens Próximos do Prazo"): Only visible for admins/employees in Employee Portal
+ * - Campaigns: Only visible for admins/employees in Employee Portal
+ * - Audit Logs: Only visible for admins/employees in Employee Portal
  * 
  * @param userProfile The user profile data to determine which options should be shown
+ * @param isBeneficiaryPortal Whether the user is currently in the Beneficiary Portal (hides employee actions)
  * @param onSupportClick Callback invoked when support option is clicked
  * @param onCalendarClick Callback invoked when calendar option is clicked
- * @param onApplicationsClick Callback invoked when applications option is clicked (beneficiaries only)
+ * @param onApplicationsClick Callback invoked when applications option is clicked
  * @param onExpiringItemsClick Callback invoked when expiring items option is clicked (admins only)
+ * @param onCampaignsClick Callback invoked when campaigns option is clicked (admins only)
+ * @param onAuditLogsClick Callback invoked when audit logs option is clicked (admins only)
  */
 @Composable
 fun QuickActionsCard(
     userProfile: UserProfile?,
+    isBeneficiaryPortal: Boolean = false,
     onSupportClick: () -> Unit,
     onCalendarClick: () -> Unit,
     onApplicationsClick: () -> Unit = {},
-    onExpiringItemsClick: () -> Unit = {}
+    onExpiringItemsClick: () -> Unit = {},
+    onCampaignsClick: () -> Unit = {},
+    onAuditLogsClick: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -69,22 +79,20 @@ fun QuickActionsCard(
                 onClick = onCalendarClick
             )
             
-            // Show applications option only for beneficiaries and non beneficiaries
-            val nonBeneficiary = (userProfile?.isBeneficiary == false && !userProfile.isAdmin)
-            if (userProfile?.isBeneficiary == true || nonBeneficiary) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.Assignment,
-                    title = "As minhas Candidaturas",
-                    subtitle = "Ver e gerir as minhas candidaturas",
-                    iconColor = Color(0xFF10B981),
-                    onClick = onApplicationsClick
-                )
-            }
+            // Show applications option for all users (beneficiaries, non-beneficiaries, and employees)
+            // Everyone should be able to see and manage their own applications
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
             
-            // Show expiring items option only for admins/employees
-            if (userProfile?.isAdmin == true) {
+            ProfileOption(
+                icon = Icons.Default.Assignment,
+                title = "As minhas Candidaturas",
+                subtitle = "Ver e gerir as minhas candidaturas",
+                iconColor = Color(0xFF10B981),
+                onClick = onApplicationsClick
+            )
+            
+            // Show expiring items option only for admins/employees in Employee Portal
+            if (userProfile?.isAdmin == true && !isBeneficiaryPortal) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
                 
                 ProfileOption(
@@ -93,6 +101,26 @@ fun QuickActionsCard(
                     subtitle = "Ver itens a expirar em breve",
                     iconColor = BrandOrange,
                     onClick = onExpiringItemsClick
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+                
+                ProfileOption(
+                    icon = Icons.Default.Campaign,
+                    title = "Campanhas",
+                    subtitle = "Gerir campanhas",
+                    iconColor = Color(0xFF06B6D4),
+                    onClick = onCampaignsClick
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+                
+                ProfileOption(
+                    icon = Icons.Default.History,
+                    title = "Registos de Auditoria",
+                    subtitle = "Ver registos de ações",
+                    iconColor = Color(0xFF6366F1),
+                    onClick = onAuditLogsClick
                 )
             }
         }

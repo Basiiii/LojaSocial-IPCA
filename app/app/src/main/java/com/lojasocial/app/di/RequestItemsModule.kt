@@ -1,9 +1,7 @@
 package com.lojasocial.app.di
 
-import com.lojasocial.app.repository.ItemsRepository
-import com.lojasocial.app.repository.ItemsRepositoryImpl
-import com.lojasocial.app.repository.OrdersRepository
-import com.lojasocial.app.repository.OrdersRepositoryImpl
+import com.lojasocial.app.repository.request.ItemsRepository
+import com.lojasocial.app.repository.request.ItemsRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -19,10 +17,4 @@ abstract class RequestItemsModule {
     abstract fun bindItemsRepository(
         itemsRepositoryImpl: ItemsRepositoryImpl
     ): ItemsRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindOrdersRepository(
-        ordersRepositoryImpl: OrdersRepositoryImpl
-    ): OrdersRepository
 }

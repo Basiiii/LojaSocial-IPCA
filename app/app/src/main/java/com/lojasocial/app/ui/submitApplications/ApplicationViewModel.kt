@@ -3,10 +3,10 @@ package com.lojasocial.app.ui.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lojasocial.app.domain.Application
-import com.lojasocial.app.domain.ApplicationDocument
-import com.lojasocial.app.domain.ApplicationStatus
-import com.lojasocial.app.repository.ApplicationRepository
+import com.lojasocial.app.domain.application.*
+import com.lojasocial.app.repository.application.ApplicationRepository
+import com.lojasocial.app.repository.application.ApplicationRepositoryImpl
+import com.lojasocial.app.utils.ValidationUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -187,14 +187,14 @@ class ApplicationViewModel @Inject constructor(
 
             try {
                 val application = Application(
-                    personalInfo = com.lojasocial.app.domain.PersonalInfo(
+                    personalInfo = PersonalInfo(
                         name = name,
                         dateOfBirth = dateOfBirth,
                         idPassport = idPassport,
                         email = email,
                         phone = phone
                     ),
-                    academicInfo = com.lojasocial.app.domain.AcademicInfo(
+                    academicInfo = AcademicInfo(
                         academicDegree = academicDegree,
                         course = course,
                         studentNumber = studentNumber,
@@ -232,19 +232,21 @@ class ApplicationViewModel @Inject constructor(
     private fun validateInputs(): Boolean {
         val errors = mutableListOf<String>()
 
-        if (name.isBlank()) errors.add("Nome é obrigatório")
+        // Personal Info Validation with proper rules
+        ValidationUtils.getNameError(name)?.let { errors.add(it) }
         if (dateOfBirth == null) errors.add("Data de nascimento é obrigatória")
-        if (idPassport.isBlank()) errors.add("CC/Passaporte é obrigatório")
-        if (email.isBlank()) errors.add("Email é obrigatório")
-        if (phone.isBlank()) errors.add("Telemóvel é obrigatório")
+        ValidationUtils.getIdPassportError(idPassport)?.let { errors.add(it) }
+        ValidationUtils.getEmailError(email)?.let { errors.add(it) }
+        ValidationUtils.getPhoneError(phone)?.let { errors.add(it) }
 
+        // Academic Info Validation
         if (academicDegree.isBlank()) errors.add("Grau académico é obrigatório")
         if (course.isBlank()) errors.add("Curso é obrigatório")
         if (studentNumber.isBlank()) errors.add("Número de estudante é obrigatório")
         if (faesSupport == null) errors.add("Informação sobre apoio FAES é obrigatória")
         if (hasScholarship == null) errors.add("Informação sobre bolsa é obrigatória")
 
-        // Check if at least one document is uploaded
+        // Documents Validation
         val hasUploadedDocuments = documents.any { it.uri != null }
         if (!hasUploadedDocuments) {
             errors.add("Pelo menos um documento é obrigatório")
@@ -282,6 +284,6 @@ class ApplicationViewModel @Inject constructor(
     }
     
     fun setContext(context: android.content.Context) {
-        (applicationRepository as? com.lojasocial.app.repository.ApplicationRepositoryImpl)?.setContext(context)
+        (applicationRepository as? ApplicationRepositoryImpl)?.setContext(context)
     }
 }
