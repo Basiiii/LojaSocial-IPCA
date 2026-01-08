@@ -101,9 +101,8 @@ fun BeneficiaryDetailView(
                     Text(
                         "Detalhes do Beneficiário",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
                             color = Color.Black
-                        )
+                        ),
                     )
                 },
                 navigationIcon = {
