@@ -45,6 +45,9 @@ import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.flow.firstOrNull
 import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.utils.FileUtils
+import com.lojasocial.app.domain.product.ProductCategory
+import com.lojasocial.app.ui.theme.BgYellow
+import com.lojasocial.app.ui.theme.TextYellow
 import java.util.Calendar
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
@@ -88,29 +91,42 @@ fun RequestDetailsDialog(
         else -> RequestStatus.SUBMETIDO
     }
 
-    // Format products list with icons
-    val productItems = request.items.map { item ->
-        val category = getProductCategoryFromName(item.productName)
-        ProductItemData(
-            name = item.productName,
-            quantity = item.quantity,
-            icon = getCategoryIcon(category),
-            iconBgColor = getCategoryBgColor(category),
-            iconTint = getCategoryTintColor(category)
-        )
-    }
+    // Format products list with icons - use ProductCategory enum, sorted by category
+    val productItems = request.items
+        .sortedBy { item ->
+            // Sort by category id: 1=Alimentar, 2=Casa, 3=Higiene, null/unknown=999 (last)
+            item.category ?: 999
+        }
+        .map { item ->
+            // Convert category Int to category string using ProductCategory enum
+            val categoryString = when (ProductCategory.fromId(item.category)) {
+                ProductCategory.ALIMENTAR -> "Alimentar"
+                ProductCategory.HIGIENE_PESSOAL -> "Higiene"
+                ProductCategory.CASA -> "Limpeza"
+                null -> "Vários"
+            }
+            ProductItemData(
+                name = item.productName,
+                quantity = item.quantity,
+                brand = item.brand,
+                expiryDate = item.expiryDate,
+                icon = getCategoryIcon(categoryString),
+                iconBgColor = getCategoryBgColor(categoryString),
+                iconTint = getCategoryTintColor(categoryString)
+            )
+        }
 
-    // Determine request category
+    // Determine request category using ProductCategory enum
     val requestCategory = when {
         request.items.isEmpty() -> "Vários"
         request.items.size > 1 -> "Vários"
         else -> {
-            val firstItemName = request.items.firstOrNull()?.productName?.lowercase() ?: ""
-            when {
-                firstItemName.contains("limpeza") || firstItemName.contains("detergente") -> "Limpeza"
-                firstItemName.contains("comida") || firstItemName.contains("alimento") -> "Alimentar"
-                firstItemName.contains("higiene") || firstItemName.contains("sabonete") -> "Higiene"
-                else -> "Vários"
+            val firstItemCategory = request.items.firstOrNull()?.category ?: 1
+            when (ProductCategory.fromId(firstItemCategory)) {
+                ProductCategory.ALIMENTAR -> "Alimentar"
+                ProductCategory.HIGIENE_PESSOAL -> "Higiene"
+                ProductCategory.CASA -> "Limpeza"
+                null -> "Vários"
             }
         }
     }
@@ -198,7 +214,14 @@ fun RequestDetailsDialog(
                         // 2. Product List Card
                         ProductListCard(productItems = productItems)
 
-                        // 3. Collection Info Card
+                        // 3. Suggested Date Card (only for SUBMETIDO status when date is selected)
+                        if (status == RequestStatus.SUBMETIDO && selectedDate != null) {
+                            SuggestedDateCard(
+                                suggestedDate = dateFormat.format(selectedDate!!)
+                            )
+                        }
+
+                        // 4. Collection Info Card
                         if (status != RequestStatus.SUBMETIDO && status != RequestStatus.REJEITADO) {
                             CollectionInfoCard(
                                 pickupDate = formattedPickupDate ?: "",
@@ -211,14 +234,11 @@ fun RequestDetailsDialog(
                     if (status == RequestStatus.SUBMETIDO && canAcceptReject) {
                         ActionFooter(
                             isLoading = isLoading,
+                            isAcceptEnabled = selectedDate != null,
                             onAcceptClick = {
-                                val today = Calendar.getInstance().apply {
-                                    set(Calendar.HOUR_OF_DAY, 0)
-                                    set(Calendar.MINUTE, 0)
-                                    set(Calendar.SECOND, 0)
-                                    set(Calendar.MILLISECOND, 0)
-                                }.time
-                                onAccept(today)
+                                selectedDate?.let { date ->
+                                    onAccept(date)
+                                }
                             },
                             onProposeDateClick = { showDatePicker = true },
                             onRejectClick = { showRejectDialog = true }
@@ -263,7 +283,6 @@ fun RequestDetailsDialog(
                 set(Calendar.MILLISECOND, 0)
             }
             selectedDate = calendar.time
-            selectedDate?.let { onAccept(it) }
             showDatePicker = false
         },
         onDismiss = { showDatePicker = false },
@@ -329,6 +348,8 @@ fun RequestDetailsDialog(
 data class ProductItemData(
     val name: String,
     val quantity: Int,
+    val brand: String = "",
+    val expiryDate: Date? = null,
     val icon: ImageVector,
     val iconBgColor: Color,
     val iconTint: Color
@@ -439,6 +460,9 @@ fun UserHeaderCard(
 
 @Composable
 fun ProductListCard(productItems: List<ProductItemData>) {
+    // Date format for displaying expiry dates
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
+    
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -458,45 +482,137 @@ fun ProductListCard(productItems: List<ProductItemData>) {
                 )
             } else {
                 productItems.forEach { item ->
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFFF8F9FA), RoundedCornerShape(8.dp))
                             .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Icon Box
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(item.iconBgColor, RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = null,
-                                tint = item.iconTint,
-                                modifier = Modifier.size(20.dp)
+                            // Icon Box
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(item.iconBgColor, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = null,
+                                    tint = item.iconTint,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            // Name and Brand Column
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = item.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.Black
+                                )
+                                if (item.brand.isNotEmpty()) {
+                                    Text(
+                                        text = item.brand,
+                                        fontSize = 13.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+
+                            // Quantity
+                            Text(
+                                text = "Qtd: ${item.quantity}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black
                             )
                         }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        // Name
-                        Text(
-                            text = item.name,
-                            fontSize = 15.sp,
-                            modifier = Modifier.weight(1f),
-                            color = Color.Black
-                        )
-
-                        // Quantity
-                        Text(
-                            text = "Qtd: ${item.quantity}",
-                            fontSize = 14.sp,
-                            color = Color.Black
-                        )
+                        
+                        // Expiry Date Row
+                        if (item.expiryDate != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = null,
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Validade: ${dateFormat.format(item.expiryDate)}",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFFDC2626)
+                                )
+                            }
+                        }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SuggestedDateCard(
+    suggestedDate: String
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Data Sugerida",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Calendar Icon
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(BgYellow, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = TextYellow,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        text = "Data proposta",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = suggestedDate,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
@@ -590,6 +706,7 @@ fun CollectionInfoCard(
 @Composable
 fun ActionFooter(
     isLoading: Boolean,
+    isAcceptEnabled: Boolean = true,
     onAcceptClick: () -> Unit,
     onProposeDateClick: () -> Unit,
     onRejectClick: () -> Unit
@@ -607,7 +724,7 @@ fun ActionFooter(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !isLoading,
+            enabled = !isLoading && isAcceptEnabled,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)), // Dark Green
             shape = RoundedCornerShape(8.dp)
         ) {
@@ -689,7 +806,7 @@ fun getCategoryIcon(category: String): ImageVector {
 fun getCategoryBgColor(category: String): Color {
     return when (category.lowercase()) {
         "limpeza" -> Color(0xFFD1E4FF) // Light Blue
-        "alimentar" -> Color(0xFFD1E4FF) // Light Blue
+        "alimentar" -> BgYellow
         "higiene" -> Color(0xFFDFF7E2) // Light Green
         else -> Color(0xFFE5E7EB) // Light Gray
     }
@@ -699,7 +816,7 @@ fun getCategoryBgColor(category: String): Color {
 fun getCategoryTintColor(category: String): Color {
     return when (category.lowercase()) {
         "limpeza" -> Color(0xFF2D75F0) // Blue
-        "alimentar" -> Color(0xFF2D75F0) // Blue
+        "alimentar" -> TextYellow
         "higiene" -> Color(0xFF1B5E20) // Green
         else -> Color(0xFF6B7280) // Gray
     }

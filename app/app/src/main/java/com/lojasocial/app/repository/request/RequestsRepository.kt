@@ -23,6 +23,17 @@ interface RequestsRepository {
     fun getRequests(): Flow<List<Request>>
     
     /**
+     * Fetches requests with pagination support.
+     * @param limit Maximum number of requests to fetch
+     * @param lastSubmissionDate The submissionDate of the last request from the previous page (for cursor-based pagination)
+     * @return Pair of (requests list, hasMore) where hasMore indicates if there are more requests to load
+     */
+    suspend fun getRequestsPaginated(
+        limit: Int = 15,
+        lastSubmissionDate: Date? = null
+    ): Pair<List<Request>, Boolean>
+    
+    /**
      * Gets a single request by ID with all details including items.
      */
     suspend fun getRequestById(requestId: String): Result<Request>

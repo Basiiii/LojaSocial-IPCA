@@ -30,13 +30,13 @@ class RequestsRepositoryImpl @Inject constructor(
 ) : RequestsRepository {
 
     /**
-     * Helper function to process an item and fetch its product name.
+     * Helper function to process an item and fetch its product name, brand, expiryDate, and category.
      */
     private suspend fun processItem(productDocId: String, quantity: Int, items: MutableList<RequestItemDetail>) {
         Log.d("RequestsRepository", "Processing item: productDocId=$productDocId, quantity=$quantity")
         
-        // First, get the item document to extract productId/barcode
-        val productName = try {
+        // First, get the item document to extract productId/barcode and expiryDate
+        val result = try {
             Log.d("RequestsRepository", "Fetching item document: $productDocId")
             val itemDoc = firestore.collection("items").document(productDocId).get().await()
             Log.d("RequestsRepository", "Item document exists: ${itemDoc.exists()}")
@@ -45,6 +45,11 @@ class RequestsRepositoryImpl @Inject constructor(
                 val itemData = itemDoc.data
                 Log.d("RequestsRepository", "Item data: $itemData")
                 
+                // Get expiryDate from item document (check both field names)
+                val expiryTimestamp = (itemData?.get("expiryDate") as? Timestamp)
+                    ?: (itemData?.get("expirationDate") as? Timestamp)
+                val expiryDateValue = expiryTimestamp?.toDate()
+                
                 // Get barcode or productId from the item
                 val barcode = (itemData?.get("barcode") as? String) 
                     ?: (itemData?.get("productId") as? String)
@@ -52,36 +57,88 @@ class RequestsRepositoryImpl @Inject constructor(
                 
                 if (barcode != null) {
                     Log.d("RequestsRepository", "Fetching product from products collection using barcode: $barcode")
-                    // Fetch product name from products collection using barcode
+                    // Fetch product information from products collection using barcode
                     val product = productRepository.getProductByBarcodeId(barcode)
                     if (product != null) {
-                        Log.d("RequestsRepository", "Product found: ${product.name}")
-                        product.name
+                        Log.d("RequestsRepository", "Product found: ${product.name}, brand: ${product.brand}, category: ${product.category}")
+                        Triple(product.name, product.brand, product.category) to expiryDateValue
                     } else {
                         Log.w("RequestsRepository", "Product not found in products collection for barcode: $barcode")
-                        "Produto não encontrado"
+                        Triple("Produto não encontrado", "", 1) to null
                     }
                 } else {
                     Log.w("RequestsRepository", "No barcode/productId found in item document")
-                    "Produto sem código"
+                    Triple("Produto sem código", "", 1) to null
                 }
             } else {
                 Log.w("RequestsRepository", "Item document not found: $productDocId")
-                "Item não encontrado"
+                Triple("Item não encontrado", "", 1) to null
             }
         } catch (e: Exception) {
             Log.e("RequestsRepository", "Error fetching product for item $productDocId: ${e.message}", e)
-            "Erro ao carregar produto"
+            Triple("Erro ao carregar produto", "", 1) to null
         }
         
-        Log.d("RequestsRepository", "Adding item: $quantity x $productName")
+        val (productName, brand, category) = result.first
+        val expiryDateValue = result.second
+        
+        Log.d("RequestsRepository", "Adding item: $quantity x $productName (brand: $brand, category: $category)")
         items.add(
             RequestItemDetail(
                 productDocId = productDocId,
                 productName = productName,
-                quantity = quantity
+                quantity = quantity,
+                brand = brand,
+                expiryDate = expiryDateValue,
+                category = category
             )
         )
+    }
+
+    /**
+     * Helper function to get the category of items in a request (for list display).
+     * Returns the category if all items have the same category, or null if there are multiple categories.
+     * This is a lightweight operation that fetches categories for all items.
+     */
+    private suspend fun getRequestCategory(itemsMap: Map<*, *>?): Int? {
+        if (itemsMap == null || itemsMap.isEmpty()) return null
+        
+        return try {
+            val categories = mutableSetOf<Int>()
+            
+            // Get categories for all items
+            for (itemDocIdObj in itemsMap.keys) {
+                val itemDocId = itemDocIdObj as? String ?: continue
+                val itemDoc = firestore.collection("items").document(itemDocId).get().await()
+                
+                if (!itemDoc.exists()) continue
+                
+                val itemData = itemDoc.data
+                // Get barcode or productId from the item
+                val barcode = (itemData?.get("barcode") as? String) 
+                    ?: (itemData?.get("productId") as? String)
+                    ?: itemData?.get("productId")?.toString()
+                
+                if (barcode != null) {
+                    // Fetch product to get category
+                    val product = productRepository.getProductByBarcodeId(barcode)
+                    val category = product?.category ?: 1
+                    categories.add(category)
+                } else {
+                    categories.add(1) // Default to ALIMENTAR
+                }
+            }
+            
+            // If all items have the same category, return it; otherwise return null (multiple categories)
+            if (categories.size == 1) {
+                categories.first()
+            } else {
+                null // Multiple categories - will be displayed as "Vários"
+            }
+        } catch (e: Exception) {
+            Log.w("RequestsRepository", "Error fetching request category: ${e.message}")
+            null // Return null on error to default to "Vários"
+        }
     }
 
     /**
@@ -134,6 +191,25 @@ class RequestsRepositoryImpl @Inject constructor(
                     val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
                     val rejectionReason = data["rejectionReason"] as? String
 
+                    // Get items map - category will be loaded asynchronously if needed
+                    val itemsMap = data["items"] as? Map<*, *>
+                    
+                    // Create a minimal item list with default category (will be updated if items exist)
+                    val minimalItems = if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        listOf(
+                            com.lojasocial.app.domain.request.RequestItemDetail(
+                                productDocId = "",
+                                productName = "",
+                                quantity = 0,
+                                brand = "",
+                                expiryDate = null,
+                                category = 1 // Default, will be loaded asynchronously
+                            )
+                        )
+                    } else {
+                        emptyList()
+                    }
+
                     Request(
                         id = doc.id,
                         userId = userId,
@@ -142,20 +218,45 @@ class RequestsRepositoryImpl @Inject constructor(
                         totalItems = totalItems,
                         scheduledPickupDate = scheduledPickupDate,
                         rejectionReason = rejectionReason,
-                        items = emptyList() // Items loaded separately when needed
+                        items = minimalItems
                     )
                 } catch (e: Exception) {
                     Log.e("RequestsRepository", "Error parsing document ${doc.id}: ${e.message}")
                     null
                 }
             }
+            
+            // Load categories for requests with items (in suspend context)
+            val requestsWithCategories = mutableListOf<Request>()
+            for (request in requests) {
+                if (request.items.isNotEmpty()) {
+                    val doc = snapshot.documents.find { it.id == request.id }
+                    val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                    if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        val requestCategory = getRequestCategory(itemsMap)
+                        // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                        val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                        requestsWithCategories.add(
+                            request.copy(
+                                items = listOf(
+                                    request.items.first().copy(category = categoryToUse)
+                                )
+                            )
+                        )
+                    } else {
+                        requestsWithCategories.add(request)
+                    }
+                } else {
+                    requestsWithCategories.add(request)
+                }
+            }
 
             // Sort manually if we couldn't use orderBy
             val sortedRequests = if (snapshot.documents.isEmpty() || 
                 snapshot.documents.firstOrNull()?.data?.get("submissionDate") != null) {
-                requests.sortedByDescending { it.submissionDate ?: Date(0) }
+                requestsWithCategories.sortedByDescending { it.submissionDate ?: Date(0) }
             } else {
-                requests
+                requestsWithCategories
             }
 
             Log.d("RequestsRepository", "Fetched ${sortedRequests.size} requests")
@@ -201,6 +302,25 @@ class RequestsRepositoryImpl @Inject constructor(
                     val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
                     val rejectionReason = data["rejectionReason"] as? String
 
+                    // Get items map - category will be loaded separately
+                    val itemsMap = data["items"] as? Map<*, *>
+                    
+                    // Create a minimal item list with default category (will be updated)
+                    val minimalItems = if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        listOf(
+                            com.lojasocial.app.domain.request.RequestItemDetail(
+                                productDocId = "",
+                                productName = "",
+                                quantity = 0,
+                                brand = "",
+                                expiryDate = null,
+                                category = 1 // Default, will be updated
+                            )
+                        )
+                    } else {
+                        emptyList()
+                    }
+
                     Request(
                         id = doc.id,
                         userId = requestUserId,
@@ -209,20 +329,45 @@ class RequestsRepositoryImpl @Inject constructor(
                         totalItems = totalItems,
                         scheduledPickupDate = scheduledPickupDate,
                         rejectionReason = rejectionReason,
-                        items = emptyList() // Items loaded separately when needed
+                        items = minimalItems
                     )
                 } catch (e: Exception) {
                     Log.e("RequestsRepository", "Error parsing document ${doc.id}: ${e.message}")
                     null
                 }
             }
+            
+            // Load categories for requests with items (in suspend context)
+            val requestsWithCategories = mutableListOf<Request>()
+            for (request in requests) {
+                if (request.items.isNotEmpty()) {
+                    val doc = snapshot.documents.find { it.id == request.id }
+                    val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                    if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        val requestCategory = getRequestCategory(itemsMap)
+                        // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                        val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                        requestsWithCategories.add(
+                            request.copy(
+                                items = listOf(
+                                    request.items.first().copy(category = categoryToUse)
+                                )
+                            )
+                        )
+                    } else {
+                        requestsWithCategories.add(request)
+                    }
+                } else {
+                    requestsWithCategories.add(request)
+                }
+            }
 
             // Sort manually if we couldn't use orderBy
             val sortedRequests = if (snapshot.documents.isEmpty() || 
                 snapshot.documents.firstOrNull()?.data?.get("submissionDate") != null) {
-                requests.sortedByDescending { it.submissionDate ?: Date(0) }
+                requestsWithCategories.sortedByDescending { it.submissionDate ?: Date(0) }
             } else {
-                requests
+                requestsWithCategories
             }
 
             Log.d("RequestsRepository", "Fetched ${sortedRequests.size} requests for user $userId")
@@ -230,6 +375,108 @@ class RequestsRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("RequestsRepository", "Error fetching user requests: ${e.message}", e)
             emit(emptyList())
+        }
+    }
+
+    override suspend fun getRequestsPaginated(
+        limit: Int,
+        lastSubmissionDate: Date?
+    ): Pair<List<Request>, Boolean> {
+        return try {
+            var query = firestore.collection("requests")
+                .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            
+            // If we have a lastSubmissionDate, start after it
+            if (lastSubmissionDate != null) {
+                query = query.startAfter(Timestamp(lastSubmissionDate))
+            }
+            
+            val snapshot = try {
+                query.limit((limit + 1).toLong()).get().await()
+            } catch (e: Exception) {
+                // If orderBy fails (index missing), fallback to simple pagination without ordering
+                Log.w("RequestsRepository", "OrderBy pagination failed, using fallback: ${e.message}")
+                // Just fetch limit + 1 documents without ordering - this is not ideal but better than fetching all
+                firestore.collection("requests").limit((limit + 1).toLong()).get().await()
+            }
+            
+            val hasMore = snapshot.documents.size > limit
+            val documentsToProcess = if (hasMore) snapshot.documents.dropLast(1) else snapshot.documents
+            
+            val requests = documentsToProcess.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    val userId = data["userId"] as? String ?: return@mapNotNull null
+                    val status = (data["status"] as? Long)?.toInt() ?: 0
+                    val submissionDate = convertToDate(data["submissionDate"])
+                    val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
+                    val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+                    val rejectionReason = data["rejectionReason"] as? String
+                    
+                    // Get items map - category will be loaded separately
+                    val itemsMap = data["items"] as? Map<*, *>
+                    
+                    // Create a minimal item list with default category (will be updated)
+                    val minimalItems = if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        listOf(
+                            com.lojasocial.app.domain.request.RequestItemDetail(
+                                productDocId = "",
+                                productName = "",
+                                quantity = 0,
+                                brand = "",
+                                expiryDate = null,
+                                category = 1 // Default, will be updated
+                            )
+                        )
+                    } else {
+                        emptyList()
+                    }
+                    
+                    Request(
+                        id = doc.id,
+                        userId = userId,
+                        status = status,
+                        submissionDate = submissionDate,
+                        totalItems = totalItems,
+                        scheduledPickupDate = scheduledPickupDate,
+                        rejectionReason = rejectionReason,
+                        items = minimalItems
+                    )
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error parsing document ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+            
+            // Load categories for requests with items (in suspend context)
+            val requestsWithCategories = mutableListOf<Request>()
+            for (request in requests) {
+                if (request.items.isNotEmpty()) {
+                    val doc = documentsToProcess.find { it.id == request.id }
+                    val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                    if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        val requestCategory = getRequestCategory(itemsMap)
+                        // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                        val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                        requestsWithCategories.add(
+                            request.copy(
+                                items = listOf(
+                                    request.items.first().copy(category = categoryToUse)
+                                )
+                            )
+                        )
+                    } else {
+                        requestsWithCategories.add(request)
+                    }
+                } else {
+                    requestsWithCategories.add(request)
+                }
+            }
+            
+            Pair(requestsWithCategories, hasMore)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error fetching paginated requests: ${e.message}", e)
+            Pair(emptyList(), false)
         }
     }
 

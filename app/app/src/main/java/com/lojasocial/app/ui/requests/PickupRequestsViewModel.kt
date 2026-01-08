@@ -35,6 +35,14 @@ class PickupRequestsViewModel @Inject constructor(
     // Filter by userId if provided (for beneficiary portal)
     private var filterUserId: String? = null
 
+    private val _hasMoreRequests = MutableStateFlow(true)
+    val hasMoreRequests: StateFlow<Boolean> = _hasMoreRequests.asStateFlow()
+
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
+
+    private var lastLoadedSubmissionDate: Date? = null
+
     init {
         fetchRequests()
     }
@@ -46,24 +54,67 @@ class PickupRequestsViewModel @Inject constructor(
 
     fun fetchRequests() {
         viewModelScope.launch {
-            // Use getRequests() when filtering by current user (for beneficiaries)
-            // This ensures Firestore query-level filtering which respects security rules
-            // Use getAllRequests() for admins viewing all requests
-            val requestsFlow = if (filterUserId != null) {
-                repository.getRequests()
-            } else {
-                repository.getAllRequests()
-            }
+            _uiState.value = PickupRequestsUiState.Loading
+            lastLoadedSubmissionDate = null
+            _hasMoreRequests.value = true
             
-            requestsFlow
-                .catch { exception ->
-                    _uiState.value = PickupRequestsUiState.Error(exception.message ?: "Erro ao carregar pedidos")
-                }
-                .collect { requests ->
-                    // getRequests() already filters by userId at Firestore level
-                    // getAllRequests() returns all requests (for admins)
+            // Use getRequests() Flow when filtering by current user (for beneficiaries)
+            // This ensures Firestore query-level filtering which respects security rules
+            // Use pagination for admins viewing all requests
+            if (filterUserId != null) {
+                // For beneficiaries: use Flow-based fetching (respects security rules)
+                repository.getRequests()
+                    .catch { exception ->
+                        _uiState.value = PickupRequestsUiState.Error(exception.message ?: "Erro ao carregar pedidos")
+                        _hasMoreRequests.value = false
+                    }
+                    .collect { requests ->
+                        _uiState.value = PickupRequestsUiState.Success(requests)
+                        _hasMoreRequests.value = false // No pagination for user-specific requests
+                    }
+            } else {
+                // For admins: use pagination
+                try {
+                    val (requests, hasMore) = repository.getRequestsPaginated(limit = 15)
                     _uiState.value = PickupRequestsUiState.Success(requests)
+                    _hasMoreRequests.value = hasMore
+                    lastLoadedSubmissionDate = requests.lastOrNull()?.submissionDate
+                } catch (e: Exception) {
+                    _uiState.value = PickupRequestsUiState.Error(e.message ?: "Erro ao carregar pedidos")
+                    _hasMoreRequests.value = false
                 }
+            }
+        }
+    }
+
+    fun loadMoreRequests() {
+        // Only load more if not filtering by user (pagination only works for admin view)
+        if (filterUserId != null || _isLoadingMore.value || !_hasMoreRequests.value) return
+        
+        viewModelScope.launch {
+            _isLoadingMore.value = true
+            try {
+                val (requests, hasMore) = repository.getRequestsPaginated(
+                    limit = 15,
+                    lastSubmissionDate = lastLoadedSubmissionDate
+                )
+                
+                if (requests.isNotEmpty()) {
+                    val currentState = _uiState.value
+                    if (currentState is PickupRequestsUiState.Success) {
+                        _uiState.value = PickupRequestsUiState.Success(currentState.requests + requests)
+                        lastLoadedSubmissionDate = requests.lastOrNull()?.submissionDate
+                    }
+                    _hasMoreRequests.value = hasMore
+                } else {
+                    _hasMoreRequests.value = false
+                }
+            } catch (e: Exception) {
+                // Error loading more - stop trying
+                _hasMoreRequests.value = false
+            } finally {
+                _isLoadingMore.value = false
+            }
         }
     }
 
@@ -99,17 +150,26 @@ class PickupRequestsViewModel @Inject constructor(
             val result = repository.acceptRequest(requestId, scheduledPickupDate)
             result.fold(
                 onSuccess = {
-                    // Get request to send notification
-                    val requestResult = repository.getRequestById(requestId)
-                    requestResult.fold(
-                        onSuccess = { request ->
-                            // Send notification to user
-                            sendAcceptanceNotification(request.userId, scheduledPickupDate)
-                        },
-                        onFailure = { }
-                    )
+                    // Set success immediately to close dialog
                     _actionState.value = ActionState.Success("Pedido aceite com sucesso")
-                    fetchRequests() // Refresh list
+                    
+                    // Close dialog immediately
+                    clearSelectedRequest()
+                    
+                    // Refresh list and send notification in background (non-blocking)
+                    launch {
+                        // Get request to send notification
+                        val requestResult = repository.getRequestById(requestId)
+                        requestResult.fold(
+                            onSuccess = { request ->
+                                // Send notification to user
+                                sendAcceptanceNotification(request.userId, scheduledPickupDate)
+                            },
+                            onFailure = { }
+                        )
+                        // Refresh list after notification (reset pagination)
+                        fetchRequests()
+                    }
                 },
                 onFailure = { error ->
                     _actionState.value = ActionState.Error(error.message ?: "Erro ao aceitar pedido")

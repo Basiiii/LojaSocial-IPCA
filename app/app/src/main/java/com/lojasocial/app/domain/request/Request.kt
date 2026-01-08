@@ -33,5 +33,8 @@ data class Request(
 data class RequestItemDetail(
     val productDocId: String = "",
     val productName: String = "", // Loaded from items collection
-    val quantity: Int = 0
+    val quantity: Int = 0,
+    val brand: String = "", // Product brand
+    val expiryDate: Date? = null, // Expiry date from items subcollection
+    val category: Int = 1 // ProductCategory.id (1=ALIMENTAR, 2=CASA, 3=HIGIENE_PESSOAL)
 )

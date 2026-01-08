@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,7 +16,7 @@ import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
+import com.lojasocial.app.domain.product.ProductCategory
 import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.repository.request.UserProfileData
@@ -43,6 +46,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.LaunchedEffect
 import com.lojasocial.app.utils.FileUtils
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,8 +64,12 @@ fun PickupRequestsView(
     val selectedRequest by viewModel.selectedRequest.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val actionState by viewModel.actionState.collectAsState()
+    val hasMoreRequests by viewModel.hasMoreRequests.collectAsState()
+    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     
     // Cache for user profiles by userId
     var userProfilesCache by remember { mutableStateOf<Map<String, UserProfileData>>(emptyMap()) }
@@ -89,6 +98,45 @@ fun PickupRequestsView(
     // Tab selection state
     var selectedTab by remember { mutableStateOf(RequestStatus.SUBMETIDO.label) }
     
+    // Load more requests when scrolling near the end
+    LaunchedEffect(listState) {
+        snapshotFlow { 
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = layoutInfo.totalItemsCount
+            Pair(lastVisibleItemIndex, totalItems)
+        }.collect { (lastVisibleIndex, totalItems) ->
+            // Load more when user is within 3 items of the end
+            if (lastVisibleIndex >= totalItems - 3 && 
+                hasMoreRequests && 
+                !isLoadingMore && 
+                uiState !is PickupRequestsUiState.Loading) {
+                viewModel.loadMoreRequests()
+            }
+        }
+    }
+    
+    // Auto-load more if filtered list is too short (less than 5 items visible)
+    LaunchedEffect(uiState, selectedTab) {
+        if (uiState is PickupRequestsUiState.Success) {
+            val requests = (uiState as PickupRequestsUiState.Success).requests
+            val selectedStatus = RequestStatus.values().find { it.label == selectedTab } ?: RequestStatus.SUBMETIDO
+            val statusInt = when (selectedStatus) {
+                RequestStatus.SUBMETIDO -> 0
+                RequestStatus.PENDENTE_LEVANTAMENTO -> 1
+                RequestStatus.CONCLUIDO -> 2
+                RequestStatus.REJEITADO -> 4
+                RequestStatus.CANCELADO -> 3
+            }
+            val filteredRequests = requests.filter { it.status == statusInt }
+            
+            // If filtered list is too short and we have more to load, load more
+            if (filteredRequests.size < 5 && hasMoreRequests && !isLoadingMore && uiState !is PickupRequestsUiState.Loading) {
+                viewModel.loadMoreRequests()
+            }
+        }
+    }
+    
     // Get all status labels for tabs
     // For beneficiaries viewing their own requests, show all statuses including CANCELADO
     // For admin users viewing all requests, exclude CANCELADO
@@ -106,26 +154,28 @@ fun PickupRequestsView(
             .map { it.label }
     }
 
-    // Fetch user profiles for all requests
+    // Fetch user profiles for all requests (async, non-blocking)
     LaunchedEffect(uiState, requestsRepository) {
         if (uiState is PickupRequestsUiState.Success && requestsRepository != null) {
             val requests = (uiState as PickupRequestsUiState.Success).requests
             val uniqueUserIds = requests.map { it.userId }.distinct()
             
-            // Fetch profiles for users not in cache
-            val newProfiles = mutableMapOf<String, UserProfileData>()
+            // Fetch profiles for users not in cache (async, non-blocking)
             uniqueUserIds.forEach { userId ->
                 if (!userProfilesCache.containsKey(userId)) {
-                    val result = requestsRepository.getUserProfile(userId)
-                    result.fold(
-                        onSuccess = { profile -> newProfiles[userId] = profile },
-                        onFailure = { newProfiles[userId] = UserProfileData() }
-                    )
+                    // Launch async coroutine for each profile fetch
+                    coroutineScope.launch {
+                        val result = requestsRepository.getUserProfile(userId)
+                        result.fold(
+                            onSuccess = { profile ->
+                                userProfilesCache = userProfilesCache + mapOf(userId to profile)
+                            },
+                            onFailure = {
+                                userProfilesCache = userProfilesCache + mapOf(userId to UserProfileData())
+                            }
+                        )
+                    }
                 }
-            }
-            
-            if (newProfiles.isNotEmpty()) {
-                userProfilesCache = userProfilesCache + newProfiles
             }
         }
     }
@@ -139,8 +189,7 @@ fun PickupRequestsView(
                     message = currentActionState.message,
                     duration = SnackbarDuration.Short
                 )
-                // Close dialog after showing success message
-                viewModel.clearSelectedRequest()
+                viewModel.resetActionState()
             }
             is ActionState.Error -> {
                 snackbarHostState.showSnackbar(
@@ -169,8 +218,7 @@ fun PickupRequestsView(
             onReject = { reason ->
                 viewModel.rejectRequest(request.id, reason)
             },
-            profilePictureRepository = profilePictureRepository,
-            canAcceptReject = !filterByCurrentUser // Beneficiaries can't accept/reject their own requests
+            profilePictureRepository = profilePictureRepository
         )
     }
 
@@ -309,7 +357,7 @@ fun PickupRequestsView(
                             )
                         }
                     } else {
-                        LazyColumn {
+                        LazyColumn(state = listState) {
                             items(filteredRequests) { request ->
                                 val userName = userProfilesCache[request.userId]?.name ?: "Utilizador"
                                 val category = getRequestCategory(request)
@@ -358,6 +406,23 @@ fun PickupRequestsView(
                                     thickness = 0.5.dp,
                                     color = Color.LightGray.copy(alpha = 0.5f)
                                 )
+                            }
+                            
+                            // Show loading indicator at the end when loading more
+                            if (isLoadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -553,15 +618,20 @@ fun PedidoItem(
 fun getRequestCategory(request: Request): String {
     return when {
         request.items.isEmpty() -> "Vários"
-        request.items.size > 1 -> "Vários"
         else -> {
-            // Try to infer from first item name or use default
-            val firstItemName = request.items.firstOrNull()?.productName?.lowercase() ?: ""
+            // Use the category field from the first item (which now contains the determined category)
+            // If category is 0, it means multiple categories were detected
+            val requestCategory = request.items.firstOrNull()?.category ?: 0
             when {
-                firstItemName.contains("limpeza") || firstItemName.contains("detergente") -> "Limpeza"
-                firstItemName.contains("comida") || firstItemName.contains("alimento") -> "Alimentar"
-                firstItemName.contains("higiene") || firstItemName.contains("sabonete") -> "Higiene"
-                else -> "Vários"
+                requestCategory == 0 -> "Vários" // Multiple categories detected
+                else -> {
+                    when (ProductCategory.fromId(requestCategory)) {
+                        ProductCategory.ALIMENTAR -> "Alimentar"
+                        ProductCategory.HIGIENE_PESSOAL -> "Higiene"
+                        ProductCategory.CASA -> "Limpeza"
+                        null -> "Vários"
+                    }
+                }
             }
         }
     }
@@ -573,6 +643,6 @@ fun getCategoryIcon(category: String): ImageVector {
         "limpeza" -> Icons.Default.CleaningServices
         "alimentar" -> Icons.Default.Restaurant
         "higiene" -> Icons.Default.Spa
-        else -> Icons.Default.Work // Default for "Vários"
+        else -> Icons.Default.ShoppingCart
     }
 }
