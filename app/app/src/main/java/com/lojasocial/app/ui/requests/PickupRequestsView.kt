@@ -1,11 +1,20 @@
 package com.lojasocial.app.ui.requests
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CleaningServices
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -13,20 +22,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.firebase.auth.FirebaseAuth
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.repository.request.UserProfileData
-import com.lojasocial.app.ui.components.RequestItemCard
+import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.ui.components.StatusTabSelector
 import com.lojasocial.app.ui.requests.components.RequestDetailsDialog
 import kotlinx.coroutines.flow.firstOrNull
-import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +42,8 @@ import java.util.*
 fun PickupRequestsView(
     onNavigateBack: () -> Unit,
     viewModel: PickupRequestsViewModel = hiltViewModel(),
-    userRepository: UserRepository? = null
+    userRepository: UserRepository? = null,
+    requestsRepository: RequestsRepository? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedRequest by viewModel.selectedRequest.collectAsState()
@@ -42,6 +51,9 @@ fun PickupRequestsView(
     val actionState by viewModel.actionState.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Cache for user profiles by userId
+    var userProfilesCache by remember { mutableStateOf<Map<String, UserProfileData>>(emptyMap()) }
     
     // Check if user is admin
     var isAdmin by remember { mutableStateOf(false) }
@@ -60,6 +72,30 @@ fun PickupRequestsView(
         RequestStatus.values()
             .filter { if (isAdmin) it != RequestStatus.CANCELADO else true }
             .map { it.label }
+    }
+
+    // Fetch user profiles for all requests
+    LaunchedEffect(uiState, requestsRepository) {
+        if (uiState is PickupRequestsUiState.Success && requestsRepository != null) {
+            val requests = (uiState as PickupRequestsUiState.Success).requests
+            val uniqueUserIds = requests.map { it.userId }.distinct()
+            
+            // Fetch profiles for users not in cache
+            val newProfiles = mutableMapOf<String, UserProfileData>()
+            uniqueUserIds.forEach { userId ->
+                if (!userProfilesCache.containsKey(userId)) {
+                    val result = requestsRepository.getUserProfile(userId)
+                    result.fold(
+                        onSuccess = { profile -> newProfiles[userId] = profile },
+                        onFailure = { newProfiles[userId] = UserProfileData() }
+                    )
+                }
+            }
+            
+            if (newProfiles.isNotEmpty()) {
+                userProfilesCache = userProfilesCache + newProfiles
+            }
+        }
     }
 
     // Handle action state messages with Snackbar
@@ -106,20 +142,20 @@ fun PickupRequestsView(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Pedidos de Levantamento",
+                        "Pedidos Pendentes",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = Color.White
                 )
             )
@@ -129,59 +165,31 @@ fun PickupRequestsView(
             SnackbarHost(hostState = snackbarHostState)
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .background(Color.White)
+        ) {
             val currentUiState = uiState
 
-            // --- Info Bar (Gray Strip) ---
+            // --- Status Header (Blue strip) ---
             when (currentUiState) {
                 is PickupRequestsUiState.Success -> {
                     val pendingCount = currentUiState.requests.count { it.status == 0 } // SUBMETIDO
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF3F4F6)) // Light Gray bg
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Pending Count with Orange Dot
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFF59E0B)) // Orange
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "$pendingCount Pendente${if (pendingCount != 1) "s" else ""}",
-                                color = Color(0xFF374151),
-                                fontSize = 14.sp
-                            )
-                        }
-
-                        // Update Time
-                        Text(
-                            text = "Atualizado agora",
-                            color = Color(0xFF6B7280),
-                            fontSize = 12.sp
-                        )
-                    }
+                    StatusHeader(pendingCount = pendingCount)
                 }
                 else -> {
                     // Empty info bar for loading/error states
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFF3F4F6))
+                            .background(Color(0xFFEEF4F8))
                             .padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
             }
 
-            // --- Divider ---
-            Divider(color = Color(0xFFE5E7EB))
-            
             // --- Status Tabs ---
             when (currentUiState) {
                 is PickupRequestsUiState.Success -> {
@@ -244,8 +252,8 @@ fun PickupRequestsView(
                         RequestStatus.SUBMETIDO -> 0
                         RequestStatus.PENDENTE_LEVANTAMENTO -> 1
                         RequestStatus.CONCLUIDO -> 2
-                        RequestStatus.REJEITADO -> 4  // Fixed: REJEITADO is 4, not 3
-                        RequestStatus.CANCELADO -> 3   // Fixed: CANCELADO is 3, not 4
+                        RequestStatus.REJEITADO -> 4
+                        RequestStatus.CANCELADO -> 3
                     }
                     
                     val filteredRequests = currentUiState.requests.filter { it.status == statusInt }
@@ -266,19 +274,11 @@ fun PickupRequestsView(
                         }
                     } else {
                         LazyColumn {
-                            items(filteredRequests.size) { index ->
-                                val request = filteredRequests[index]
+                            items(filteredRequests) { request ->
+                                val userName = userProfilesCache[request.userId]?.name ?: "Utilizador"
+                                val category = getRequestCategory(request)
+                                val categoryIcon = getCategoryIcon(category)
                                 
-                                // Convert status int to RequestStatus enum
-                                val status = when (request.status) {
-                                    0 -> RequestStatus.SUBMETIDO
-                                    1 -> RequestStatus.PENDENTE_LEVANTAMENTO
-                                    2 -> RequestStatus.CONCLUIDO
-                                    3 -> RequestStatus.CANCELADO  // Fixed: 3 is CANCELADO
-                                    4 -> RequestStatus.REJEITADO  // Fixed: 4 is REJEITADO
-                                    else -> RequestStatus.SUBMETIDO
-                                }
-
                                 // Format time ago
                                 val timeAgo = request.submissionDate?.let { date ->
                                     val now = Date()
@@ -295,21 +295,30 @@ fun PickupRequestsView(
                                         else -> "agora"
                                     }
                                 } ?: ""
-
-                                RequestItemCard(
+                                
+                                // Convert status int to RequestStatus enum
+                                val status = when (request.status) {
+                                    0 -> RequestStatus.SUBMETIDO
+                                    1 -> RequestStatus.PENDENTE_LEVANTAMENTO
+                                    2 -> RequestStatus.CONCLUIDO
+                                    3 -> RequestStatus.CANCELADO
+                                    4 -> RequestStatus.REJEITADO
+                                    else -> RequestStatus.SUBMETIDO
+                                }
+                                
+                                PedidoItem(
+                                    name = userName,
+                                    timeAgo = timeAgo,
+                                    category = category,
+                                    categoryIcon = categoryIcon,
                                     status = status,
-                                    title = status.label,
-                                    subtitle = when (status) {
-                                        RequestStatus.SUBMETIDO -> "Pedido submetido e pendente"
-                                        RequestStatus.PENDENTE_LEVANTAMENTO -> "O teu pedido foi aceite"
-                                        RequestStatus.CONCLUIDO -> "Levantamento feito com sucesso"
-                                        RequestStatus.REJEITADO -> "O teu pedido não foi aceite. Clique para ver detalhes"
-                                        RequestStatus.CANCELADO -> "Cancelaste o teu pedido."
-                                    },
-                                    time = timeAgo,
                                     onClick = {
                                         viewModel.selectRequest(request.id)
                                     }
+                                )
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = Color.LightGray.copy(alpha = 0.5f)
                                 )
                             }
                         }
@@ -317,5 +326,179 @@ fun PickupRequestsView(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun StatusHeader(pendingCount: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFEEF4F8)) // Light Blue
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Orange Dot
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF9800))
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "$pendingCount Pendente${if (pendingCount != 1) "s" else ""}",
+                color = Color.DarkGray,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Text(
+            text = "Atualizado agora",
+            color = Color.Gray,
+            fontSize = 12.sp
+        )
+    }
+}
+
+@Composable
+fun PedidoItem(
+    name: String,
+    timeAgo: String,
+    category: String,
+    categoryIcon: ImageVector,
+    status: RequestStatus,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar (Placeholder with initials)
+        Box(
+            modifier = Modifier
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFE5E7EB)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = name.take(2).uppercase(),
+                color = Color(0xFF6B7280),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Middle Content (Name, Badge, Category)
+        Column(modifier = Modifier.weight(1f)) {
+            // Name Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = name,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+                // Time (Aligned to right of name)
+                Text(
+                    text = timeAgo,
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Badges Row
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Status Badge - using status-specific icon and colors
+                Surface(
+                    color = status.iconBgColor.copy(alpha = 0.2f), // Use status background color with transparency
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = status.icon,
+                            contentDescription = null,
+                            tint = status.iconTint,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = status.label,
+                            color = status.iconTint,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Category (Icon + Text)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = categoryIcon,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = category,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+        
+        // The Arrow on the far right
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "Details",
+            tint = Color.Gray,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+    }
+}
+
+// Helper function to determine category from request items
+fun getRequestCategory(request: Request): String {
+    return when {
+        request.items.isEmpty() -> "Vários"
+        request.items.size > 1 -> "Vários"
+        else -> {
+            // Try to infer from first item name or use default
+            val firstItemName = request.items.firstOrNull()?.productName?.lowercase() ?: ""
+            when {
+                firstItemName.contains("limpeza") || firstItemName.contains("detergente") -> "Limpeza"
+                firstItemName.contains("comida") || firstItemName.contains("alimento") -> "Alimentar"
+                firstItemName.contains("higiene") || firstItemName.contains("sabonete") -> "Higiene"
+                else -> "Vários"
+            }
+        }
+    }
+}
+
+// Helper function to get category icon
+fun getCategoryIcon(category: String): ImageVector {
+    return when (category.lowercase()) {
+        "limpeza" -> Icons.Default.CleaningServices
+        "alimentar" -> Icons.Default.Restaurant
+        "higiene" -> Icons.Default.Spa
+        else -> Icons.Default.Work // Default for "Vários"
     }
 }
