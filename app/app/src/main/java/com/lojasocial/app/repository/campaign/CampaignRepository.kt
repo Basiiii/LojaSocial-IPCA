@@ -44,21 +44,22 @@ class CampaignRepository @Inject constructor(
         return try {
             Log.d("CampaignRepository", "Fetching campaigns from Firestore...")
             
-            val oneMonthAgo = Calendar.getInstance().apply {
-                add(Calendar.MONTH, -1)
+            val now = Date()
+            val twoMonthsAgo = Calendar.getInstance().apply {
+                add(Calendar.MONTH, -2)
             }.time
             
-            Log.d("CampaignRepository", "Filtering campaigns with endDate >= $oneMonthAgo")
+            Log.d("CampaignRepository", "Filtering campaigns with endDate >= $twoMonthsAgo")
 
             val snapshot = campaignsCollection
-                .whereGreaterThanOrEqualTo("endDate", oneMonthAgo)
+                .whereGreaterThanOrEqualTo("endDate", twoMonthsAgo)
                 .orderBy("endDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .get()
                 .await()
 
             Log.d("CampaignRepository", "Got ${snapshot.documents.size} documents from Firestore")
             
-            val campaigns = snapshot.documents.mapNotNull { doc ->
+            val allCampaigns = snapshot.documents.mapNotNull { doc ->
                 try {
                     val data = doc.data ?: return@mapNotNull null
                     val name = data["name"] as? String ?: ""
@@ -81,8 +82,21 @@ class CampaignRepository @Inject constructor(
                 }
             }
             
-            Log.d("CampaignRepository", "Successfully loaded ${campaigns.size} campaigns")
-            campaigns
+            // Filter campaigns:
+            // 1. Include active campaigns (startDate <= now <= endDate)
+            // 2. Include campaigns that ended within the last 2 months (endDate >= twoMonthsAgo AND endDate < now)
+            // 3. Exclude campaigns that haven't started yet (startDate > now)
+            val filteredCampaigns = allCampaigns.filter { campaign ->
+                val isActive = campaign.startDate <= now && campaign.endDate >= now
+                val endedRecently = campaign.endDate >= twoMonthsAgo && campaign.endDate < now
+                val hasNotStarted = campaign.startDate > now
+                
+                // Include if active or ended recently, exclude if hasn't started
+                (isActive || endedRecently) && !hasNotStarted
+            }
+            
+            Log.d("CampaignRepository", "Successfully loaded ${filteredCampaigns.size} campaigns (filtered from ${allCampaigns.size})")
+            filteredCampaigns
         } catch (e: Exception) {
             Log.e("CampaignRepository", "Error fetching campaigns: ${e.message}", e)
             emptyList()
