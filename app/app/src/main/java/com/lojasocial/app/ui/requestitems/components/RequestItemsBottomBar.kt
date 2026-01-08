@@ -1,8 +1,6 @@
 package com.lojasocial.app.ui.requestitems.components
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,22 +27,28 @@ fun RequestItemsBottomBar(
         shadowElevation = 8.dp,
         color = MaterialTheme.colorScheme.surface
     ) {
-        Button(
-            onClick = onSubmitClick,
-            enabled = enabled,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = LojaSocialPrimary,
-                contentColor = Color.White,
-                disabledContainerColor = DisabledBtn,
-                disabledContentColor = TextGray
-            )
+                .padding(bottom = 16.dp)
         ) {
-            Text("Submeter Pedido", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Button(
+                onClick = onSubmitClick,
+                enabled = enabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = LojaSocialPrimary,
+                    contentColor = Color.White,
+                    disabledContainerColor = DisabledBtn,
+                    disabledContentColor = TextGray
+                )
+            ) {
+                Text("Submeter Pedido", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }

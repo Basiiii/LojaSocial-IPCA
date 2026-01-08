@@ -19,6 +19,7 @@ import com.lojasocial.app.domain.stock.ExpiringItemsUiState
 import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.ui.expiringitems.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
+import com.lojasocial.app.ui.theme.LojaSocialSurface
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -99,6 +100,7 @@ fun ExpiringItemsView(
     if (showExpirationCheckConfirmation) {
         AlertDialog(
             onDismissRequest = { showExpirationCheckConfirmation = false },
+            containerColor = LojaSocialSurface,
             title = {
                 Text("Confirmar Verificação")
             },
@@ -150,6 +152,7 @@ fun ExpiringItemsView(
     if (showExpirationCheckLoading) {
         AlertDialog(
             onDismissRequest = { },
+            containerColor = LojaSocialSurface,
             title = {
                 Text("A Verificar Expirações")
             },
@@ -174,6 +177,7 @@ fun ExpiringItemsView(
                 showExpirationCheckSuccess = false
                 expirationCheckResult = null
             },
+            containerColor = LojaSocialSurface,
             title = {
                 Text("Verificação Concluída")
             },
@@ -207,6 +211,7 @@ fun ExpiringItemsView(
                 showExpirationCheckError = false
                 expirationCheckError = null
             },
+            containerColor = LojaSocialSurface,
             title = {
                 Text("Erro na Verificação")
             },

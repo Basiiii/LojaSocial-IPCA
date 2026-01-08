@@ -53,7 +53,12 @@ fun ProductItemRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 16.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = product.name,
                 fontSize = 18.sp,
@@ -66,7 +71,7 @@ fun ProductItemRow(
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             val stockColor = if (product.stock <= 3) RedStock else BrandGreen
             val stockText = "Disponível: ${product.stock}"
