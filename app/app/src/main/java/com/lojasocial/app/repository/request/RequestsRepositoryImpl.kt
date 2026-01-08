@@ -604,6 +604,52 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun rejectRequest(requestId: String, reason: String?): Result<Unit> {
         return try {
+            // First, get the request to retrieve items
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val itemsMap = requestData["items"] as? Map<*, *>
+            
+            // Release reservations using transaction
+            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                firestore.runTransaction { transaction ->
+                    // PHASE 1: Read all item documents first
+                    val itemData = itemsMap.mapNotNull { (itemDocIdObj, quantityObj) ->
+                        val itemDocId = itemDocIdObj as? String ?: return@mapNotNull null
+                        val reservedQty = when (quantityObj) {
+                            is Long -> quantityObj.toInt()
+                            is Int -> quantityObj
+                            else -> 0
+                        }
+                        
+                        if (reservedQty > 0) {
+                            val itemRef = firestore.collection("items").document(itemDocId)
+                            val itemDoc = transaction.get(itemRef)
+                            
+                            if (itemDoc.exists()) {
+                                val currentReserved = (itemDoc.getLong("reservedQuantity")?.toInt()
+                                    ?: (itemDoc.get("reservedQuantity") as? Int) ?: 0)
+                                val newReserved = maxOf(0, currentReserved - reservedQty)
+                                Triple(itemRef, newReserved, itemDocId)
+                            } else {
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }
+                    
+                    // PHASE 2: Now do all writes
+                    itemData.forEach { (itemRef, newReserved, _) ->
+                        transaction.update(itemRef, "reservedQuantity", newReserved)
+                    }
+                }.await()
+            }
+            
+            // Update request status
             val updates = mutableMapOf<String, Any>(
                 "status" to 4 // REJEITADO
             )
@@ -629,6 +675,86 @@ class RequestsRepositoryImpl @Inject constructor(
             
             Result.success(Unit)
         } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error rejecting request: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun completeRequest(requestId: String): Result<Unit> {
+        return try {
+            // First, get the request to retrieve items
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val itemsMap = requestData["items"] as? Map<*, *>
+            
+            // Decrease quantity and reservedQuantity using transaction
+            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                firestore.runTransaction { transaction ->
+                    // PHASE 1: Read all item documents first
+                    val itemData = itemsMap.mapNotNull { (itemDocIdObj, quantityObj) ->
+                        val itemDocId = itemDocIdObj as? String ?: return@mapNotNull null
+                        val quantityToDeduct = when (quantityObj) {
+                            is Long -> quantityObj.toInt()
+                            is Int -> quantityObj
+                            else -> 0
+                        }
+                        
+                        if (quantityToDeduct > 0) {
+                            val itemRef = firestore.collection("items").document(itemDocId)
+                            val itemDoc = transaction.get(itemRef)
+                            
+                            if (itemDoc.exists()) {
+                                val currentQuantity = (itemDoc.getLong("quantity")?.toInt()
+                                    ?: (itemDoc.get("quantity") as? Int) ?: 0)
+                                val currentReserved = (itemDoc.getLong("reservedQuantity")?.toInt()
+                                    ?: (itemDoc.get("reservedQuantity") as? Int) ?: 0)
+                                
+                                val newQuantity = maxOf(0, currentQuantity - quantityToDeduct)
+                                val newReserved = maxOf(0, currentReserved - quantityToDeduct)
+                                
+                                Triple(itemRef, newQuantity, newReserved)
+                            } else {
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }
+                    
+                    // PHASE 2: Now do all writes
+                    itemData.forEach { (itemRef, newQuantity, newReserved) ->
+                        transaction.update(itemRef, mapOf(
+                            "quantity" to newQuantity,
+                            "reservedQuantity" to newReserved
+                        ))
+                    }
+                }.await()
+            }
+            
+            // Update request status
+            firestore.collection("requests").document(requestId)
+                .update("status", 2) // CONCLUIDO
+                .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "complete_request",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error completing request: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -659,7 +785,8 @@ class RequestsRepositoryImpl @Inject constructor(
         return try {
             val currentUser = auth.currentUser ?: return Result.failure(Exception("User not authenticated"))
 
-            val itemsMap = mutableMapOf<String, Int>()
+            // First, collect item document IDs and quantities to reserve
+            val itemsToReserve = mutableMapOf<String, Int>()
 
             selectedItems.forEach { (productDocId, requestedQuantity) ->
                 try {
@@ -669,8 +796,12 @@ class RequestsRepositoryImpl @Inject constructor(
                     if (itemDoc.exists()) {
                         val itemQuantity = ((itemDoc.data?.get("quantity") as? Long)?.toInt()
                             ?: (itemDoc.data?.get("quantity") as? Int) ?: 0)
-                        if (itemQuantity > 0) {
-                            itemsMap[productDocId] = minOf(requestedQuantity, itemQuantity)
+                        val reservedQuantity = ((itemDoc.data?.get("reservedQuantity") as? Long)?.toInt()
+                            ?: (itemDoc.data?.get("reservedQuantity") as? Int) ?: 0)
+                        val available = itemQuantity - reservedQuantity
+                        
+                        if (available > 0) {
+                            itemsToReserve[productDocId] = minOf(requestedQuantity, available)
                         }
                     } else {
                         // It's a productId/barcode, search for items by barcode or productId
@@ -700,67 +831,114 @@ class RequestsRepositoryImpl @Inject constructor(
                             return@forEach
                         }
                         
-                        // Filter items with quantity > 0 and sort by expiry date
-                        val availableItems = itemsSnapshot.documents.filter { doc ->
+                        // Filter items with available stock > 0 and sort by expiry date
+                        val availableItems = itemsSnapshot.documents.mapNotNull { doc ->
                             val itemQuantity = ((doc.data?.get("quantity") as? Long)?.toInt()
                                 ?: (doc.data?.get("quantity") as? Int) ?: 0)
-                            itemQuantity > 0
+                            val reservedQuantity = ((doc.data?.get("reservedQuantity") as? Long)?.toInt()
+                                ?: (doc.data?.get("reservedQuantity") as? Int) ?: 0)
+                            val available = itemQuantity - reservedQuantity
+                            
+                            if (available > 0) {
+                                val expiryDate = (doc.data?.get("expiryDate") as? Timestamp)
+                                    ?: (doc.data?.get("expirationDate") as? Timestamp)
+                                Triple(doc.id, available, expiryDate?.toDate()?.time ?: Long.MAX_VALUE)
+                            } else {
+                                null
+                            }
                         }
                         
                         if (availableItems.isEmpty()) {
                             return@forEach
                         }
                         
-                        val sortedItems = availableItems.sortedWith(compareBy { doc ->
-                            val expiryDate = (doc.data?.get("expiryDate") as? Timestamp)
-                                ?: (doc.data?.get("expirationDate") as? Timestamp)
-                            expiryDate?.toDate()?.time ?: Long.MAX_VALUE
-                        })
+                        // Sort by expiry date (earliest first)
+                        val sortedItems = availableItems.sortedBy { it.third }
                         
                         var remainingQuantity = requestedQuantity
-                        for (itemDoc in sortedItems) {
+                        for ((docId, available, _) in sortedItems) {
                             if (remainingQuantity <= 0) break
                             
-                            val itemQuantity = ((itemDoc.data?.get("quantity") as? Long)?.toInt()
-                                ?: (itemDoc.data?.get("quantity") as? Int) ?: 0)
-                            
-                            val quantityToUse = minOf(remainingQuantity, itemQuantity)
-                            itemsMap[itemDoc.id] = quantityToUse
+                            val quantityToUse = minOf(remainingQuantity, available)
+                            itemsToReserve[docId] = quantityToUse
                             remainingQuantity -= quantityToUse
                         }
                     }
                 } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error processing item $productDocId: ${e.message}", e)
                     // Continue with other items
                 }
             }
 
-            if (itemsMap.isEmpty()) {
-                return Result.failure(Exception("No items found to add to request. Selected items: ${selectedItems.keys.joinToString()}"))
+            if (itemsToReserve.isEmpty()) {
+                return Result.failure(Exception("No items available to add to request. Selected items: ${selectedItems.keys.joinToString()}"))
             }
 
-            val itemsMapForFirestore = HashMap<String, Any>().apply {
-                itemsMap.forEach { (docId, quantity) ->
-                    this[docId] = quantity.toLong()
-                }
-            }
-
-            val requestsData = hashMapOf<String, Any>(
-                "userId" to currentUser.uid,
-                "status" to 0,
-                "submissionDate" to FieldValue.serverTimestamp(),
-                "totalItems" to selectedItems.values.sum(),
-                "items" to itemsMapForFirestore
-            )
-
+            // Use Firestore transaction to atomically reserve quantities
             try {
+                val verifiedItems = firestore.runTransaction { transaction ->
+                    // PHASE 1: Read all item documents first
+                    val itemRefs = itemsToReserve.keys.map { itemDocId ->
+                        itemDocId to firestore.collection("items").document(itemDocId)
+                    }
+                    
+                    val itemData = itemRefs.mapNotNull { (itemDocId, itemRef) ->
+                        val itemDoc = transaction.get(itemRef)
+                        
+                        if (!itemDoc.exists()) {
+                            throw Exception("Item document $itemDocId not found")
+                        }
+                        
+                        val currentQuantity = (itemDoc.getLong("quantity")?.toInt()
+                            ?: (itemDoc.get("quantity") as? Int) ?: 0)
+                        val currentReserved = (itemDoc.getLong("reservedQuantity")?.toInt()
+                            ?: (itemDoc.get("reservedQuantity") as? Int) ?: 0)
+                        val requestedQty = itemsToReserve[itemDocId] ?: 0
+                        val available = currentQuantity - currentReserved
+                        
+                        if (available < requestedQty) {
+                            throw Exception("Insufficient stock for item $itemDocId. Available: $available, Requested: $requestedQty")
+                        }
+                        
+                        Triple(itemDocId, itemRef, currentReserved + requestedQty)
+                    }
+                    
+                    // PHASE 2: Now do all writes
+                    val items = mutableMapOf<String, Int>()
+                    itemData.forEach { (itemDocId, itemRef, newReservedQty) ->
+                        transaction.update(itemRef, "reservedQuantity", newReservedQty)
+                        items[itemDocId] = itemsToReserve[itemDocId] ?: 0
+                    }
+                    
+                    items
+                }.await()
+                
+                // Create request document after successful reservation
+                val itemsMapForFirestore = HashMap<String, Any>().apply {
+                    verifiedItems.forEach { (docId, quantity) ->
+                        this[docId] = quantity.toLong()
+                    }
+                }
+                
+                val requestsData = hashMapOf<String, Any>(
+                    "userId" to currentUser.uid,
+                    "status" to 0,
+                    "submissionDate" to FieldValue.serverTimestamp(),
+                    "totalItems" to verifiedItems.values.sum(),
+                    "items" to itemsMapForFirestore
+                )
+                
                 firestore.collection("requests")
                     .add(requestsData)
                     .await()
+                
                 Result.success(Unit)
             } catch (e: Exception) {
-                Result.failure(Exception("Failed to create request: ${e.message}", e))
+                Log.e("RequestsRepository", "Transaction failed: ${e.message}", e)
+                Result.failure(Exception("Failed to reserve items: ${e.message}", e))
             }
         } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error submitting request: ${e.message}", e)
             Result.failure(Exception("Error submitting request: ${e.message}", e))
         }
     }

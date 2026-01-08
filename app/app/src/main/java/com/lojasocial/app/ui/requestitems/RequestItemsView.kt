@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -56,19 +60,25 @@ fun RequestItemsView(
 
     val isSubmitting = submissionState is SubmissionState.Loading
     val snackbarHostState = remember { SnackbarHostState() }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(submissionState) {
         val currentSubmissionState = submissionState
         when (currentSubmissionState) {
             is SubmissionState.Success -> {
-                snackbarHostState.showSnackbar("Pedido criado com sucesso!")
-                delay(1500)
-                viewModel.resetSubmissionState()
-                onSubmitClick()
+                showSuccessDialog = true
+                // Also show snackbar for immediate feedback
+                snackbarHostState.showSnackbar(
+                    message = "Pedido criado com sucesso!",
+                    duration = SnackbarDuration.Short
+                )
             }
 
             is SubmissionState.Error -> {
-                snackbarHostState.showSnackbar(currentSubmissionState.message)
+                snackbarHostState.showSnackbar(
+                    message = currentSubmissionState.message,
+                    duration = SnackbarDuration.Long
+                )
                 viewModel.resetSubmissionState()
             }
 
@@ -79,6 +89,43 @@ fun RequestItemsView(
     var searchQuery by remember { mutableStateOf("") }
     val categories = RequestItemsConstants.PRODUCT_CATEGORIES
     var selectedCategory by remember { mutableStateOf(RequestItemsConstants.DEFAULT_CATEGORY) }
+
+    // Success Dialog
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSuccessDialog = false
+                viewModel.resetSubmissionState()
+                onSubmitClick()
+            },
+            title = {
+                Text(
+                    text = "Pedido Criado!",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
+            text = {
+                Text(
+                    text = "O teu pedido foi criado com sucesso. Podes acompanhar o estado do pedido na secção de pedidos.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        viewModel.resetSubmissionState()
+                        onSubmitClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = LojaSocialPrimary
+                    )
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     Scaffold(
         snackbarHost = {

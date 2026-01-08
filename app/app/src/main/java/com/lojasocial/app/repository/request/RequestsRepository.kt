@@ -65,6 +65,12 @@ interface RequestsRepository {
      * Creates a request document with an items map (document ID -> quantity).
      */
     suspend fun submitRequest(selectedItems: Map<String, Int>): Result<Unit>
+    
+    /**
+     * Completes a request (status 2 = CONCLUIDO).
+     * Decreases both quantity and reservedQuantity for all items in the request.
+     */
+    suspend fun completeRequest(requestId: String): Result<Unit>
 }
 
 /**

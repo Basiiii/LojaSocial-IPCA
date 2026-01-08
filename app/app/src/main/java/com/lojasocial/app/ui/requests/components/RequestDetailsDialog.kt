@@ -66,6 +66,7 @@ fun RequestDetailsDialog(
     onDismiss: () -> Unit,
     onAccept: (Date) -> Unit = {},
     onReject: (String?) -> Unit = {},
+    onComplete: () -> Unit = {},
     profilePictureRepository: ProfilePictureRepository? = null,
     canAcceptReject: Boolean = true
 ) {
@@ -243,6 +244,38 @@ fun RequestDetailsDialog(
                             onProposeDateClick = { showDatePicker = true },
                             onRejectClick = { showRejectDialog = true }
                         )
+                    } else if (status == RequestStatus.PENDENTE_LEVANTAMENTO && canAcceptReject) {
+                        // Complete Button for pending pickup requests
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.White)
+                                .padding(16.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    onComplete()
+                                },
+                                enabled = !isLoading,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Concluir Pedido", fontSize = 16.sp, color = Color.White)
+                                }
+                            }
+                        }
                     } else {
                         // Close Button
                         Box(

@@ -184,11 +184,36 @@ class PickupRequestsViewModel @Inject constructor(
             val result = repository.rejectRequest(requestId, reason)
             result.fold(
                 onSuccess = {
+                    // Set success immediately to close dialog
                     _actionState.value = ActionState.Success("Pedido rejeitado")
-                    fetchRequests() // Refresh list
+                    
+                    // Close dialog immediately
+                    clearSelectedRequest()
+                    
+                    // Refresh list in background (non-blocking)
+                    launch {
+                        fetchRequests()
+                    }
                 },
                 onFailure = { error ->
                     _actionState.value = ActionState.Error(error.message ?: "Erro ao rejeitar pedido")
+                }
+            )
+        }
+    }
+
+    fun completeRequest(requestId: String) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.completeRequest(requestId)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Pedido concluído")
+                    clearSelectedRequest()
+                    fetchRequests() // Refresh list
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao concluir pedido")
                 }
             )
         }

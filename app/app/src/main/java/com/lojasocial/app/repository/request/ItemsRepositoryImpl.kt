@@ -19,6 +19,7 @@ private data class ItemData(
     val product: Product,
     val category: String,
     val quantity: Int,
+    val availableQuantity: Int, // quantity - reservedQuantity
     val expiryDate: Timestamp?
 )
 
@@ -73,6 +74,14 @@ class ItemsRepositoryImpl @Inject constructor(
                     ?: (data["expirationDate"] as? Timestamp)
                 
                 val quantity = (data["quantity"] as? Long)?.toInt() ?: (data["quantity"] as? Int) ?: 0
+                val reservedQuantity = (data["reservedQuantity"] as? Long)?.toInt() 
+                    ?: (data["reservedQuantity"] as? Int) ?: 0
+                val availableQuantity = quantity - reservedQuantity
+                
+                // Only include items with available stock > 0
+                if (availableQuantity <= 0) {
+                    return@mapNotNull null
+                }
                 
                 // Return item data with productId for grouping
                 ItemData(
@@ -81,6 +90,7 @@ class ItemsRepositoryImpl @Inject constructor(
                     product = product,
                     category = categoryString,
                     quantity = quantity,
+                    availableQuantity = availableQuantity,
                     expiryDate = expiryDate
                 )
             }
@@ -96,8 +106,8 @@ class ItemsRepositoryImpl @Inject constructor(
                     item.expiryDate?.toDate()?.time ?: Long.MAX_VALUE
                 })
                 
-                // Calculate total quantity
-                val totalQuantity = items.sumOf { it.quantity }
+                // Calculate total available quantity (not total physical quantity)
+                val totalAvailableQuantity = items.sumOf { it.availableQuantity }
                 
                 // Get the nearest expiry date (first item in sorted list)
                 val nearestExpiryDate = sortedItems.firstOrNull()?.expiryDate
@@ -108,7 +118,7 @@ class ItemsRepositoryImpl @Inject constructor(
                     id = 0,
                     name = items.first().product.name,
                     category = items.first().category,
-                    quantity = totalQuantity,
+                    quantity = totalAvailableQuantity, // This represents available stock
                     expiryDate = nearestExpiryDate
                 )
             }

@@ -218,6 +218,9 @@ fun PickupRequestsView(
             onReject = { reason ->
                 viewModel.rejectRequest(request.id, reason)
             },
+            onComplete = {
+                viewModel.completeRequest(request.id)
+            },
             profilePictureRepository = profilePictureRepository
         )
     }

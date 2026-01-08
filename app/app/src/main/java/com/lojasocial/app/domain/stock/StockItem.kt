@@ -9,5 +9,6 @@ data class StockItem(
     val createdAt: Date = Date(),
     val expirationDate: Date? = null,
     val quantity: Int = 0,
+    val reservedQuantity: Int = 0,
     val productId: String = "" // Reference to Product collection
 )

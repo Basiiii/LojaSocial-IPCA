@@ -34,6 +34,7 @@ class StockItemRepository @Inject constructor(
                 "barcode" to stockItem.barcode,
                 "createdAt" to stockItem.createdAt,
                 "quantity" to stockItem.quantity,
+                "reservedQuantity" to stockItem.reservedQuantity,
                 "productId" to stockItem.productId
             )
             stockItem.campaignId?.let { stockItemMap["campaignId"] = it }
