@@ -16,6 +16,13 @@ interface RequestsRepository {
     fun getAllRequests(): Flow<List<Request>>
     
     /**
+     * Gets all pickup requests for the current authenticated user.
+     * This method filters requests by userId at the Firestore query level,
+     * which is necessary for beneficiaries who can only read their own requests.
+     */
+    fun getRequests(): Flow<List<Request>>
+    
+    /**
      * Gets a single request by ID with all details including items.
      */
     suspend fun getRequestById(requestId: String): Result<Request>

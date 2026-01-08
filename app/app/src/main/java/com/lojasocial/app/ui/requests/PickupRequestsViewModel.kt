@@ -46,18 +46,23 @@ class PickupRequestsViewModel @Inject constructor(
 
     fun fetchRequests() {
         viewModelScope.launch {
-            repository.getAllRequests()
+            // Use getRequests() when filtering by current user (for beneficiaries)
+            // This ensures Firestore query-level filtering which respects security rules
+            // Use getAllRequests() for admins viewing all requests
+            val requestsFlow = if (filterUserId != null) {
+                repository.getRequests()
+            } else {
+                repository.getAllRequests()
+            }
+            
+            requestsFlow
                 .catch { exception ->
                     _uiState.value = PickupRequestsUiState.Error(exception.message ?: "Erro ao carregar pedidos")
                 }
                 .collect { requests ->
-                    // Filter by userId if filter is set
-                    val filteredRequests = if (filterUserId != null) {
-                        requests.filter { it.userId == filterUserId }
-                    } else {
-                        requests
-                    }
-                    _uiState.value = PickupRequestsUiState.Success(filteredRequests)
+                    // getRequests() already filters by userId at Firestore level
+                    // getAllRequests() returns all requests (for admins)
+                    _uiState.value = PickupRequestsUiState.Success(requests)
                 }
         }
     }

@@ -166,6 +166,73 @@ class RequestsRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getRequests(): Flow<List<Request>> = flow {
+        try {
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                Log.w("RequestsRepository", "User not authenticated, returning empty list")
+                emit(emptyList())
+                return@flow
+            }
+            
+            // Try with orderBy first, fallback to unordered if index doesn't exist
+            val snapshot = try {
+                firestore.collection("requests")
+                    .whereEqualTo("userId", userId)
+                    .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                // If orderBy fails (index missing), get without ordering
+                Log.w("RequestsRepository", "OrderBy failed, fetching without order: ${e.message}")
+                firestore.collection("requests")
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .await()
+            }
+
+            val requests = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    val requestUserId = data["userId"] as? String ?: return@mapNotNull null
+                    val status = (data["status"] as? Long)?.toInt() ?: 0
+                    val submissionDate = convertToDate(data["submissionDate"])
+                    val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
+                    val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+                    val rejectionReason = data["rejectionReason"] as? String
+
+                    Request(
+                        id = doc.id,
+                        userId = requestUserId,
+                        status = status,
+                        submissionDate = submissionDate,
+                        totalItems = totalItems,
+                        scheduledPickupDate = scheduledPickupDate,
+                        rejectionReason = rejectionReason,
+                        items = emptyList() // Items loaded separately when needed
+                    )
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error parsing document ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+
+            // Sort manually if we couldn't use orderBy
+            val sortedRequests = if (snapshot.documents.isEmpty() || 
+                snapshot.documents.firstOrNull()?.data?.get("submissionDate") != null) {
+                requests.sortedByDescending { it.submissionDate ?: Date(0) }
+            } else {
+                requests
+            }
+
+            Log.d("RequestsRepository", "Fetched ${sortedRequests.size} requests for user $userId")
+            emit(sortedRequests)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error fetching user requests: ${e.message}", e)
+            emit(emptyList())
+        }
+    }
+
     override suspend fun getRequestById(requestId: String): Result<Request> {
         return try {
             Log.d("RequestsRepository", "Fetching request by ID: $requestId")
