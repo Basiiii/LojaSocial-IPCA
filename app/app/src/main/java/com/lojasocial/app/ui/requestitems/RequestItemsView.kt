@@ -1,5 +1,38 @@
 package com.lojasocial.app.ui.requestitems
 
+/**
+ * Main view for handling product selection and request creation.
+ * 
+ * This screen allows users to browse, search, and select products to create a new request.
+ * It provides the following key features:
+ * - Search functionality to find products by name
+ * - Category filtering to narrow down products
+ * - Quantity selection for each product
+ * - Visual feedback on selected items and limits
+ * - Progress tracking against maximum allowed items
+ * 
+ * The view manages several states to ensure a smooth user experience:
+ * - **Loading**: Shows a progress indicator while fetching the product catalog
+ * - **Error**: Displays an error message when product loading fails
+ * - **Success**: Shows the product list with search and filter capabilities
+ * - **Submitting**: Shows a loading overlay during request submission
+ * 
+ * The component maintains a local state for:
+ * - Search query for filtering products by name
+ * - Selected category for filtering products
+ * - Quantities of each selected product
+ * - Form submission state
+ * 
+ * @param onBackClick Callback invoked when the back button is clicked
+ * @param onSubmitClick Callback invoked when the submit button is clicked after successful submission
+ * @param viewModel The ViewModel that handles the business logic and state management
+ * 
+ * @see RequestItemsViewModel The ViewModel managing the state and business logic
+ * @see ProductItemRow Component for displaying individual product rows
+ * @see RequestItemsTopAppBar The custom top app bar with back navigation
+ * @see RequestItemsBottomBar The bottom bar with submit action
+ */
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,6 +129,28 @@ fun RequestItemsView(
     )
 }
 
+/**
+ * Stateless content composable that renders the request items UI.
+ * 
+ * This component is responsible for the actual rendering of the request items screen
+ * and handles all user interactions. It's separated from the state management logic
+ * to improve testability and reusability.
+ * 
+ * @param uiState The current UI state containing product data and loading/error states
+ * @param productQuantities Map of product IDs to their selected quantities
+ * @param searchQuery Current search query for filtering products
+ * @param onSearchQueryChange Callback when the search query changes
+ * @param categories List of available product categories
+ * @param selectedCategory Currently selected category filter
+ * @param onCategorySelected Callback when a category is selected
+ * @param onAddProduct Callback when a product quantity is increased
+ * @param onRemoveProduct Callback when a product quantity is decreased
+ * @param onClearQuantities Callback to clear all selected quantities
+ * @param onBackClick Callback for back navigation
+ * @param onSubmitClick Callback for form submission
+ * @param isSubmitting Whether the form is currently being submitted
+ * @param onLoadMore Callback to load more products (pagination)
+ */
 @Composable
 fun RequestItemsContent(
     uiState: RequestItemsUiState,
@@ -246,6 +301,12 @@ fun RequestItemsContent(
 
 val previewCategories = RequestItemsConstants.PRODUCT_CATEGORIES
 
+/**
+ * Preview composable for the RequestItemsView with sample data.
+ * 
+ * Shows the view in a success state with sample products and selected quantities
+ * to demonstrate the UI layout and styling.
+ */
 @Preview(showBackground = true)
 @Composable
 fun RequestItemsViewPreview() {
@@ -277,6 +338,11 @@ fun RequestItemsViewPreview() {
     )
 }
 
+/**
+ * Preview composable for the RequestItemsView in loading state.
+ * 
+ * Shows the loading indicator that appears while fetching products.
+ */
 @Preview(showBackground = true)
 @Composable
 fun PreviewLoading() {
@@ -298,6 +364,11 @@ fun PreviewLoading() {
     )
 }
 
+/**
+ * Preview composable for the RequestItemsView in submitting state.
+ * 
+ * Shows the loading overlay that appears during request submission.
+ */
 @Preview(showBackground = true)
 @Composable
 fun PreviewSubmitting() {
@@ -328,6 +399,11 @@ fun PreviewSubmitting() {
     )
 }
 
+/**
+ * Preview composable for the RequestItemsView in error state.
+ * 
+ * Shows the error state when product loading fails.
+ */
 @Preview(showBackground = true)
 @Composable
 fun PreviewError() {
