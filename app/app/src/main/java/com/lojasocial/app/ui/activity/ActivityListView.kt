@@ -197,8 +197,8 @@ fun ActivityListView(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp)
                     ) {
                         items(
                             items = activities,

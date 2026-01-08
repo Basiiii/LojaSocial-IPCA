@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -34,7 +34,8 @@ fun AppTopBar(
     subtitle: String,
     notifications: Boolean = true,
     showPortalSelection: Boolean = false,
-    onPortalSelectionClick: (() -> Unit)? = null
+    onPortalSelectionClick: (() -> Unit)? = null,
+    onActivityClick: (() -> Unit)? = null
 ) {
     TopAppBar(
         title = {
@@ -80,19 +81,9 @@ fun AppTopBar(
             }
         },
         actions = {
-            if (notifications) {
-                Box(modifier = Modifier.padding(end = 8.dp)) {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notificações", tint = TextDark)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 10.dp, end = 10.dp)
-                            .size(8.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(Color.Red)
-                    )
+            if (notifications && onActivityClick != null) {
+                IconButton(onClick = onActivityClick) {
+                    Icon(Icons.Default.History, contentDescription = "Atividade Recente", tint = TextDark)
                 }
             }
         },

@@ -186,7 +186,8 @@ fun EmployeePortalView(
                 showTopBar = !(selectedTab == "support" && isChatOpen),
                 showBottomBar = !(selectedTab == "support" && isChatOpen),
                 showPortalSelection = showPortalSelection,
-                onPortalSelectionClick = onPortalSelectionClick
+                onPortalSelectionClick = onPortalSelectionClick,
+                onActivityClick = onNavigateToActivityList
             ) { paddingValues ->
                 content(paddingValues)
             }

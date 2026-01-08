@@ -34,8 +34,7 @@ fun ActivityItem(
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp),
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFFE5E7EB))

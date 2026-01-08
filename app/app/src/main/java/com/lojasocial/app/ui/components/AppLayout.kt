@@ -16,6 +16,7 @@ fun AppLayout(
     showBottomBar: Boolean = true,
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null,
+    onActivityClick: (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
@@ -24,7 +25,8 @@ fun AppLayout(
                 AppTopBar(
                     subtitle = subtitle,
                     showPortalSelection = showPortalSelection,
-                    onPortalSelectionClick = onPortalSelectionClick
+                    onPortalSelectionClick = onPortalSelectionClick,
+                    onActivityClick = onActivityClick
                 )
             }
         },
