@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,8 +23,9 @@ import com.lojasocial.app.ui.activity.ActivityViewModel
 import com.lojasocial.app.ui.components.ActivityItem
 import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
-import com.lojasocial.app.ui.theme.BrandOrange
+import com.lojasocial.app.ui.theme.BrandPurple
 import com.lojasocial.app.ui.theme.TextDark
+import com.lojasocial.app.ui.theme.TextGray
 import java.util.concurrent.TimeUnit
 
 /**
@@ -48,13 +50,14 @@ private fun formatTimeAgo(date: java.util.Date): String {
 
 /**
  * Helper function to get icon, background color, and tint color for activity type
+ * These match the icons and colors used in RecentActivitySection
  */
 private fun getActivityIconAndColors(type: ActivityType): Triple<androidx.compose.ui.graphics.vector.ImageVector, Color, Color> {
     return when (type) {
         ActivityType.REQUEST_SUBMITTED -> Triple(
-            Icons.Default.Schedule,
-            Color(0xFFFEF3C7),
-            BrandOrange
+            Icons.Default.Inventory,
+            Color(0xFFDBEAFE),
+            BrandBlue
         )
         ActivityType.REQUEST_ACCEPTED -> Triple(
             Icons.Default.Check,
@@ -62,14 +65,29 @@ private fun getActivityIconAndColors(type: ActivityType): Triple<androidx.compos
             BrandGreen
         )
         ActivityType.PICKUP_COMPLETED -> Triple(
-            Icons.Default.ShoppingBag,
+            Icons.Default.Inventory,
             Color(0xFFDBEAFE),
             BrandBlue
         )
-        else -> Triple(
-            Icons.Default.Schedule,
-            Color(0xFFFEF3C7),
-            BrandOrange
+        ActivityType.REQUEST_REJECTED -> Triple(
+            Icons.Default.Cancel,
+            Color(0xFFFEE2E2),
+            Color(0xFFEF4444)
+        )
+        ActivityType.APPLICATION_SUBMITTED -> Triple(
+            Icons.Default.Description,
+            Color(0xFFF3E8FF),
+            BrandPurple
+        )
+        ActivityType.APPLICATION_APPROVED -> Triple(
+            Icons.Default.Check,
+            Color(0xFFDCFCE7),
+            BrandGreen
+        )
+        ActivityType.APPLICATION_REJECTED -> Triple(
+            Icons.Default.Cancel,
+            Color(0xFFFEE2E2),
+            Color(0xFFEF4444)
         )
     }
 }
@@ -98,41 +116,64 @@ fun ActivitySection(
                 fontWeight = FontWeight.SemiBold,
                 color = TextDark
             )
-            Text(
-                text = "Ver tudo",
-                fontSize = 14.sp,
-                color = BrandBlue,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable { onViewAllClick() }
-            )
+            Row(
+                modifier = Modifier
+                    .clickable { onViewAllClick() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Ver tudo",
+                    tint = BrandPurple,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Ver tudo",
+                    fontSize = 14.sp,
+                    color = BrandPurple,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (isLoading && activities.isEmpty()) {
-            // Show loading state or empty state
+            // Show loading state
             Text(
                 text = "A carregar...",
                 fontSize = 14.sp,
-                color = com.lojasocial.app.ui.theme.TextGray
+                color = TextGray
             )
         } else if (activities.isEmpty()) {
             Text(
                 text = "Sem atividades recentes",
                 fontSize = 14.sp,
-                color = com.lojasocial.app.ui.theme.TextGray
+                color = TextGray
             )
         } else {
-            for (activity in activities.take(3)) {
-                val (icon, iconBg, iconTint) = getActivityIconAndColors(activity.type)
-                ActivityItem(
-                    title = activity.title,
-                    subtitle = activity.subtitle,
-                    time = formatTimeAgo(activity.timestamp),
-                    icon = icon,
-                    iconBg = iconBg,
-                    iconTint = iconTint
+            // Show only the 3 most recent activities
+            val recentActivities = activities.take(3)
+            if (recentActivities.isEmpty()) {
+                Text(
+                    text = "Sem atividades recentes",
+                    fontSize = 14.sp,
+                    color = TextGray
                 )
+            } else {
+                recentActivities.forEach { activity ->
+                    val (icon, iconBg, iconTint) = getActivityIconAndColors(activity.type)
+                    ActivityItem(
+                        title = activity.title,
+                        subtitle = activity.subtitle,
+                        time = formatTimeAgo(activity.timestamp),
+                        icon = icon,
+                        iconBg = iconBg,
+                        iconTint = iconTint
+                    )
+                }
             }
         }
     }
@@ -154,12 +195,24 @@ fun ActivitySectionPreview() {
                 fontWeight = FontWeight.SemiBold,
                 color = TextDark
             )
-            Text(
-                text = "Ver tudo",
-                fontSize = 14.sp,
-                color = BrandBlue,
-                fontWeight = FontWeight.Medium
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Ver tudo",
+                    tint = BrandPurple,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Ver tudo",
+                    fontSize = 14.sp,
+                    color = BrandPurple,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))

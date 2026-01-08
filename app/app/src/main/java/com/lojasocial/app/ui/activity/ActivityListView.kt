@@ -47,13 +47,14 @@ private fun formatTimeAgo(date: java.util.Date): String {
 
 /**
  * Helper function to get icon, background color, and tint color for activity type
+ * These match the icons and colors used in RecentActivitySection
  */
 private fun getActivityIconAndColors(type: ActivityType): Triple<ImageVector, Color, Color> {
     return when (type) {
         ActivityType.REQUEST_SUBMITTED -> Triple(
-            Icons.Default.Schedule,
-            Color(0xFFFEF3C7),
-            BrandOrange
+            Icons.Default.Inventory,
+            Color(0xFFDBEAFE),
+            BrandBlue
         )
         ActivityType.REQUEST_ACCEPTED -> Triple(
             Icons.Default.Check,
@@ -61,7 +62,7 @@ private fun getActivityIconAndColors(type: ActivityType): Triple<ImageVector, Co
             BrandGreen
         )
         ActivityType.PICKUP_COMPLETED -> Triple(
-            Icons.Default.ShoppingBag,
+            Icons.Default.Inventory,
             Color(0xFFDBEAFE),
             BrandBlue
         )
@@ -74,6 +75,16 @@ private fun getActivityIconAndColors(type: ActivityType): Triple<ImageVector, Co
             Icons.Default.Check,
             Color(0xFFDCFCE7),
             BrandGreen
+        )
+        ActivityType.REQUEST_REJECTED -> Triple(
+            Icons.Default.Cancel,
+            Color(0xFFFEE2E2),
+            Color(0xFFEF4444)
+        )
+        ActivityType.APPLICATION_REJECTED -> Triple(
+            Icons.Default.Cancel,
+            Color(0xFFFEE2E2),
+            Color(0xFFEF4444)
         )
     }
 }
@@ -89,7 +100,8 @@ fun ActivityListView(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isEmployee) {
+        // Load a large number of activities to show all of them
         if (isEmployee) {
             viewModel.loadActivitiesForEmployee(limit = 100)
         } else {

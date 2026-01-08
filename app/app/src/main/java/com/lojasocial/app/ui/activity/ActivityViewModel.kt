@@ -43,16 +43,24 @@ class ActivityViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            _activities.value = emptyList() // Clear previous activities
             
-            activityRepository.getRecentActivitiesForBeneficiary(limit)
-                .catch { exception ->
-                    _error.value = exception.message ?: "Erro ao carregar atividades"
-                    _isLoading.value = false
-                }
-                .collect { activityList ->
-                    _activities.value = activityList
-                    _isLoading.value = false
-                }
+            try {
+                activityRepository.getRecentActivitiesForBeneficiary(limit)
+                    .catch { exception ->
+                        _error.value = exception.message ?: "Erro ao carregar atividades"
+                        _isLoading.value = false
+                        _activities.value = emptyList() // Set empty list on error
+                    }
+                    .collect { activityList ->
+                        _activities.value = activityList
+                        _isLoading.value = false
+                    }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Erro ao carregar atividades"
+                _isLoading.value = false
+                _activities.value = emptyList()
+            }
         }
     }
 
@@ -65,16 +73,24 @@ class ActivityViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            _activities.value = emptyList() // Clear previous activities
             
-            activityRepository.getRecentActivitiesForEmployee(limit)
-                .catch { exception ->
-                    _error.value = exception.message ?: "Erro ao carregar atividades"
-                    _isLoading.value = false
-                }
-                .collect { activityList ->
-                    _activities.value = activityList
-                    _isLoading.value = false
-                }
+            try {
+                activityRepository.getRecentActivitiesForEmployee(limit)
+                    .catch { exception ->
+                        _error.value = exception.message ?: "Erro ao carregar atividades"
+                        _isLoading.value = false
+                        _activities.value = emptyList() // Set empty list on error
+                    }
+                    .collect { activityList ->
+                        _activities.value = activityList
+                        _isLoading.value = false
+                    }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Erro ao carregar atividades"
+                _isLoading.value = false
+                _activities.value = emptyList()
+            }
         }
     }
 

@@ -52,61 +52,174 @@ class ActivityRepositoryImpl @Inject constructor(
         try {
             val userId = auth.currentUser?.uid
             if (userId == null) {
+                android.util.Log.w("ActivityRepository", "getRecentActivitiesForBeneficiary: User not authenticated")
                 emit(emptyList())
                 return@flow
             }
 
+            val allActivities = mutableListOf<Activity>()
+
             // Query user's requests ordered by submissionDate desc
-            val requestsSnapshot = firestore.collection("requests")
-                .whereEqualTo("userId", userId)
-                .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .limit(limit.toLong())
-                .get()
-                .await()
-
-            val activities = requestsSnapshot.documents.mapNotNull { doc ->
+            // Try with orderBy first, fallback to unordered if index doesn't exist
+            val requestsSnapshot = try {
+                firestore.collection("requests")
+                    .whereEqualTo("userId", userId)
+                    .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit((limit * 2).toLong()) // Get more to have enough after combining with applications
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                android.util.Log.w("ActivityRepository", "getRecentActivitiesForBeneficiary: OrderBy query failed, trying without order: ${e.message}")
+                // If orderBy fails (index missing), try without ordering
                 try {
-                    val data = doc.data ?: return@mapNotNull null
-                    val status = (data["status"] as? Long)?.toInt() ?: 0
-                    val submissionDate = convertToDate(data["submissionDate"]) ?: Date()
-                    
-                    val activityType = when (status) {
-                        0 -> ActivityType.REQUEST_SUBMITTED
-                        1 -> ActivityType.REQUEST_ACCEPTED
-                        2 -> ActivityType.PICKUP_COMPLETED
-                        else -> null
-                    } ?: return@mapNotNull null
-
-                    val (title, subtitle) = when (activityType) {
-                        ActivityType.REQUEST_SUBMITTED -> Pair(
-                            "Pedido Submetido",
-                            "Pedido submetido e pendente"
-                        )
-                        ActivityType.REQUEST_ACCEPTED -> Pair(
-                            "Pedido Aceite",
-                            "O teu pedido foi aceite"
-                        )
-                        ActivityType.PICKUP_COMPLETED -> Pair(
-                            "Levantamento Concluído",
-                            "Levantamento feito com sucesso"
-                        )
-                        else -> return@mapNotNull null
-                    }
-
-                    Activity(
-                        id = doc.id,
-                        type = activityType,
-                        title = title,
-                        subtitle = subtitle,
-                        timestamp = submissionDate
-                    )
-                } catch (e: Exception) {
+                    firestore.collection("requests")
+                        .whereEqualTo("userId", userId)
+                        .limit((limit * 2).toLong())
+                        .get()
+                        .await()
+                } catch (e2: Exception) {
+                    android.util.Log.e("ActivityRepository", "getRecentActivitiesForBeneficiary: Query failed: ${e2.message}", e2)
                     null
                 }
             }
 
-            emit(activities)
+            if (requestsSnapshot != null) {
+                android.util.Log.d("ActivityRepository", "getRecentActivitiesForBeneficiary: Found ${requestsSnapshot.documents.size} requests for user $userId")
+
+                requestsSnapshot.documents.forEach { doc ->
+                    try {
+                        val data = doc.data ?: return@forEach
+                        val status = (data["status"] as? Long)?.toInt() ?: 0
+                        val submissionDate = convertToDate(data["submissionDate"]) ?: Date()
+                        
+                        val activityType = when (status) {
+                            0 -> ActivityType.REQUEST_SUBMITTED
+                            1 -> ActivityType.REQUEST_ACCEPTED
+                            2 -> ActivityType.PICKUP_COMPLETED
+                            4 -> ActivityType.REQUEST_REJECTED
+                            else -> null
+                        } ?: return@forEach
+
+                        val (title, subtitle) = when (activityType) {
+                            ActivityType.REQUEST_SUBMITTED -> Pair(
+                                "Pedido Submetido",
+                                "Pedido submetido e pendente"
+                            )
+                            ActivityType.REQUEST_ACCEPTED -> Pair(
+                                "Pedido Aceite",
+                                "O teu pedido foi aceite"
+                            )
+                            ActivityType.PICKUP_COMPLETED -> Pair(
+                                "Levantamento Concluído",
+                                "Levantamento feito com sucesso"
+                            )
+                            ActivityType.REQUEST_REJECTED -> Pair(
+                                "Pedido Rejeitado",
+                                "O teu pedido foi rejeitado"
+                            )
+                            else -> return@forEach
+                        }
+
+                        allActivities.add(
+                            Activity(
+                                id = doc.id,
+                                type = activityType,
+                                title = title,
+                                subtitle = subtitle,
+                                timestamp = submissionDate
+                            )
+                        )
+                    } catch (e: Exception) {
+                        // Skip invalid documents
+                    }
+                }
+            }
+
+            // Query user's applications
+            val applicationsSnapshot = try {
+                firestore.collection("applications")
+                    .whereEqualTo("userId", userId)
+                    .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit((limit * 2).toLong()) // Get more applications to have enough after combining
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                android.util.Log.w("ActivityRepository", "getRecentActivitiesForBeneficiary: Applications orderBy query failed, trying without order: ${e.message}")
+                // If orderBy fails, try without ordering
+                try {
+                    firestore.collection("applications")
+                        .whereEqualTo("userId", userId)
+                        .limit((limit * 2).toLong())
+                        .get()
+                        .await()
+                } catch (e2: Exception) {
+                    android.util.Log.e("ActivityRepository", "getRecentActivitiesForBeneficiary: Applications query failed: ${e2.message}", e2)
+                    null
+                }
+            }
+
+            if (applicationsSnapshot != null) {
+                android.util.Log.d("ActivityRepository", "getRecentActivitiesForBeneficiary: Found ${applicationsSnapshot.documents.size} applications for user $userId")
+
+                applicationsSnapshot.documents.forEach { doc ->
+                    try {
+                        val data = doc.data ?: return@forEach
+                        val statusValue = data["status"]
+                        val status = when (statusValue) {
+                            is String -> ApplicationStatus.fromString(statusValue)
+                            is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                            is Int -> ApplicationStatus.fromInt(statusValue)
+                            else -> ApplicationStatus.PENDING
+                        }
+                        val submissionDate = convertToDate(data["submissionDate"]) ?: Date()
+
+                        val activityType = when (status) {
+                            ApplicationStatus.PENDING -> ActivityType.APPLICATION_SUBMITTED
+                            ApplicationStatus.APPROVED -> ActivityType.APPLICATION_APPROVED
+                            ApplicationStatus.REJECTED -> ActivityType.APPLICATION_REJECTED
+                            else -> null
+                        } ?: return@forEach
+
+                        val (title, subtitle) = when (activityType) {
+                            ActivityType.APPLICATION_SUBMITTED -> Pair(
+                                "Candidatura Submetida",
+                                "A tua candidatura foi submetida"
+                            )
+                            ActivityType.APPLICATION_APPROVED -> Pair(
+                                "Candidatura Aceite",
+                                "A tua candidatura foi aceite"
+                            )
+                            ActivityType.APPLICATION_REJECTED -> Pair(
+                                "Candidatura Rejeitada",
+                                "A tua candidatura foi rejeitada"
+                            )
+                            else -> return@forEach
+                        }
+
+                        allActivities.add(
+                            Activity(
+                                id = doc.id,
+                                type = activityType,
+                                title = title,
+                                subtitle = subtitle,
+                                timestamp = submissionDate
+                            )
+                        )
+                    } catch (e: Exception) {
+                        // Skip invalid documents
+                    }
+                }
+            }
+
+            // Sort all activities by timestamp (most recent first) and limit
+            val sortedActivities = allActivities
+                .sortedByDescending { it.timestamp }
+                .take(limit)
+
+            android.util.Log.d("ActivityRepository", "getRecentActivitiesForBeneficiary: Emitting ${sortedActivities.size} activities (total found: ${allActivities.size})")
+            emit(sortedActivities)
         } catch (e: Exception) {
+            android.util.Log.e("ActivityRepository", "getRecentActivitiesForBeneficiary: Exception: ${e.message}", e)
             emit(emptyList())
         }
     }
@@ -115,33 +228,46 @@ class ActivityRepositoryImpl @Inject constructor(
         try {
             val allActivities = mutableListOf<Activity>()
 
-            // Query all requests
-            val requestsSnapshot = firestore.collection("requests")
-                .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .limit(limit.toLong())
-                .get()
-                .await()
-
-            // Collect unique user IDs to batch fetch user names
-            val userIds = requestsSnapshot.documents.mapNotNull { doc ->
-                doc.data?.get("userId") as? String
-            }.distinct()
-
-            // Batch fetch user names
-            val userNameMap = mutableMapOf<String, String>()
-            userIds.forEach { uid ->
+            // Query all requests - use a larger limit to get more data before combining with applications
+            val requestsSnapshot = try {
+                firestore.collection("requests")
+                    .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit((limit * 2).toLong()) // Get more requests to have enough after combining
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                // If orderBy fails, try without ordering
                 try {
-                    val userDoc = firestore.collection("users").document(uid).get().await()
-                    val name = userDoc.data?.get("name") as? String
-                    if (name != null) {
-                        userNameMap[uid] = name
-                    }
-                } catch (e: Exception) {
-                    // Skip if user not found
+                    firestore.collection("requests")
+                        .limit((limit * 2).toLong())
+                        .get()
+                        .await()
+                } catch (e2: Exception) {
+                    null
                 }
             }
 
-            requestsSnapshot.documents.forEach { doc ->
+            if (requestsSnapshot != null) {
+                // Collect unique user IDs to batch fetch user names
+                val userIds = requestsSnapshot.documents.mapNotNull { doc ->
+                    doc.data?.get("userId") as? String
+                }.distinct()
+
+                // Batch fetch user names
+                val userNameMap = mutableMapOf<String, String>()
+                userIds.forEach { uid ->
+                    try {
+                        val userDoc = firestore.collection("users").document(uid).get().await()
+                        val name = userDoc.data?.get("name") as? String
+                        if (name != null) {
+                            userNameMap[uid] = name
+                        }
+                    } catch (e: Exception) {
+                        // Skip if user not found
+                    }
+                }
+
+                requestsSnapshot.documents.forEach { doc ->
                 try {
                     val data = doc.data ?: return@forEach
                     val status = (data["status"] as? Long)?.toInt() ?: 0
@@ -153,6 +279,7 @@ class ActivityRepositoryImpl @Inject constructor(
                         0 -> ActivityType.REQUEST_SUBMITTED
                         1 -> ActivityType.REQUEST_ACCEPTED
                         2 -> ActivityType.PICKUP_COMPLETED
+                        4 -> ActivityType.REQUEST_REJECTED
                         else -> null
                     } ?: return@forEach
 
@@ -169,6 +296,10 @@ class ActivityRepositoryImpl @Inject constructor(
                             val name = userName ?: "Utilizador"
                             Pair("Levantamento Concluído", "$name - Alimentar")
                         }
+                        ActivityType.REQUEST_REJECTED -> {
+                            val name = userName ?: "Utilizador"
+                            Pair("Pedido Rejeitado", name)
+                        }
                         else -> return@forEach
                     }
 
@@ -186,64 +317,85 @@ class ActivityRepositoryImpl @Inject constructor(
                 } catch (e: Exception) {
                     // Skip invalid documents
                 }
+                }
             }
 
             // Query all applications from applications collection
             // Applications are stored in applications/{applicationId} with userId field
-            val applicationsSnapshot = firestore.collection("applications")
-                .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .limit(limit.toLong())
-                .get()
-                .await()
-
-            applicationsSnapshot.documents.forEach { doc ->
+            val applicationsSnapshot = try {
+                firestore.collection("applications")
+                    .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit((limit * 2).toLong()) // Get more applications to have enough after combining
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                // If orderBy fails, try without ordering
                 try {
-                    val data = doc.data ?: return@forEach
-                    val statusStr = data["status"] as? String ?: ApplicationStatus.PENDING.name
-                    val status = try {
-                        ApplicationStatus.valueOf(statusStr)
+                    firestore.collection("applications")
+                        .limit((limit * 2).toLong())
+                        .get()
+                        .await()
+                } catch (e2: Exception) {
+                    null
+                }
+            }
+
+            if (applicationsSnapshot != null) {
+                applicationsSnapshot.documents.forEach { doc ->
+                    try {
+                        val data = doc.data ?: return@forEach
+                        val statusValue = data["status"]
+                        val status = when (statusValue) {
+                            is String -> ApplicationStatus.fromString(statusValue)
+                            is Long -> ApplicationStatus.fromInt(statusValue.toInt())
+                            is Int -> ApplicationStatus.fromInt(statusValue)
+                            else -> ApplicationStatus.PENDING
+                        }
+                        val submissionDate = convertToDate(data["submissionDate"]) ?: Date()
+                        
+                        // Get userId from document data
+                        val userId = data["userId"] as? String
+
+                        val personalInfoData = data["personalInfo"] as? Map<*, *>
+                        val userName = personalInfoData?.get("name") as? String
+
+                        val activityType = when (status) {
+                            ApplicationStatus.PENDING -> ActivityType.APPLICATION_SUBMITTED
+                            ApplicationStatus.APPROVED -> ActivityType.APPLICATION_APPROVED
+                            ApplicationStatus.REJECTED -> ActivityType.APPLICATION_REJECTED
+                            else -> null
+                        } ?: return@forEach
+
+                        val (title, subtitle) = when (activityType) {
+                            ActivityType.APPLICATION_SUBMITTED -> Pair(
+                                "Nova Candidatura",
+                                userName ?: "Nova candidatura submetida"
+                            )
+                            ActivityType.APPLICATION_APPROVED -> Pair(
+                                "Candidatura Aceite",
+                                userName ?: "Candidatura aprovada"
+                            )
+                            ActivityType.APPLICATION_REJECTED -> Pair(
+                                "Candidatura Rejeitada",
+                                userName ?: "Candidatura rejeitada"
+                            )
+                            else -> return@forEach
+                        }
+
+                        allActivities.add(
+                            Activity(
+                                id = doc.id,
+                                type = activityType,
+                                title = title,
+                                subtitle = subtitle,
+                                timestamp = submissionDate,
+                                userId = userId,
+                                userName = userName
+                            )
+                        )
                     } catch (e: Exception) {
-                        ApplicationStatus.PENDING
+                        // Skip invalid documents
                     }
-                    val submissionDate = convertToDate(data["submissionDate"]) ?: Date()
-                    
-                    // Get userId from document data
-                    val userId = data["userId"] as? String
-
-                    val personalInfoData = data["personalInfo"] as? Map<*, *>
-                    val userName = personalInfoData?.get("name") as? String
-
-                    val activityType = when (status) {
-                        ApplicationStatus.PENDING -> ActivityType.APPLICATION_SUBMITTED
-                        ApplicationStatus.APPROVED -> ActivityType.APPLICATION_APPROVED
-                        else -> null
-                    } ?: return@forEach
-
-                    val (title, subtitle) = when (activityType) {
-                        ActivityType.APPLICATION_SUBMITTED -> Pair(
-                            "Nova Candidatura",
-                            userName ?: "Nova candidatura submetida"
-                        )
-                        ActivityType.APPLICATION_APPROVED -> Pair(
-                            "Candidatura Aceite",
-                            userName ?: "Candidatura aprovada"
-                        )
-                        else -> return@forEach
-                    }
-
-                    allActivities.add(
-                        Activity(
-                            id = doc.id,
-                            type = activityType,
-                            title = title,
-                            subtitle = subtitle,
-                            timestamp = submissionDate,
-                            userId = userId,
-                            userName = userName
-                        )
-                    )
-                } catch (e: Exception) {
-                    // Skip invalid documents
                 }
             }
 

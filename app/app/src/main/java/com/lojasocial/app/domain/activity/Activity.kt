@@ -41,9 +41,15 @@ enum class ActivityType {
     /** A pickup/collection was completed */
     PICKUP_COMPLETED,
     
+    /** A request was rejected by an employee */
+    REQUEST_REJECTED,
+    
     /** A new application was submitted */
     APPLICATION_SUBMITTED,
     
     /** An application was approved */
-    APPLICATION_APPROVED
+    APPLICATION_APPROVED,
+    
+    /** An application was rejected */
+    APPLICATION_REJECTED
 }

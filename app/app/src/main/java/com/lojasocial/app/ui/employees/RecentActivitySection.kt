@@ -2,10 +2,14 @@ package com.lojasocial.app.ui.employees
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,6 +73,11 @@ private fun getActivityIconAndColors(type: ActivityType): Triple<ImageVector, Co
             Color(0xFFDBEAFE),
             BrandBlue
         )
+        ActivityType.REQUEST_REJECTED -> Triple(
+            Icons.Default.Cancel,
+            Color(0xFFFEE2E2),
+            Color(0xFFEF4444)
+        )
         ActivityType.APPLICATION_SUBMITTED -> Triple(
             Icons.Default.Description,
             Color(0xFFF3E8FF),
@@ -78,6 +87,11 @@ private fun getActivityIconAndColors(type: ActivityType): Triple<ImageVector, Co
             Icons.Default.Check,
             Color(0xFFDCFCE7),
             BrandGreen
+        )
+        ActivityType.APPLICATION_REJECTED -> Triple(
+            Icons.Default.Cancel,
+            Color(0xFFFEE2E2),
+            Color(0xFFEF4444)
         )
     }
 }
@@ -91,6 +105,7 @@ fun RecentActivitySection(
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(Unit) {
+        // Load more than 3 to ensure we have enough after filtering, but we'll only show 3
         viewModel.loadActivitiesForEmployee(limit = 20)
     }
 
@@ -106,13 +121,26 @@ fun RecentActivitySection(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 color = TextDark
             )
-            Text(
-                text = "Ver tudo",
-                fontSize = 14.sp,
-                color = BrandBlue,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                modifier = Modifier.clickable { onViewAllClick() }
-            )
+            Row(
+                modifier = Modifier
+                    .clickable { onViewAllClick() }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Ver tudo",
+                    tint = BrandPurple,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Ver tudo",
+                    fontSize = 14.sp,
+                    color = BrandPurple,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -131,16 +159,26 @@ fun RecentActivitySection(
                 color = TextGray
             )
         } else {
-            for (activity in activities.take(3)) {
-                val (icon, iconBg, iconTint) = getActivityIconAndColors(activity.type)
-                ActivityItem(
-                    title = activity.title,
-                    subtitle = activity.subtitle,
-                    time = formatTimeAgo(activity.timestamp),
-                    icon = icon,
-                    iconBg = iconBg,
-                    iconTint = iconTint
+            // Show only the 3 most recent activities
+            val recentActivities = activities.take(3)
+            if (recentActivities.isEmpty()) {
+                Text(
+                    text = "Sem atividades recentes",
+                    fontSize = 14.sp,
+                    color = TextGray
                 )
+            } else {
+                recentActivities.forEach { activity ->
+                    val (icon, iconBg, iconTint) = getActivityIconAndColors(activity.type)
+                    ActivityItem(
+                        title = activity.title,
+                        subtitle = activity.subtitle,
+                        time = formatTimeAgo(activity.timestamp),
+                        icon = icon,
+                        iconBg = iconBg,
+                        iconTint = iconTint
+                    )
+                }
             }
         }
     }
@@ -162,12 +200,24 @@ fun RecentActivitySectionPreview() {
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 color = TextDark
             )
-            Text(
-                text = "Ver tudo",
-                fontSize = 14.sp,
-                color = BrandBlue,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Ver tudo",
+                    tint = BrandPurple,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Ver tudo",
+                    fontSize = 14.sp,
+                    color = BrandPurple,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))

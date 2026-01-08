@@ -418,9 +418,18 @@ fun NavigationGraph(
         }
 
         // Activity List
-        composable(Screen.ActivityList.route) {
-            // Determine if user is employee based on current profile
-            val isEmployee = lastProfile?.isAdmin == true && !lastProfile.isBeneficiary
+        composable(Screen.ActivityList.route) { backStackEntry ->
+            // Determine if user is employee based on:
+            // 1. If coming from employee portal, show employee activities
+            // 2. Otherwise, check if user is admin (regardless of beneficiary status)
+            val isFromEmployeePortal = navController.previousBackStackEntry?.destination?.route?.startsWith(Screen.EmployeePortal.route) == true
+            val isFromBeneficiaryPortal = navController.previousBackStackEntry?.destination?.route?.startsWith(Screen.BeneficiaryPortal.route) == true
+            
+            val isEmployee = when {
+                isFromEmployeePortal -> true // Coming from employee portal, show employee activities
+                isFromBeneficiaryPortal -> false // Coming from beneficiary portal, show beneficiary activities
+                else -> lastProfile?.isAdmin == true // Default: if admin, show employee activities
+            }
             
             com.lojasocial.app.ui.activity.ActivityListView(
                 isEmployee = isEmployee,
