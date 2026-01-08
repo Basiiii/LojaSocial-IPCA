@@ -8,6 +8,7 @@ import logger from './utils/logger.js';
 import chatRoutes from './routes/chat.js';
 import barcodeRoutes from './routes/barcode.js';
 import expirationRoutes from './routes/expirationRoutes.js';
+import auditRoutes from './routes/audit.js';
 import { checkAndNotifyExpiringItems } from './services/expirationCheckService.js';
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use('/api/chat', chatRoutes);
 app.use('/api/barcode', barcodeRoutes);
 app.use('/api/expiration', expirationRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Run daily at 9:00 AM
 // Format: minute hour day month dayOfWeek
