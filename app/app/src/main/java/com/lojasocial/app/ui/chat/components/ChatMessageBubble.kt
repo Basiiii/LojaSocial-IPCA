@@ -3,6 +3,7 @@ package com.lojasocial.app.ui.chat.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -55,14 +56,24 @@ fun ChatMessageBubble(
                 .widthIn(max = 280.dp) // Max width of bubble
                 .clip(bubbleShape)
                 .background(backgroundColor)
-                .padding(12.dp)
+                .padding(12.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = message.text,
-                color = contentColor,
-                fontSize = 15.sp,
-                lineHeight = 22.sp
-            )
+            if (message.isLoading) {
+                // Show loading indicator inside the bubble
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = contentColor,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = message.text,
+                    color = contentColor,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp
+                )
+            }
         }
 
         // Tiny timestamp below bubble
@@ -135,6 +146,25 @@ fun LongMessageBubblePreview() {
         text = "Este é um exemplo de uma mensagem mais longa que demonstra como o componente lida com texto extenso, fazendo o wrapping adequado e mantendo o tamanho máximo da bolha de 280dp conforme definido no design.",
         isUser = false,
         timestamp = System.currentTimeMillis()
+    )
+    
+    ChatMessageBubble(message = message)
+}
+
+/**
+ * Preview composable for loading message bubble.
+ * 
+ * This preview shows a message bubble with a loading indicator
+ * as it would appear when waiting for a response.
+ */
+@Preview(showBackground = true, name = "Loading Message")
+@Composable
+fun LoadingMessageBubblePreview() {
+    val message = ChatMessage(
+        text = "",
+        isUser = false,
+        timestamp = System.currentTimeMillis(),
+        isLoading = true
     )
     
     ChatMessageBubble(message = message)

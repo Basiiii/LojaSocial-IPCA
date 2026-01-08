@@ -12,12 +12,14 @@ import java.util.*
  * @property text The message content.
  * @property isUser Whether the message was sent by the user (true) or assistant (false).
  * @property timestamp The timestamp when the message was created.
+ * @property isLoading Whether this message is currently in a loading state (showing loading indicator).
  */
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isUser: Boolean,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val isLoading: Boolean = false
 )
 
 /**

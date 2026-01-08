@@ -28,6 +28,9 @@ import kotlinx.coroutines.launch
 class ChatViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+    
+    // Track the ID of the loading message to update it when response arrives
+    private var loadingMessageId: String? = null
 
     init {
         // Initialize chat with a welcome message from the assistant
@@ -49,9 +52,10 @@ class ChatViewModel : ViewModel() {
      * This method:
      * 1. Validates the input (ignores empty messages)
      * 2. Adds the user message to the conversation
-     * 3. Clears the input field and shows loading state
-     * 4. Makes an API call to get the assistant response
-     * 5. Handles success and error cases appropriately
+     * 3. Adds a loading assistant message bubble
+     * 4. Clears the input field
+     * 5. Makes an API call to get the assistant response
+     * 6. Handles success and error cases appropriately
      */
     fun sendMessage() {
         val currentMessage = _uiState.value.inputText
@@ -60,11 +64,15 @@ class ChatViewModel : ViewModel() {
         // Add user message to conversation
         addMessage(currentMessage, isUser = true)
         
-        // Clear input and show loading state
+        // Add loading assistant message bubble
+        val loadingMessage = addLoadingMessage()
+        loadingMessageId = loadingMessage.id
+        
+        // Clear input
         _uiState.update { 
             it.copy(
                 inputText = "", 
-                isLoading = true, 
+                isLoading = false, 
                 error = null
             ) 
         }
@@ -100,8 +108,6 @@ class ChatViewModel : ViewModel() {
                 
             } catch (e: Exception) {
                 handleApiError(e)
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -115,7 +121,7 @@ class ChatViewModel : ViewModel() {
         if (response.isSuccessful) {
             val botResponse = response.body()?.choices?.firstOrNull()?.message?.content
                 ?: getDefaultErrorResponse()
-            addMessage(botResponse, isUser = false)
+            updateLoadingMessage(botResponse)
         } else {
             handleHttpError(response.code())
         }
@@ -128,7 +134,7 @@ class ChatViewModel : ViewModel() {
      */
     private fun handleApiError(exception: Exception) {
         val errorMessage = "Desculpe, estou com dificuldades para me conectar. Tente novamente em alguns instantes."
-        addMessage(errorMessage, isUser = false)
+        updateLoadingMessage(errorMessage)
         _uiState.update { it.copy(error = exception.message) }
     }
 
@@ -139,7 +145,7 @@ class ChatViewModel : ViewModel() {
      */
     private fun handleHttpError(statusCode: Int) {
         val errorMessage = "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente."
-        addMessage(errorMessage, isUser = false)
+        updateLoadingMessage(errorMessage)
         _uiState.update { it.copy(error = "Erro: $statusCode") }
     }
 
@@ -161,6 +167,56 @@ class ChatViewModel : ViewModel() {
                 messages = currentState.messages + newMessage
             )
         }
+    }
+    
+    /**
+     * Adds a loading assistant message to the conversation.
+     * 
+     * @return The created loading message.
+     */
+    private fun addLoadingMessage(): ChatMessage {
+        val loadingMessage = ChatMessage(
+            text = "",
+            isUser = false,
+            timestamp = System.currentTimeMillis(),
+            isLoading = true
+        )
+        
+        _uiState.update { currentState ->
+            currentState.copy(
+                messages = currentState.messages + loadingMessage
+            )
+        }
+        
+        return loadingMessage
+    }
+    
+    /**
+     * Updates the loading message with the actual response text.
+     * 
+     * @param text The response text to replace the loading indicator.
+     */
+    private fun updateLoadingMessage(text: String) {
+        val messageId = loadingMessageId
+        if (messageId == null) {
+            // Fallback: add message if no loading message found
+            addMessage(text, isUser = false)
+            return
+        }
+        
+        _uiState.update { currentState ->
+            val updatedMessages = currentState.messages.map { message ->
+                if (message.id == messageId) {
+                    message.copy(text = text, isLoading = false)
+                } else {
+                    message
+                }
+            }
+            currentState.copy(messages = updatedMessages)
+        }
+        
+        // Clear the loading message ID
+        loadingMessageId = null
     }
 
     /**
