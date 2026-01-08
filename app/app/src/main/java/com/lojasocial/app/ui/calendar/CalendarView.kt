@@ -53,6 +53,7 @@ fun CalendarView(
             .padding(paddingValues)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
+            .padding(bottom = 24.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         
