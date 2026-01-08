@@ -17,15 +17,23 @@ import com.lojasocial.app.repository.user.UserProfile
  * user profile information at the top of the profile screen.
  * 
  * @param profile The user profile data to display
+ * @param onEditPictureClick Callback invoked when the edit icon is clicked
  */
 @Composable
-fun ProfileHeaderCard(profile: UserProfile?) {
+fun ProfileHeaderCard(
+    profile: UserProfile?,
+    onEditPictureClick: () -> Unit = {}
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        ProfileHeader(profile, Modifier.padding(20.dp))
+        ProfileHeader(
+            profile = profile,
+            modifier = Modifier.padding(20.dp),
+            onEditPictureClick = onEditPictureClick
+        )
     }
 }

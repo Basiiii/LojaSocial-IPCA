@@ -26,6 +26,7 @@ import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.repository.user.UserProfile
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.utils.FcmTokenService
 import com.lojasocial.app.navigation.Screen
@@ -55,6 +56,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var requestsRepository: RequestsRepository
+
+    @Inject
+    lateinit var profilePictureRepository: ProfilePictureRepository
 
     @Inject
     lateinit var fcmTokenService: FcmTokenService
@@ -145,7 +149,8 @@ class MainActivity : ComponentActivity() {
                             applicationRepository = applicationRepository,
                             expirationRepository = expirationRepository,
                             campaignRepository = campaignRepository,
-                            requestsRepository = requestsRepository
+                            requestsRepository = requestsRepository,
+                            profilePictureRepository = profilePictureRepository
                         )
                     }
                 }

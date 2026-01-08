@@ -13,6 +13,7 @@ import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.repository.user.UserProfile
 import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.repository.request.RequestsRepository
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -36,6 +37,7 @@ fun EmployeePortalView(
     onPortalSelectionClick: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null,
     requestsRepository: RequestsRepository? = null,
     applicationRepository: ApplicationRepository? = null,
@@ -114,6 +116,7 @@ fun EmployeePortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToMyApplications, // Use separate callback for own applications
@@ -229,6 +232,11 @@ fun EmployeeScreenPreview() {
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
         }
+        
+        val mockProfilePictureRepository = object : ProfilePictureRepository {
+            override suspend fun uploadProfilePicture(uid: String, imageBase64: String) = Result.success(Unit)
+            override suspend fun getProfilePicture(uid: String) = flow { emit(null) }
+        }
 
         AppLayout(
             selectedTab = "home",
@@ -238,7 +246,8 @@ fun EmployeeScreenPreview() {
             EmployeePortalView(
                 useAppLayout = false,
                 authRepository = mockAuthRepository,
-                userRepository = mockUserRepository
+                userRepository = mockUserRepository,
+                profilePictureRepository = mockProfilePictureRepository
             )
         }
     }

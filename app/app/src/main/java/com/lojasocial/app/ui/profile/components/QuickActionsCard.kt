@@ -102,7 +102,7 @@ fun QuickActionsCard(
                     icon = Icons.Default.Campaign,
                     title = "Campanhas",
                     subtitle = "Gerir campanhas",
-                    iconColor = Color(0xFF9333EA),
+                    iconColor = Color(0xFF06B6D4),
                     onClick = onCampaignsClick
                 )
             }

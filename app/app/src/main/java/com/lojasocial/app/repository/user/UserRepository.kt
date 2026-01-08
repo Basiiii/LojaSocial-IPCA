@@ -7,7 +7,8 @@ data class UserProfile(
     val email: String = "",
     val name: String = "",
     val isAdmin: Boolean = false,
-    val isBeneficiary: Boolean = false
+    val isBeneficiary: Boolean = false,
+    val profilePicture: String? = null
 )
 
 interface UserRepository {

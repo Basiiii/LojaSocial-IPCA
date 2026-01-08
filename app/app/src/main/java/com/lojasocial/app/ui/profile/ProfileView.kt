@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.user.UserProfile
 import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.profile.components.*
 import com.lojasocial.app.ui.theme.AppBgColor
 import kotlinx.coroutines.flow.flow
@@ -39,6 +40,7 @@ fun ProfileView(
     paddingValues: PaddingValues,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     onLogout: () -> Unit,
     onTabSelected: (String) -> Unit,
     onNavigateToApplications: () -> Unit = {},
@@ -47,6 +49,9 @@ fun ProfileView(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
+    var showProfilePictureDialog by remember { mutableStateOf(false) }
+    var isUploadingPicture by remember { mutableStateOf(false) }
+    var uploadError by remember { mutableStateOf<String?>(null) }
     val userProfile = remember { mutableStateOf<UserProfile?>(null) }
     val currentUser = authRepository.getCurrentUser()
 
@@ -66,7 +71,10 @@ fun ProfileView(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp)
     ) {
-        ProfileHeaderCard(userProfile.value)
+        ProfileHeaderCard(
+            profile = userProfile.value,
+            onEditPictureClick = { showProfilePictureDialog = true }
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -98,7 +106,60 @@ fun ProfileView(
 
         AppVersion()
     }
-
+    
+    // Profile picture dialog
+    if (showProfilePictureDialog) {
+        ProfilePictureDialog(
+            onDismiss = {
+                showProfilePictureDialog = false
+                uploadError = null
+            },
+            onImageSelected = { base64 ->
+                coroutineScope.launch {
+                    isUploadingPicture = true
+                    uploadError = null
+                    val uid = currentUser?.uid
+                    if (uid != null) {
+                        val result = profilePictureRepository.uploadProfilePicture(uid, base64)
+                        result.fold(
+                            onSuccess = {
+                                isUploadingPicture = false
+                                showProfilePictureDialog = false
+                            },
+                            onFailure = { error ->
+                                isUploadingPicture = false
+                                uploadError = error.message ?: "Erro ao guardar foto de perfil"
+                            }
+                        )
+                    } else {
+                        isUploadingPicture = false
+                        uploadError = "Utilizador não autenticado"
+                    }
+                }
+            },
+            isLoading = isUploadingPicture
+        )
+    }
+    
+    // Upload error dialog
+    uploadError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { uploadError = null },
+            title = {
+                Text("Erro ao Guardar Foto")
+            },
+            text = {
+                Text(error)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { uploadError = null }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
     
     if (showLogoutError) {
         AlertDialog(
@@ -142,11 +203,17 @@ fun ProfileViewPreview() {
         override suspend fun createProfile(profile: UserProfile) = TODO()
         override suspend fun saveFcmToken(token: String) = Result.success(Unit)
     }
+    
+    val mockProfilePictureRepository = object : ProfilePictureRepository {
+        override suspend fun uploadProfilePicture(uid: String, imageBase64: String) = Result.success(Unit)
+        override suspend fun getProfilePicture(uid: String) = flow { emit(null) }
+    }
 
     ProfileView(
         paddingValues = PaddingValues(0.dp),
         authRepository = mockAuthRepository,
         userRepository = mockUserRepository,
+        profilePictureRepository = mockProfilePictureRepository,
         onLogout = { },
         onTabSelected = { }
     )

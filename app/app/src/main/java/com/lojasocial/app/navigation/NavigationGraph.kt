@@ -18,6 +18,7 @@ import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.repository.user.UserProfile
 import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.applications.ApplicationDetailView
 import com.lojasocial.app.ui.applications.ApplicationsListView
 import com.lojasocial.app.ui.beneficiaries.BeneficiaryPortalView
@@ -63,7 +64,8 @@ fun NavigationGraph(
     applicationRepository: ApplicationRepository,
     expirationRepository: ExpirationRepository? = null,
     campaignRepository: CampaignRepository? = null,
-    requestsRepository: RequestsRepository? = null
+    requestsRepository: RequestsRepository? = null,
+    profilePictureRepository: ProfilePictureRepository
 ) {
     NavHost(
         navController = navController,
@@ -137,6 +139,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository,
@@ -150,6 +153,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository,
@@ -163,6 +167,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository,
@@ -176,6 +181,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository,
                     campaignRepository = campaignRepository,
                     requestsRepository = requestsRepository,
@@ -196,6 +202,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -206,6 +213,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -216,6 +224,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -226,6 +235,7 @@ fun NavigationGraph(
                     navController = navController,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     expirationRepository = expirationRepository
                 )
             }
@@ -242,7 +252,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
             composable(Screen.NonBeneficiaryPortal.Profile.route) { backStackEntry ->
@@ -251,7 +262,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
             composable(Screen.NonBeneficiaryPortal.Support.route) { backStackEntry ->
@@ -260,7 +272,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
             composable(Screen.NonBeneficiaryPortal.Calendar.route) { backStackEntry ->
@@ -269,7 +282,8 @@ fun NavigationGraph(
                     profile = lastProfile,
                     navController = navController,
                     authRepository = authRepository,
-                    userRepository = userRepository
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
         }
@@ -484,6 +498,7 @@ private fun EmployeePortalTabContent(
     navController: NavHostController,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null,
     campaignRepository: CampaignRepository? = null,
     requestsRepository: RequestsRepository? = null,
@@ -522,6 +537,7 @@ private fun EmployeePortalTabContent(
         onPortalSelectionClick = { navController.navigate(Screen.PortalSelection.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        profilePictureRepository = profilePictureRepository,
         expirationRepository = expirationRepository,
         requestsRepository = requestsRepository,
         applicationRepository = applicationRepository,
@@ -576,6 +592,7 @@ private fun BeneficiaryPortalTabContent(
     navController: NavHostController,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null
 ) {
     // Observe current user to get fresh profile data - this ensures the name updates when user changes
@@ -612,6 +629,7 @@ private fun BeneficiaryPortalTabContent(
         onNavigateToOrders = { navController.navigate(Screen.RequestItems.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        profilePictureRepository = profilePictureRepository,
         expirationRepository = expirationRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) { 
@@ -652,7 +670,8 @@ private fun NonBeneficiaryPortalTabContent(
     profile: UserProfile?,
     navController: NavHostController,
     authRepository: AuthRepository,
-    userRepository: UserRepository
+    userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository
 ) {
     // Observe current user to get fresh profile data - this ensures the name updates when user changes
     val currentUser = authRepository.getCurrentUser()
@@ -686,6 +705,7 @@ private fun NonBeneficiaryPortalTabContent(
         onPortalSelectionClick = { navController.navigate(Screen.PortalSelection.route) },
         authRepository = authRepository,
         userRepository = userRepository,
+        profilePictureRepository = profilePictureRepository,
         onNavigateToApplication = {
             navController.navigate(Screen.ApplicationFlow.route)
         },

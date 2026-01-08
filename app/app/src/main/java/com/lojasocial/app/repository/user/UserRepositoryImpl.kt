@@ -21,38 +21,46 @@ class UserRepositoryImpl @Inject constructor(
     private var currentUid: String? = null
 
     override suspend fun getUserProfile(uid: String): Flow<UserProfile?> {
-        // Return cached data if available and for same user (only if not null)
-        if (currentUid == uid && cachedProfile.value != null) {
-            return cachedProfile.asStateFlow()
+        // Clear cache if UID changed
+        if (currentUid != null && currentUid != uid) {
+            cachedProfile.value = null
         }
+        
+        // Always read from Firestore to ensure fresh data
+        // Don't return cached data early - let the snapshot listener handle updates
 
         return callbackFlow {
             currentUid = uid
             val docRef = firestore.collection("users").document(uid)
             
-            // Debug logging
-            println("DEBUG: Fetching user profile for UID: $uid")
-            
             val listener = docRef.addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    println("DEBUG: Firestore error: ${error.message}")
                     close(error)
                     return@addSnapshotListener
                 }
-                
-                println("DEBUG: Snapshot data: ${snapshot?.data}")
 
                 val data = snapshot?.data
                 val profile = if (data != null) {
+                    // Helper to safely get boolean (handles Boolean, Long, and other types from Firestore)
+                    fun getBoolean(key: String): Boolean {
+                        val value = data[key]
+                        return when (value) {
+                            is Boolean -> value
+                            is Long -> value == 1L
+                            is Number -> value.toInt() == 1
+                            else -> false
+                        }
+                    }
+                    
                     val mappedProfile = UserProfile(
-                        uid = data["uid"] as? String ?: uid,
+                        uid = uid, // Use document ID as uid, not stored field
                         email = data["email"] as? String ?: "",
                         name = data["name"] as? String ?: "",
-                        isAdmin = data["isAdmin"] as? Boolean ?: false,
-                        isBeneficiary = data["isBeneficiary"] as? Boolean ?: false
+                        isAdmin = getBoolean("isAdmin"),
+                        isBeneficiary = getBoolean("isBeneficiary"),
+                        profilePicture = data["profilePicture"] as? String
                     )
                     cachedProfile.value = mappedProfile
-                    println("DEBUG: Profile loaded (manual map): $mappedProfile")
                     mappedProfile
                 } else {
                     null
@@ -76,8 +84,20 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun updateProfile(profile: UserProfile): Result<Unit> {
         return try {
+            // Use update() instead of set() to preserve existing fields like fcmToken
+            val updateData = mutableMapOf<String, Any>(
+                "email" to profile.email,
+                "name" to profile.name,
+                "isAdmin" to profile.isAdmin,
+                "isBeneficiary" to profile.isBeneficiary
+            )
+            // Only add profilePicture if it's not null
+            profile.profilePicture?.let {
+                updateData["profilePicture"] = it
+            }
+            
             firestore.collection("users").document(profile.uid)
-                .set(profile)
+                .update(updateData)
                 .await()
             // Update cache
             cachedProfile.value = profile
@@ -89,8 +109,20 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun createProfile(profile: UserProfile): Result<Unit> {
         return try {
+            // Convert to map excluding uid (uid is the document ID, not a field)
+            val profileData = mutableMapOf<String, Any>(
+                "email" to profile.email,
+                "name" to profile.name,
+                "isAdmin" to profile.isAdmin,
+                "isBeneficiary" to profile.isBeneficiary
+            )
+            // Only add profilePicture if it's not null
+            profile.profilePicture?.let {
+                profileData["profilePicture"] = it
+            }
+            
             firestore.collection("users").document(profile.uid)
-                .set(profile)
+                .set(profileData)
                 .await()
             // Update cache
             cachedProfile.value = profile

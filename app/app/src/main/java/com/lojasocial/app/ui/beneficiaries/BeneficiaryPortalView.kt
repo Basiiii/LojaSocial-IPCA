@@ -14,6 +14,7 @@ import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.repository.user.UserProfile
 import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
@@ -32,6 +33,7 @@ fun BeneficiaryPortalView(
     onNavigateToPickups: (() -> Unit)? = null,
     authRepository: AuthRepository,
     userRepository: UserRepository,
+    profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
@@ -82,6 +84,7 @@ fun BeneficiaryPortalView(
                     paddingValues = paddingValues,
                     authRepository = authRepository,
                     userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
                     onLogout = onLogout,
                     onTabSelected = { onTabChange?.invoke(it) },
                     onNavigateToApplications = onNavigateToApplications,
@@ -190,10 +193,16 @@ fun BeneficiaryPreview() {
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
         }
+        
+        val mockProfilePictureRepository = object : ProfilePictureRepository {
+            override suspend fun uploadProfilePicture(uid: String, imageBase64: String) = Result.success(Unit)
+            override suspend fun getProfilePicture(uid: String) = flow { emit(null) }
+        }
 
         BeneficiaryPortalView(
             authRepository = mockAuthRepository,
             userRepository = mockUserRepository,
+            profilePictureRepository = mockProfilePictureRepository,
             onNavigateToOrders = {},
             onNavigateToPickups = {}
         )
