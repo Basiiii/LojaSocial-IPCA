@@ -115,8 +115,11 @@ class AuditRepositoryImpl @Inject constructor(
                 campaignId = campaignId
             )
 
+            Log.d(TAG, "API response code: ${response.code()}, isSuccessful: ${response.isSuccessful}")
+
             if (response.isSuccessful) {
                 val apiResponse = response.body()
+                Log.d(TAG, "API response body: count=${apiResponse?.count}, products size=${apiResponse?.products?.size}")
                 val receipts = apiResponse?.products?.mapNotNull { apiReceipt ->
                     try {
                         // Parse timestamp from ISO 8601 string
@@ -165,9 +168,17 @@ class AuditRepositoryImpl @Inject constructor(
                 } ?: emptyList()
                 
                 Log.d(TAG, "Successfully loaded ${receipts.size} campaign products")
+                if (receipts.isEmpty()) {
+                    Log.w(TAG, "No campaign products found for campaignId: $campaignId. Check backend logs for details.")
+                }
                 Result.success(receipts)
             } else {
-                val errorMsg = "Failed to fetch campaign products: ${response.code()} - ${response.message()}"
+                val errorMsg = try {
+                    val errorBody = response.errorBody()?.string()
+                    "Failed to fetch campaign products: ${response.code()} - ${response.message()}. Error body: $errorBody"
+                } catch (e: Exception) {
+                    "Failed to fetch campaign products: ${response.code()} - ${response.message()}"
+                }
                 Log.e(TAG, errorMsg)
                 Result.failure(Exception(errorMsg))
             }

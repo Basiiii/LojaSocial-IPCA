@@ -161,22 +161,81 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
 
     logger.server(`Fetching campaign products for campaignId: ${campaignId}`);
 
+    // First, get the campaign name from the campaign ID
+    let campaignName = null;
+    try {
+      const campaignDoc = await db.collection('campaigns').doc(campaignId).get();
+      if (campaignDoc.exists) {
+        const campaignData = campaignDoc.data();
+        campaignName = campaignData.name || null;
+        logger.server(`Found campaign name: ${campaignName} for campaignId: ${campaignId}`);
+      } else {
+        logger.server(`Campaign not found for campaignId: ${campaignId}`);
+      }
+    } catch (error) {
+      logger.error(`Error fetching campaign name: ${error.message}`);
+    }
+
+    if (!campaignName) {
+      logger.server(`No campaign name found, returning empty results`);
+      return res.json({
+        success: true,
+        count: 0,
+        products: []
+      });
+    }
+
     let snapshot;
     try {
-      const addItemSnapshot = await db.collection('audit_logs')
-        .where('action', '==', 'add_item')
-        .orderBy('timestamp', 'desc')
-        .get();
+      // Try with orderBy first
+      let addItemSnapshot;
+      try {
+        addItemSnapshot = await db.collection('audit_logs')
+          .where('action', '==', 'add_item')
+          .orderBy('timestamp', 'desc')
+          .get();
+      } catch (orderByError) {
+        // If orderBy fails (index missing), try without ordering
+        logger.server(`OrderBy failed, fetching without order: ${orderByError.message}`);
+        addItemSnapshot = await db.collection('audit_logs')
+          .where('action', '==', 'add_item')
+          .get();
+      }
       
-      // Filter client-side for campaignId in details
+      logger.server(`Found ${addItemSnapshot.docs.length} total add_item logs`);
+      
+      // Filter client-side for campaignName in details.campaignId (which actually stores the name)
       const campaignAddItems = addItemSnapshot.docs.filter(doc => {
         const data = doc.data();
-        return data.details && data.details.campaignId === campaignId;
+        const details = data.details || {};
+        // The campaignId field in details actually contains the campaign name
+        const hasCampaignMatch = details.campaignId === campaignName;
+        
+        // Debug logging for first few matches
+        if (hasCampaignMatch) {
+          logger.server(`Found campaign product: itemId=${details.itemId}, quantity=${details.quantity}, barcode=${details.barcode}`);
+        }
+        
+        return hasCampaignMatch;
       });
+      
+      logger.server(`Filtered to ${campaignAddItems.length} campaign products for campaignName: ${campaignName}`);
+      
+      // Sort manually if we didn't use orderBy
+      if (!addItemSnapshot.docs[0]?.data()?.timestamp?.toMillis) {
+        campaignAddItems.sort((a, b) => {
+          const aData = a.data();
+          const bData = b.data();
+          const aTime = aData.timestamp?.toMillis?.() || (aData.timestamp?.toDate?.()?.getTime() || 0);
+          const bTime = bData.timestamp?.toMillis?.() || (bData.timestamp?.toDate?.()?.getTime() || 0);
+          return bTime - aTime; // Descending order
+        });
+      }
       
       snapshot = { docs: campaignAddItems };
     } catch (error) {
       logger.server(`Error fetching campaign products: ${error.message}`);
+      logger.error('Campaign products query error', error);
       snapshot = { docs: [] };
     }
 
@@ -194,6 +253,11 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
           const quantity = details.quantity || 0;
           const barcode = details.barcode || '';
           const userId = data.userId || null;
+          
+          // Debug: log if we're missing required fields
+          if (!barcode) {
+            logger.server(`Warning: Campaign product receipt missing barcode. itemId=${itemId}, quantity=${quantity}`);
+          }
           
           // Fetch user name from users collection if userId is available
           let userName = data.userName || null;
@@ -258,7 +322,14 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
     // Filter out null results
     const validReceipts = receipts.filter(receipt => receipt !== null);
 
-    logger.server(`Successfully loaded ${validReceipts.length} campaign products`);
+    logger.server(`Successfully loaded ${validReceipts.length} campaign products (from ${receipts.length} total receipts)`);
+    
+    // Log sample of receipts for debugging
+    if (validReceipts.length > 0) {
+      logger.server(`Sample receipt: ${JSON.stringify(validReceipts[0])}`);
+    } else {
+      logger.server(`No valid receipts found. Check if campaignId matches in details.campaignId`);
+    }
     
     res.json({
       success: true,
