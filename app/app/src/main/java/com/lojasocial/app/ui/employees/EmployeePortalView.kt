@@ -24,6 +24,7 @@ import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.components.StatsSection
 import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.stock.AddStockScreen
+import com.lojasocial.app.ui.stock.DeleteStockScreen
 import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
 import com.lojasocial.app.ui.calendar.CalendarView
@@ -51,10 +52,12 @@ fun EmployeePortalView(
     onNavigateToAuditLogs: () -> Unit = {},
     onNavigateToBeneficiaries: () -> Unit = {},
     onNavigateToStockList: () -> Unit = {},
+    onNavigateToDeleteStock: () -> Unit = {}, // New callback for deleting stock
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
     var showAddStockScreen by remember { mutableStateOf(false) }
+    var showDeleteStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
     val selectedTab = currentTab
@@ -101,6 +104,7 @@ fun EmployeePortalView(
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
+                        onNavigateToDeleteStock = onNavigateToDeleteStock,
                         onNavigateToApplications = onNavigateToApplications,
                         onNavigateToPickupRequests = onNavigateToPickupRequests,
                         pendingRequestsCount = pendingRequestsCount,
@@ -171,6 +175,10 @@ fun EmployeePortalView(
     if (showAddStockScreen) {
         AddStockScreen(
             onNavigateBack = { showAddStockScreen = false }
+        )
+    } else if (showDeleteStockScreen) {
+        DeleteStockScreen(
+            onNavigateBack = { showDeleteStockScreen = false }
         )
     } else {
         if (useAppLayout) {

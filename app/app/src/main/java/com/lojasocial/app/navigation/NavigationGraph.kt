@@ -457,6 +457,42 @@ fun NavigationGraph(
             )
         }
 
+        // Add Stock
+        composable(Screen.AddStock.route) {
+            com.lojasocial.app.ui.stock.AddStockScreen(
+                onNavigateBack = {
+                    if (!navController.popBackStack()) {
+                        val destination = when {
+                            lastProfile?.isAdmin == true && lastProfile.isBeneficiary -> Screen.BeneficiaryPortal.Home.route
+                            lastProfile?.isAdmin == true -> Screen.EmployeePortal.Home.route
+                            else -> Screen.BeneficiaryPortal.Home.route
+                        }
+                        navController.navigate(destination) {
+                            popUpTo(Screen.AddStock.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+
+        // Delete Stock
+        composable(Screen.DeleteStock.route) {
+            com.lojasocial.app.ui.stock.DeleteStockScreen(
+                onNavigateBack = {
+                    if (!navController.popBackStack()) {
+                        val destination = when {
+                            lastProfile?.isAdmin == true && lastProfile.isBeneficiary -> Screen.BeneficiaryPortal.Home.route
+                            lastProfile?.isAdmin == true -> Screen.EmployeePortal.Home.route
+                            else -> Screen.BeneficiaryPortal.Home.route
+                        }
+                        navController.navigate(destination) {
+                            popUpTo(Screen.DeleteStock.route) { inclusive = true }
+                        }
+                    }
+                }
+            )
+        }
+
         // Activity List
         composable(Screen.ActivityList.route) { backStackEntry ->
             // Determine if user is employee based on:
@@ -733,6 +769,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToStockList = {
             navController.navigate(Screen.StockList.route)
+        },
+        onNavigateToDeleteStock = {
+            navController.navigate(Screen.DeleteStock.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

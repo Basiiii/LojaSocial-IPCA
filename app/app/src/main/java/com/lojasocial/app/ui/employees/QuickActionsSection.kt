@@ -16,11 +16,13 @@ import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
 import com.lojasocial.app.ui.theme.BrandOrange
 import com.lojasocial.app.ui.theme.BrandPurple
+import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.TextDark
 
 @Composable
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {},
+    onNavigateToDeleteStock: () -> Unit = {},
     onSupportClick: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToPickupRequests: () -> Unit = {},
@@ -82,6 +84,17 @@ fun QuickActionsSection(
             isRedBadge = true,
             onClick = onNavigateToApplications
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ActionCard(
+            title = "Elimina do Stock",
+            description = "Elimina um artigo do stock, fazendo scan do código barras",
+            buttonText = "Elimina Item",
+            backgroundColor = ScanRed,
+            icon = Icons.Default.Delete,
+            onClick = onNavigateToDeleteStock
+        )
     }
 }
 
@@ -89,6 +102,7 @@ fun QuickActionsSection(
 @Composable
 fun QuickActionsSectionPreview() {
     QuickActionsSection(
-        onSupportClick = {}
+        onSupportClick = {},
+        onNavigateToDeleteStock = {}
     )
 }
