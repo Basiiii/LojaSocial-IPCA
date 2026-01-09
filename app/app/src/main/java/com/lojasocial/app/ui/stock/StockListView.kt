@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -187,6 +188,8 @@ fun StockListFilterHeader(
     var showFilterMenu by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
     val selectedCategories = uiState.selectedCategories
+    val sortBy = uiState.sortBy
+    val hideNonPerishable = uiState.hideNonPerishable
     val accentColor = Color(0xFF2D75F0)
 
     Column {
@@ -209,7 +212,7 @@ fun StockListFilterHeader(
                 Surface(
                     onClick = { showFilterMenu = true },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (selectedCategories.isNotEmpty()) accentColor.copy(alpha = 0.1f) else Color.Transparent,
+                    color = if (selectedCategories.isNotEmpty() || hideNonPerishable || sortBy != SortOption.NAME) accentColor.copy(alpha = 0.1f) else Color.Transparent,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp))
                 ) {
                     Row(
@@ -224,7 +227,7 @@ fun StockListFilterHeader(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Filtrar",
+                            text = "Filtrar & Ordenar",
                             color = accentColor,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
@@ -302,7 +305,131 @@ fun StockListFilterHeader(
                         )
                     }
 
-                    if (selectedCategories.isNotEmpty()) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = Color(0xFFF0F0F0)
+                    )
+                    
+                    // Sort options
+                    Text(
+                        text = "Ordenar por",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+                    )
+                    
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (sortBy == SortOption.NAME) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = accentColor
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.size(18.dp))
+                                }
+                                Text(
+                                    text = "Nome",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (sortBy == SortOption.NAME) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (sortBy == SortOption.NAME) accentColor else Color.Black
+                                )
+                            }
+                        },
+                        onClick = {
+                            viewModel.setSortBy(SortOption.NAME)
+                        },
+                        colors = MenuDefaults.itemColors(
+                            textColor = if (sortBy == SortOption.NAME) accentColor else Color.Black
+                        ),
+                        modifier = Modifier.background(
+                            if (sortBy == SortOption.NAME) accentColor.copy(alpha = 0.08f) else Color.Transparent
+                        )
+                    )
+                    
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (sortBy == SortOption.EXPIRY_DATE) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = accentColor
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.size(18.dp))
+                                }
+                                Text(
+                                    text = "Data de Validade",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (sortBy == SortOption.EXPIRY_DATE) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (sortBy == SortOption.EXPIRY_DATE) accentColor else Color.Black
+                                )
+                            }
+                        },
+                        onClick = {
+                            viewModel.setSortBy(SortOption.EXPIRY_DATE)
+                        },
+                        colors = MenuDefaults.itemColors(
+                            textColor = if (sortBy == SortOption.EXPIRY_DATE) accentColor else Color.Black
+                        ),
+                        modifier = Modifier.background(
+                            if (sortBy == SortOption.EXPIRY_DATE) accentColor.copy(alpha = 0.08f) else Color.Transparent
+                        )
+                    )
+                    
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = Color(0xFFF0F0F0)
+                    )
+                    
+                    // Hide non-perishable option
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (hideNonPerishable) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = accentColor
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.size(18.dp))
+                                }
+                                Text(
+                                    text = "Ocultar não perecíveis",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (hideNonPerishable) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (hideNonPerishable) accentColor else Color.Black
+                                )
+                            }
+                        },
+                        onClick = {
+                            viewModel.setHideNonPerishable(!hideNonPerishable)
+                        },
+                        colors = MenuDefaults.itemColors(
+                            textColor = if (hideNonPerishable) accentColor else Color.Black
+                        ),
+                        modifier = Modifier.background(
+                            if (hideNonPerishable) accentColor.copy(alpha = 0.08f) else Color.Transparent
+                        )
+                    )
+                    
+                    if (selectedCategories.isNotEmpty() || hideNonPerishable || sortBy != SortOption.NAME) {
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 4.dp),
                             color = Color(0xFFF0F0F0)
