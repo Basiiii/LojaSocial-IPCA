@@ -43,6 +43,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
  * @param onNavigateToCampaigns Callback invoked when navigating to campaigns
  * @param onNavigateToAuditLogs Callback invoked when navigating to audit logs
  * @param onNavigateToBeneficiaries Callback invoked when navigating to beneficiaries
+ * @param onNavigateToStockList Callback invoked when navigating to stock list
  */
 @Composable
 fun ProfileView(
@@ -57,7 +58,8 @@ fun ProfileView(
     onNavigateToExpiringItems: () -> Unit = {},
     onNavigateToCampaigns: () -> Unit = {},
     onNavigateToAuditLogs: () -> Unit = {},
-    onNavigateToBeneficiaries: () -> Unit = {}
+    onNavigateToBeneficiaries: () -> Unit = {},
+    onNavigateToStockList: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showLogoutError by remember { mutableStateOf(false) }
@@ -119,7 +121,8 @@ fun ProfileView(
             onExpiringItemsClick = onNavigateToExpiringItems,
             onCampaignsClick = onNavigateToCampaigns,
             onAuditLogsClick = onNavigateToAuditLogs,
-            onBeneficiariesClick = onNavigateToBeneficiaries
+            onBeneficiariesClick = onNavigateToBeneficiaries,
+            onStockListClick = onNavigateToStockList
         )
 
         Spacer(modifier = Modifier.height(40.dp))

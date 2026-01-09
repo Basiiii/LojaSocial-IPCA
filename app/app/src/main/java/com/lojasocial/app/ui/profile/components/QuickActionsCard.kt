@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.Warning
@@ -34,6 +35,7 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * - Expiring Items ("Itens Próximos do Prazo"): Only visible for admins/employees in Employee Portal
  * - Campaigns: Only visible for admins/employees in Employee Portal
  * - Audit Logs: Only visible for admins/employees in Employee Portal
+ * - Stock List: Only visible for admins/employees in Employee Portal
  * 
  * @param userProfile The user profile data to determine which options should be shown
  * @param isBeneficiaryPortal Whether the user is currently in the Beneficiary Portal (hides employee actions)
@@ -44,6 +46,7 @@ import com.lojasocial.app.ui.theme.BrandPurple
  * @param onCampaignsClick Callback invoked when campaigns option is clicked (admins only)
  * @param onAuditLogsClick Callback invoked when audit logs option is clicked (admins only)
  * @param onBeneficiariesClick Callback invoked when beneficiaries option is clicked (employees only)
+ * @param onStockListClick Callback invoked when stock list option is clicked (admins only)
  */
 @Composable
 fun QuickActionsCard(
@@ -55,7 +58,8 @@ fun QuickActionsCard(
     onExpiringItemsClick: () -> Unit = {},
     onCampaignsClick: () -> Unit = {},
     onAuditLogsClick: () -> Unit = {},
-    onBeneficiariesClick: () -> Unit = {}
+    onBeneficiariesClick: () -> Unit = {},
+    onStockListClick: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -134,6 +138,16 @@ fun QuickActionsCard(
                     subtitle = "Ver todos os beneficiários",
                     iconColor = Color(0xFF10B981),
                     onClick = onBeneficiariesClick
+                )
+                
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
+                
+                ProfileOption(
+                    icon = Icons.Default.Inventory2,
+                    title = "Stock",
+                    subtitle = "Ver produtos em stock",
+                    iconColor = Color(0xFF059669),
+                    onClick = onStockListClick
                 )
             }
         }

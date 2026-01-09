@@ -421,6 +421,38 @@ fun NavigationGraph(
             )
         }
 
+        // Stock List
+        composable(Screen.StockList.route) {
+            com.lojasocial.app.ui.stock.StockListView(
+                onNavigateBack = {
+                    if (!navController.popBackStack()) {
+                        val destination = when {
+                            lastProfile?.isAdmin == true && lastProfile.isBeneficiary -> Screen.BeneficiaryPortal.Home.route
+                            lastProfile?.isAdmin == true -> Screen.EmployeePortal.Home.route
+                            else -> Screen.BeneficiaryPortal.Home.route
+                        }
+                        navController.navigate(destination) {
+                            popUpTo(Screen.StockList.route) { inclusive = true }
+                        }
+                    }
+                },
+                onNavigateToStockItems = { barcode ->
+                    navController.navigate(Screen.StockItems.createRoute(barcode))
+                }
+            )
+        }
+
+        // Stock Items
+        composable(Screen.StockItems().route) { backStackEntry ->
+            val barcode = backStackEntry.arguments?.getString("barcode") ?: ""
+            com.lojasocial.app.ui.stock.StockItemsView(
+                barcode = barcode,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
         // Activity List
         composable(Screen.ActivityList.route) { backStackEntry ->
             // Determine if user is employee based on:
@@ -694,6 +726,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToBeneficiaries = {
             navController.navigate(Screen.BeneficiariesList.route)
+        },
+        onNavigateToStockList = {
+            navController.navigate(Screen.StockList.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

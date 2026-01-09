@@ -199,6 +199,21 @@ class ProductRepository @Inject constructor(
             emptyList()
         }
     }
+
+    // Get all products
+    suspend fun getAllProducts(): List<Product> {
+        return try {
+            Log.d("ProductRepository", "Getting all products")
+            val snapshot = productsCollection.get().await()
+            
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Product::class.java)?.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Error getting all products", e)
+            emptyList()
+        }
+    }
     
     // External API operations with retry logic and rate limiting
     suspend fun getProductByBarcode(barcode: String): Result<BarcodeProduct> {

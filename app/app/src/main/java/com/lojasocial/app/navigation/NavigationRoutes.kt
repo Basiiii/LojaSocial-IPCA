@@ -55,6 +55,12 @@ sealed class Screen(val route: String) {
     
     // Stock
     object ExpiringItems : Screen("expiringItems")
+    object StockList : Screen("stockList")
+    data class StockItems(val barcode: String = "{barcode}") : Screen("stockItems/{barcode}") {
+        companion object {
+            fun createRoute(barcode: String) = "stockItems/$barcode"
+        }
+    }
     
     // Activity
     object ActivityList : Screen("activityList")

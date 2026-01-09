@@ -34,12 +34,11 @@ router.post('/log', async (req, res) => {
     }
 
     // Create audit log document
-    // Ensure both userId and userName are set together (both or neither)
     const auditLog = {
       action,
       timestamp: admin.firestore.Timestamp.now(),
       userId: userId || null,
-      userName: (userId && userName) ? userName : null, // Only set userName if userId exists
+      userName: (userId && userName) ? userName : null,
       details: details || null
     };
 

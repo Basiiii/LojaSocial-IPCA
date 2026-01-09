@@ -325,4 +325,41 @@ class CampaignRepository @Inject constructor(
             null
         }
     }
+    
+    suspend fun getCampaignByName(campaignName: String): Campaign? {
+        return try {
+            Log.d("CampaignRepository", "Searching for campaign by name: $campaignName")
+            val snapshot = campaignsCollection
+                .whereEqualTo("name", campaignName)
+                .limit(1)
+                .get()
+                .await()
+            
+            snapshot.documents.firstOrNull()?.let { doc ->
+                val data = doc.data ?: return@let null
+                val name = data["name"] as? String ?: ""
+                val startDate = convertTimestampToDate(data["startDate"])
+                val endDate = convertTimestampToDate(data["endDate"])
+                
+                if (startDate != null && endDate != null) {
+                    Log.d("CampaignRepository", "Found campaign: $name with ID: ${doc.id}")
+                    Campaign(
+                        id = doc.id,
+                        name = name,
+                        startDate = startDate,
+                        endDate = endDate
+                    )
+                } else {
+                    Log.w("CampaignRepository", "Campaign found but missing dates")
+                    null
+                }
+            } ?: run {
+                Log.w("CampaignRepository", "No campaign found with name: $campaignName")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("CampaignRepository", "Error fetching campaign by name: ${e.message}", e)
+            null
+        }
+    }
 }

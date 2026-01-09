@@ -94,4 +94,46 @@ class StockItemRepository @Inject constructor(
             emptyList()
         }
     }
+
+    /**
+     * Get all stock items for a specific barcode
+     * @param barcode The barcode to filter by
+     * @return List of StockItems with the given barcode
+     */
+    suspend fun getStockItemsByBarcode(barcode: String): List<StockItem> {
+        return try {
+            // Query by barcode only (to avoid index requirement), then filter by quantity client-side
+            val snapshot = itemsCollection
+                .whereEqualTo("barcode", barcode)
+                .get()
+                .await()
+            
+            snapshot.documents.mapNotNull { doc ->
+                val item = doc.toObject(StockItem::class.java)?.copy(id = doc.id)
+                // Filter by quantity > 0 client-side
+                if (item != null && item.quantity > 0) item else null
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Get all stock items (for calculating total stock per product)
+     * @return List of all StockItems with quantity > 0
+     */
+    suspend fun getAllStockItems(): List<StockItem> {
+        return try {
+            val snapshot = itemsCollection
+                .whereGreaterThan("quantity", 0)
+                .get()
+                .await()
+            
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(StockItem::class.java)?.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 }

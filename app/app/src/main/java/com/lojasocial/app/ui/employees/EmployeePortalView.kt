@@ -50,6 +50,7 @@ fun EmployeePortalView(
     onNavigateToPickupRequests: () -> Unit = {},
     onNavigateToAuditLogs: () -> Unit = {},
     onNavigateToBeneficiaries: () -> Unit = {},
+    onNavigateToStockList: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -126,7 +127,8 @@ fun EmployeePortalView(
                     onNavigateToExpiringItems = onNavigateToExpiringItems,
                     onNavigateToCampaigns = onNavigateToCampaigns,
                     onNavigateToAuditLogs = onNavigateToAuditLogs,
-                    onNavigateToBeneficiaries = onNavigateToBeneficiaries
+                    onNavigateToBeneficiaries = onNavigateToBeneficiaries,
+                    onNavigateToStockList = onNavigateToStockList
                 )
             }
 
