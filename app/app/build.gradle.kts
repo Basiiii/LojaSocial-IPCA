@@ -137,4 +137,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
+    
+    // EXIF for image orientation
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 }

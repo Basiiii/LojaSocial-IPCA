@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.lojasocial.app.domain.product.ProductCategory
 import com.lojasocial.app.utils.AppConstants
+import com.lojasocial.app.ui.components.ProductImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -507,7 +508,6 @@ fun ProductCard(
         ProductCategory.CASA -> Icons.Default.Home
         null -> Icons.Default.ShoppingCart
     }
-    val imageUrl = productWithStock.product.imageUrl.ifEmpty { AppConstants.DEFAULT_PRODUCT_IMAGE_URL }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -519,15 +519,13 @@ fun ProductCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = productWithStock.product.name,
+            ProductImage(
+                product = productWithStock.product,
                 modifier = Modifier
                     .size(72.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color(0xFFE5E7EB)),
-                contentScale = ContentScale.Crop,
-                error = rememberVectorPainter(categoryIcon)
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(16.dp))

@@ -143,12 +143,16 @@ class ProductRepository @Inject constructor(
         try {
             Log.d("ProductRepository", "Saving/updating product with barcode: $barcode")
             // Convert to map and exclude id field
-            val productMap = mapOf(
+            val productMap = mutableMapOf<String, Any>(
                 "name" to product.name,
                 "brand" to product.brand,
                 "category" to product.category,
                 "imageUrl" to product.imageUrl
             )
+            // Only add serializedImage if it's not null
+            product.serializedImage?.let {
+                productMap["serializedImage"] = it
+            }
             productsCollection.document(barcode).set(productMap).await()
             Log.d("ProductRepository", "Product saved/updated successfully with ID: $barcode")
         } catch (e: Exception) {

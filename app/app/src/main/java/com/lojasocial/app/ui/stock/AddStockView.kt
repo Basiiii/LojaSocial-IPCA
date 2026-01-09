@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,6 +57,16 @@ import com.lojasocial.app.domain.product.ProductCategory
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
+import com.lojasocial.app.ui.components.ProductImage
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoLibrary
+import com.lojasocial.app.utils.FileUtils
+import java.io.File
+import androidx.core.content.FileProvider
 
 @Composable
 fun AddStockScreen(
@@ -312,11 +324,14 @@ fun FormStepScreen(
     val productBrand by viewModel.productBrand.collectAsState()
     val productCategory by viewModel.productCategory.collectAsState()
     val productImageUrl by viewModel.productImageUrl.collectAsState()
+    val productSerializedImage by viewModel.productSerializedImage.collectAsState()
     val quantity by viewModel.quantity.collectAsState()
     val expiryDate by viewModel.expiryDate.collectAsState()
     val campaign by viewModel.campaign.collectAsState()
     val campaigns by viewModel.campaigns.collectAsState()
     val isManualMode by viewModel.isManualMode.collectAsState()
+    
+    val context = LocalContext.current
     
     // Expiry date toggle state
     var expiryDateEnabled by remember { mutableStateOf(true) }
@@ -329,6 +344,112 @@ fun FormStepScreen(
     
     // Category dropdown state
     var categoryExpanded by remember { mutableStateOf(false) }
+    
+    // Image picker launcher (gallery)
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // Convert and compress image to Base64
+            val result = FileUtils.convertImageToBase64(
+                context = context,
+                uri = it,
+                maxWidth = 800,
+                maxHeight = 800,
+                quality = 85
+            )
+            
+            result.fold(
+                onSuccess = { base64 ->
+                    viewModel.onProductSerializedImageChanged(base64)
+                    // Clear imageUrl when serialized image is set
+                    viewModel.onProductImageUrlChanged("")
+                },
+                onFailure = { error ->
+                    Log.e("AddStockView", "Error processing image: ${error.message}")
+                }
+            )
+        }
+    }
+    
+    // Camera launcher with file provider
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    var cameraImagePath by remember { mutableStateOf<String?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            val uri = cameraImageUri
+            val filePath = cameraImagePath
+            
+            if (uri != null) {
+                // Use file path if available (for EXIF), otherwise use URI only
+                val result = FileUtils.convertImageToBase64(
+                    context = context,
+                    uri = uri,
+                    filePath = filePath,
+                    maxWidth = 800,
+                    maxHeight = 800,
+                    quality = 85
+                )
+                
+                result.fold(
+                    onSuccess = { base64 ->
+                        Log.d("AddStockView", "Camera image processed successfully, base64 length: ${base64.length}")
+                        viewModel.onProductSerializedImageChanged(base64)
+                        viewModel.onProductImageUrlChanged("")
+                    },
+                    onFailure = { error ->
+                        Log.e("AddStockView", "Error processing camera image: ${error.message}", error)
+                    }
+                )
+            } else {
+                Log.e("AddStockView", "Camera image URI is null")
+            }
+        }
+    }
+    
+    // Function to create camera URI
+    fun createCameraUri(): Uri? {
+        return try {
+            val photoFile = File(context.cacheDir, "product_photo_${System.currentTimeMillis()}.jpg")
+            val filePath = photoFile.absolutePath
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            ).also {
+                cameraImageUri = it
+                cameraImagePath = filePath
+            }
+        } catch (e: Exception) {
+            Log.e("AddStockView", "Error creating camera URI: ${e.message}")
+            null
+        }
+    }
+    
+    // Create a Product object for ProductImage composable
+    // Always use current state values, especially for serializedImage
+    val productForDisplay = remember(productName, productBrand, productCategory, productImageUrl, productSerializedImage, productData) {
+        // If we have a name or brand, use current form values
+        // Otherwise, use productData but override with current serializedImage
+        val product = if (productName.isNotEmpty() || productBrand.isNotEmpty()) {
+            com.lojasocial.app.domain.product.Product(
+                name = productName,
+                brand = productBrand,
+                category = productCategory,
+                imageUrl = productImageUrl,
+                serializedImage = productSerializedImage
+            )
+        } else {
+            // Use productData as base, but always use current serializedImage if available
+            (productData ?: com.lojasocial.app.domain.product.Product()).copy(
+                serializedImage = productSerializedImage ?: productData?.serializedImage
+            )
+        }
+        Log.d("AddStockView", "productForDisplay updated - serializedImage length: ${product.serializedImage?.length ?: 0}, imageUrl: ${product.imageUrl}, name: ${product.name}")
+        product
+    }
     
     Column(
         modifier = Modifier
@@ -373,22 +494,72 @@ fun FormStepScreen(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Product image - always show, use default if no URL available
-                val imageUrlToShow = when {
-                    productImageUrl.isNotEmpty() -> productImageUrl
-                    !productData?.imageUrl.isNullOrEmpty() -> productData.imageUrl
-                    else -> AppConstants.DEFAULT_PRODUCT_IMAGE_URL
-                }
-                
-                AsyncImage(
-                    model = imageUrlToShow,
-                    contentDescription = "Imagem do Produto",
+                // Product image with options to add image
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    ProductImage(
+                        product = productForDisplay,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                        contentDescription = "Imagem do Produto"
+                    )
+                    
+                    // Overlay buttons to add/change image
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Camera button
+                        Surface(
+                            onClick = { 
+                                createCameraUri()?.let { uri ->
+                                    cameraLauncher.launch(uri)
+                                }
+                            },
+                            modifier = Modifier.size(40.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = ScanBlue
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Tirar foto",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        // Gallery button
+                        Surface(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.size(40.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            color = ScanBlue
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoLibrary,
+                                    contentDescription = "Escolher da galeria",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 // Editable product name
@@ -489,18 +660,6 @@ fun FormStepScreen(
                 }
             }
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Image URL field
-        OutlinedTextField(
-            value = productImageUrl,
-            onValueChange = { viewModel.onProductImageUrlChanged(it) },
-            label = { Text("URL da Imagem") },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading,
-            placeholder = { Text("https://exemplo.com/imagem.jpg") }
-        )
         
         Spacer(modifier = Modifier.height(16.dp))
         

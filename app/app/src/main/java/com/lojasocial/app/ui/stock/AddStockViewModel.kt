@@ -57,6 +57,9 @@ class AddStockViewModel @Inject constructor(
     private val _productImageUrl = MutableStateFlow("")
     val productImageUrl: StateFlow<String> = _productImageUrl.asStateFlow()
     
+    private val _productSerializedImage = MutableStateFlow<String?>(null)
+    val productSerializedImage: StateFlow<String?> = _productSerializedImage.asStateFlow()
+    
     // Manual mode flag
     private val _isManualMode = MutableStateFlow(false)
     val isManualMode: StateFlow<Boolean> = _isManualMode.asStateFlow()
@@ -133,6 +136,7 @@ class AddStockViewModel @Inject constructor(
             _productBrand.value = ""
             _productCategory.value = 1 // Default to Alimentar
             _productImageUrl.value = ""
+            _productSerializedImage.value = null
             
             // Also clear any loading state
             _uiState.value = _uiState.value.copy(isLoading = false)
@@ -168,6 +172,10 @@ class AddStockViewModel @Inject constructor(
     
     fun onProductImageUrlChanged(imageUrl: String) {
         _productImageUrl.value = imageUrl
+    }
+    
+    fun onProductSerializedImageChanged(serializedImage: String?) {
+        _productSerializedImage.value = serializedImage
     }
     
     fun onQuantityChanged(quantity: String) {
@@ -234,6 +242,7 @@ class AddStockViewModel @Inject constructor(
                     _productCategory.value = product.category
                     Log.d("AddStockViewModel", "Setting productImageUrl to: ${product.imageUrl}")
                     _productImageUrl.value = product.imageUrl
+                    _productSerializedImage.value = product.serializedImage
                     
                     Log.d("AddStockViewModel", "All fields set. Final values - name: ${_productName.value}, brand: ${_productBrand.value}, category: ${_productCategory.value}, imageUrl: ${_productImageUrl.value}")
                     
@@ -362,7 +371,8 @@ class AddStockViewModel @Inject constructor(
                     name = _productName.value,
                     brand = _productBrand.value,
                     category = _productCategory.value,
-                    imageUrl = _productImageUrl.value
+                    imageUrl = _productImageUrl.value,
+                    serializedImage = _productSerializedImage.value
                 )
                 productRepository.saveOrUpdateProduct(productToSave, currentBarcode)
 
@@ -419,6 +429,7 @@ class AddStockViewModel @Inject constructor(
                 _productBrand.value = ""
                 _productCategory.value = 1 // Default to Alimentar
                 _productImageUrl.value = ""
+                _productSerializedImage.value = null
 
             } catch (e: Exception) {
                 Log.e("AddStockViewModel", "Error adding to stock", e)
