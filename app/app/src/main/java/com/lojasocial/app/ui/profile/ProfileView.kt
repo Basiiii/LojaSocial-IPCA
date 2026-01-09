@@ -107,7 +107,8 @@ fun ProfileView(
     ) {
         ProfileHeaderCard(
             profile = userProfile.value,
-            onEditPictureClick = { showProfilePictureDialog = true }
+            onEditPictureClick = { showProfilePictureDialog = true },
+            isBeneficiaryPortal = isBeneficiaryPortal
         )
 
         Spacer(modifier = Modifier.height(24.dp))

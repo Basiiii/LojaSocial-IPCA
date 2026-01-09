@@ -62,13 +62,18 @@ class UserRepositoryImpl @Inject constructor(
                         }
                     }
                     
+                    // Get absence count from Firestore
+                    val absenceList = data["absence"] as? List<*>
+                    val absenceCount = absenceList?.size ?: 0
+                    
                     val mappedProfile = UserProfile(
                         uid = uid, // Use document ID as uid, not stored field
                         email = data["email"] as? String ?: "",
                         name = data["name"] as? String ?: "",
                         isAdmin = getBoolean("isAdmin"),
                         isBeneficiary = getBoolean("isBeneficiary"),
-                        profilePicture = data["profilePicture"] as? String
+                        profilePicture = data["profilePicture"] as? String,
+                        absences = absenceCount
                     )
                     cachedProfile.value = mappedProfile
                     mappedProfile
@@ -191,13 +196,18 @@ class UserRepositoryImpl @Inject constructor(
                             }
                         }
                         
+                        // Get absence count from Firestore
+                        val absenceList = data["absence"] as? List<*>
+                        val absenceCount = absenceList?.size ?: 0
+                        
                         UserProfile(
                             uid = doc.id,
                             email = data["email"] as? String ?: "",
                             name = data["name"] as? String ?: "",
                             isAdmin = getBoolean("isAdmin"),
                             isBeneficiary = getBoolean("isBeneficiary"),
-                            profilePicture = data["profilePicture"] as? String
+                            profilePicture = data["profilePicture"] as? String,
+                            absences = absenceCount
                         )
                     } catch (e: Exception) {
                         null
