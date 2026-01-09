@@ -121,7 +121,7 @@ fun AddStockScreen(
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let { message ->
             Log.d("ScanStock", message)
-            // Show toast slightly higher than the very bottom
+
             Toast.makeText(context, message, Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.BOTTOM, 0, 150)
             }.show()

@@ -141,8 +141,16 @@ class AddStockViewModel @Inject constructor(
     
     fun fetchProductDataForCurrentBarcode() {
         val currentBarcode = _barcode.value
-        if (currentBarcode.isNotEmpty() && !_isManualMode.value) {
+        Log.d("AddStockViewModel", "fetchProductDataForCurrentBarcode called with barcode: $currentBarcode, manualMode: ${_isManualMode.value}")
+        if (currentBarcode.isNotEmpty()) {
+            // When user explicitly clicks "Procurar", always fetch regardless of manual mode
+            // Temporarily set manual mode to false to allow fetching
+            val wasManualMode = _isManualMode.value
+            if (wasManualMode) {
+                _isManualMode.value = false
+            }
             fetchProductData(currentBarcode)
+
         }
     }
     
@@ -214,10 +222,20 @@ class AddStockViewModel @Inject constructor(
                     _productData.value = product
                     
                     // Populate all product fields
+                    Log.d("AddStockViewModel", "Setting productName to: ${product.name}")
                     _productName.value = product.name
+                    Log.d("AddStockViewModel", "productName after setting: ${_productName.value}")
+                    
+                    Log.d("AddStockViewModel", "Setting productBrand to: ${product.brand}")
                     _productBrand.value = product.brand
+                    Log.d("AddStockViewModel", "productBrand after setting: ${_productBrand.value}")
+                    
+                    Log.d("AddStockViewModel", "Setting productCategory to: ${product.category}")
                     _productCategory.value = product.category
+                    Log.d("AddStockViewModel", "Setting productImageUrl to: ${product.imageUrl}")
                     _productImageUrl.value = product.imageUrl
+                    
+                    Log.d("AddStockViewModel", "All fields set. Final values - name: ${_productName.value}, brand: ${_productBrand.value}, category: ${_productCategory.value}, imageUrl: ${_productImageUrl.value}")
                     
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
