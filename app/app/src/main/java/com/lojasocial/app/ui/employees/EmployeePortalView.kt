@@ -101,6 +101,7 @@ fun EmployeePortalView(
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
+                        onSupportClick = { onTabChange?.invoke("support") },
                         onNavigateToApplications = onNavigateToApplications,
                         onNavigateToPickupRequests = onNavigateToPickupRequests,
                         pendingRequestsCount = pendingRequestsCount,
