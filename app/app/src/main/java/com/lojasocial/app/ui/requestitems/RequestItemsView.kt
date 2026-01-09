@@ -41,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.ui.requestitems.components.CategoryFilters
+import com.lojasocial.app.ui.requestitems.components.DeliveryDatePicker
 import com.lojasocial.app.ui.requestitems.components.ProductItemRow
 import com.lojasocial.app.ui.requestitems.components.RequestItemsBottomBar
 import com.lojasocial.app.ui.requestitems.components.RequestItemsTopAppBar
@@ -51,6 +52,9 @@ import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.TextGray
 import com.lojasocial.app.ui.requestitems.RequestItemsConstants
 import com.lojasocial.app.domain.request.RequestItem
+import com.lojasocial.app.ui.components.CustomDatePickerDialog
+import java.util.Calendar
+import java.util.Date
 
 @Composable
 fun RequestItemsView(
@@ -61,10 +65,12 @@ fun RequestItemsView(
     val uiState by viewModel.uiState.collectAsState()
     val productQuantities by viewModel.productQuantities.collectAsState()
     val submissionState by viewModel.submissionState.collectAsState()
+    val proposedDeliveryDate by viewModel.proposedDeliveryDate.collectAsState()
 
     val isSubmitting = submissionState is SubmissionState.Loading
     val snackbarHostState = remember { SnackbarHostState() }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(submissionState) {
         val currentSubmissionState = submissionState
@@ -93,6 +99,10 @@ fun RequestItemsView(
     var searchQuery by remember { mutableStateOf("") }
     val categories = RequestItemsConstants.PRODUCT_CATEGORIES
     var selectedCategory by remember { mutableStateOf(RequestItemsConstants.DEFAULT_CATEGORY) }
+
+    // Date picker handling
+    val calendar = remember { Calendar.getInstance() }
+    val minDate = calendar.timeInMillis // Today is the minimum date
 
     // Success Dialog
     if (showSuccessDialog) {
@@ -131,6 +141,33 @@ fun RequestItemsView(
         )
     }
 
+    // Date Picker Dialog
+    CustomDatePickerDialog(
+        showDialog = showDatePicker,
+        onDateSelected = { day, month, year ->
+            val selectedDate = Calendar.getInstance().apply {
+                set(year, month - 1, day)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.time
+            viewModel.setProposedDeliveryDate(selectedDate)
+            showDatePicker = false
+        },
+        onDismiss = { showDatePicker = false },
+        initialYear = proposedDeliveryDate?.let { 
+            Calendar.getInstance().apply { time = it }.get(Calendar.YEAR) 
+        },
+        initialMonth = proposedDeliveryDate?.let { 
+            Calendar.getInstance().apply { time = it }.get(Calendar.MONTH) + 1 
+        },
+        initialDay = proposedDeliveryDate?.let { 
+            Calendar.getInstance().apply { time = it }.get(Calendar.DAY_OF_MONTH) 
+        },
+        minDate = minDate
+    )
+
     Scaffold(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { snackbarData ->
@@ -158,6 +195,8 @@ fun RequestItemsView(
                 }
             },
             onLoadMore = { viewModel.fetchProducts(isLoadMore = true) },
+            proposedDeliveryDate = proposedDeliveryDate,
+            onDatePickerClick = { showDatePicker = true },
             modifier = Modifier.padding(paddingValues)
         )
     }
@@ -179,6 +218,8 @@ fun RequestItemsContent(
     onSubmitClick: () -> Unit,
     isSubmitting: Boolean = false,
     onLoadMore: () -> Unit,
+    proposedDeliveryDate: Date? = null,
+    onDatePickerClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val totalItemsSelected = productQuantities.values.sum()
@@ -203,6 +244,11 @@ fun RequestItemsContent(
                     maxItems = maxItems,
                     progress = progress,
                     onClearClick = onClearQuantities
+                )
+
+                DeliveryDatePicker(
+                    selectedDate = proposedDeliveryDate,
+                    onDateClick = onDatePickerClick
                 )
 
                 SearchBar(searchQuery = searchQuery, onSearchQueryChange = onSearchQueryChange)
@@ -305,7 +351,7 @@ fun RequestItemsContent(
         
         RequestItemsBottomBar(
             onSubmitClick = onSubmitClick,
-            enabled = totalItemsSelected > 0 && !isSubmitting
+            enabled = totalItemsSelected > 0 && proposedDeliveryDate != null && !isSubmitting
         )
     }
 }
@@ -339,7 +385,9 @@ fun RequestItemsViewPreview() {
         onBackClick = {},
         onSubmitClick = {},
         isSubmitting = false,
-        onLoadMore = {}
+        onLoadMore = {},
+        proposedDeliveryDate = null,
+        onDatePickerClick = {}
     )
 }
 
@@ -360,7 +408,9 @@ fun PreviewLoading() {
         onBackClick = {},
         onSubmitClick = {},
         isSubmitting = false,
-        onLoadMore = {}
+        onLoadMore = {},
+        proposedDeliveryDate = null,
+        onDatePickerClick = {}
     )
 }
 
@@ -390,7 +440,9 @@ fun PreviewSubmitting() {
         onBackClick = {},
         onSubmitClick = {},
         isSubmitting = true,
-        onLoadMore = {}
+        onLoadMore = {},
+        proposedDeliveryDate = null,
+        onDatePickerClick = {}
     )
 }
 
@@ -411,7 +463,9 @@ fun PreviewError() {
         onBackClick = {},
         onSubmitClick = {},
         isSubmitting = false,
-        onLoadMore = {}
+        onLoadMore = {},
+        proposedDeliveryDate = null,
+        onDatePickerClick = {}
     )
 }
 
@@ -432,7 +486,9 @@ fun PreviewEmptyList() {
         onBackClick = {},
         onSubmitClick = {},
         isSubmitting = false,
-        onLoadMore = {}
+        onLoadMore = {},
+        proposedDeliveryDate = null,
+        onDatePickerClick = {}
     )
 }
 

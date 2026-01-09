@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Restaurant
@@ -66,14 +67,22 @@ fun RequestDetailsDialog(
     onDismiss: () -> Unit,
     onAccept: (Date) -> Unit = {},
     onReject: (String?) -> Unit = {},
+    onProposeNewDate: (Date) -> Unit = {},
     onComplete: () -> Unit = {},
+    onCancelDelivery: (Boolean) -> Unit = {},
     profilePictureRepository: ProfilePictureRepository? = null,
-    canAcceptReject: Boolean = true
+    canAcceptReject: Boolean = true,
+    isBeneficiaryView: Boolean = false,
+    onAcceptEmployeeDate: () -> Unit = {},
+    onProposeNewDeliveryDate: (Date) -> Unit = {},
+    currentUserId: String? = null
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
+    var showCancelDeliveryDialog by remember { mutableStateOf(false) }
     var rejectReason by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf<Date?>(null) }
+    var beneficiaryAbsent by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -81,6 +90,7 @@ fun RequestDetailsDialog(
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
     val submissionDateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
     val formattedPickupDate = request.scheduledPickupDate?.let { dateFormat.format(it) }
+    val formattedProposedDate = request.proposedDeliveryDate?.let { dateFormat.format(it) }
 
     // Determine status enum from status int
     val status = when (request.status) {
@@ -216,14 +226,27 @@ fun RequestDetailsDialog(
                         // 2. Product List Card
                         ProductListCard(productItems = productItems)
 
-                        // 3. Suggested Date Card (only for SUBMETIDO status when date is selected)
-                        if (status == RequestStatus.SUBMETIDO && selectedDate != null) {
-                            SuggestedDateCard(
-                                suggestedDate = dateFormat.format(selectedDate!!)
+                        // 3. Proposed Delivery Date Card (from beneficiary) - only show if employee hasn't proposed a date
+                        if (status == RequestStatus.SUBMETIDO && formattedProposedDate != null && request.scheduledPickupDate == null) {
+                            ProposedDeliveryDateCard(
+                                proposedDate = formattedProposedDate
                             )
                         }
 
-                        // 4. Collection Info Card
+                        // 4. Employee Proposed Date Card (shown to beneficiaries when employee has proposed a date)
+                        if (status == RequestStatus.SUBMETIDO && request.scheduledPickupDate != null) {
+                            if (isBeneficiaryView) {
+                                EmployeeProposedDateCard(
+                                    proposedDate = formattedPickupDate ?: ""
+                                )
+                            } else {
+                                SuggestedDateCard(
+                                    suggestedDate = formattedPickupDate ?: ""
+                                )
+                            }
+                        }
+
+                        // 5. Collection Info Card
                         if (status != RequestStatus.SUBMETIDO && status != RequestStatus.REJEITADO) {
                             CollectionInfoCard(
                                 pickupDate = formattedPickupDate ?: "",
@@ -233,50 +256,111 @@ fun RequestDetailsDialog(
                     }
 
                     // Fixed Footer Buttons
+                    // Logic: Show buttons only to the party that needs to respond
+                    // - If scheduledPickupDate exists → Employee has proposed, beneficiary needs to respond
+                    // - If scheduledPickupDate is null and proposedDeliveryDate exists → Beneficiary has proposed, employee needs to respond
+                    // - If current user owns the request and viewing from employee side → Show only info, no buttons
                     if (status == RequestStatus.SUBMETIDO && canAcceptReject) {
-                        ActionFooter(
-                            isLoading = isLoading,
-                            isAcceptEnabled = selectedDate != null,
-                            onAcceptClick = {
-                                selectedDate?.let { date ->
-                                    onAccept(date)
-                                }
-                            },
-                            onProposeDateClick = { showDatePicker = true },
-                            onRejectClick = { showRejectDialog = true }
-                        )
+                        val isOwnRequest = currentUserId != null && currentUserId == request.userId
+                        val employeeHasProposed = request.scheduledPickupDate != null
+                        
+                        // If user owns the request and is viewing from employee side, show only info
+                        if (isOwnRequest && !isBeneficiaryView) {
+                            // No buttons shown - user viewing their own request from employee side
+                        } else if (employeeHasProposed) {
+                            // Employee has proposed a date (counter-proposal) - only beneficiary can respond
+                            if (isBeneficiaryView) {
+                                BeneficiaryActionFooter(
+                                    isLoading = isLoading,
+                                    onAcceptClick = {
+                                        onAcceptEmployeeDate()
+                                    },
+                                    onProposeDateClick = { 
+                                        // Show date picker to propose a new date (counter-proposal)
+                                        showDatePicker = true
+                                    },
+                                    onRejectClick = { showRejectDialog = true }
+                                )
+                            }
+                            // Employee side: no buttons shown (waiting for beneficiary response)
+                        } else {
+                            // Beneficiary has proposed (initial or counter-proposal) - only employee can respond
+                            if (!isBeneficiaryView) {
+                                ActionFooter(
+                                    isLoading = isLoading,
+                                    isAcceptEnabled = request.proposedDeliveryDate != null,
+                                    onAcceptClick = {
+                                        // Accept beneficiary's proposed date
+                                        request.proposedDeliveryDate?.let { date ->
+                                            onAccept(date)
+                                        }
+                                    },
+                                    onProposeDateClick = { 
+                                        // Show date picker to propose a new date (counter-proposal)
+                                        showDatePicker = true
+                                    },
+                                    onRejectClick = { showRejectDialog = true }
+                                )
+                            }
+                            // Beneficiary side: no buttons shown (waiting for employee response)
+                        }
                     } else if (status == RequestStatus.PENDENTE_LEVANTAMENTO && canAcceptReject) {
-                        // Complete Button for pending pickup requests
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color.White)
-                                .padding(16.dp)
-                        ) {
-                            Button(
-                                onClick = {
-                                    onComplete()
-                                },
-                                enabled = !isLoading,
+                        // For employees: Show Complete and Cancel buttons
+                        // For beneficiaries: Show only information (no buttons)
+                        // If user owns the request and is viewing from employee side, show only info
+                        val isOwnRequest = currentUserId != null && currentUserId == request.userId
+                        if (!isBeneficiaryView && !isOwnRequest) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(50.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)),
-                                shape = RoundedCornerShape(8.dp)
+                                    .background(Color.White)
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                if (isLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                // Complete Button (Green)
+                                Button(
+                                    onClick = {
+                                        onComplete()
+                                    },
+                                    enabled = !isLoading,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(18.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Concluir Pedido", fontSize = 16.sp, color = Color.White)
+                                    }
+                                }
+                                
+                                // Cancel Delivery Button (Red/Orange)
+                                Button(
+                                    onClick = {
+                                        showCancelDeliveryDialog = true
+                                    },
+                                    enabled = !isLoading,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Concluir Pedido", fontSize = 16.sp, color = Color.White)
+                                    Text("Cancelar Entrega", fontSize = 16.sp, color = Color.White)
                                 }
                             }
                         }
+                        // For beneficiaries, no buttons are shown - just information
                     } else {
                         // Close Button
                         Box(
@@ -318,6 +402,12 @@ fun RequestDetailsDialog(
             }
             selectedDate = calendar.time
             showDatePicker = false
+            // Automatically propose the selected date
+            if (isBeneficiaryView) {
+                onProposeNewDeliveryDate(calendar.time)
+            } else {
+                onProposeNewDate(calendar.time)
+            }
         },
         onDismiss = { showDatePicker = false },
         initialYear = selectedDate?.let {
@@ -371,6 +461,56 @@ fun RequestDetailsDialog(
             },
             dismissButton = {
                 TextButton(onClick = { showRejectDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Cancel Delivery Dialog
+    if (showCancelDeliveryDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showCancelDeliveryDialog = false
+                beneficiaryAbsent = false
+            },
+            title = { Text("Cancelar Entrega") },
+            text = {
+                Column {
+                    Text("Tem a certeza que deseja cancelar esta entrega?")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = beneficiaryAbsent,
+                            onCheckedChange = { beneficiaryAbsent = it }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "O beneficiário faltou?",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancelDeliveryDialog = false
+                        onCancelDelivery(beneficiaryAbsent)
+                        beneficiaryAbsent = false
+                    }
+                ) {
+                    Text("Confirmar", color = Color(0xFFD32F2F))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showCancelDeliveryDialog = false
+                    beneficiaryAbsent = false
+                }) {
                     Text("Cancelar")
                 }
             }
@@ -599,8 +739,8 @@ fun ProductListCard(productItems: List<ProductItemData>) {
 }
 
 @Composable
-fun SuggestedDateCard(
-    suggestedDate: String
+fun ProposedDeliveryDateCard(
+    proposedDate: String
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -610,7 +750,7 @@ fun SuggestedDateCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Data Sugerida",
+                text = "Data de Entrega Proposta",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Black
@@ -638,7 +778,117 @@ fun SuggestedDateCard(
 
                 Column {
                     Text(
-                        text = "Data proposta",
+                        text = "Proposta pelo beneficiário",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = proposedDate,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmployeeProposedDateCard(
+    proposedDate: String
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Data Proposta pelo Funcionário",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Calendar Icon
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFD1E4FF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = Color(0xFF2D75F0),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        text = "Proposta pelo funcionário",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = proposedDate,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SuggestedDateCard(
+    suggestedDate: String
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Nova Data Proposta",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Calendar Icon
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFD1E4FF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = Color(0xFF2D75F0),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        text = "Data proposta pelo funcionário",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
@@ -772,6 +1022,81 @@ fun ActionFooter(
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Aceitar Recolha", fontSize = 16.sp)
+            }
+        }
+
+        // Secondary Buttons Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Propose Date (Blue)
+            Button(
+                onClick = onProposeDateClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D75F0)), // Blue
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Propor data", fontSize = 16.sp)
+            }
+
+            // Reject (Red)
+            Button(
+                onClick = onRejectClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)), // Red
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Rejeitar", fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun BeneficiaryActionFooter(
+    isLoading: Boolean,
+    onAcceptClick: () -> Unit,
+    onProposeDateClick: () -> Unit,
+    onRejectClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Accept Button (Green)
+        Button(
+            onClick = onAcceptClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF156946)), // Dark Green
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Aceitar Data", fontSize = 16.sp)
             }
         }
 

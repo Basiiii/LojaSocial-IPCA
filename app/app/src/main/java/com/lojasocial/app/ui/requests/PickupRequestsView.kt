@@ -88,10 +88,15 @@ fun PickupRequestsView(
     }
     
     // Filter by current user if requested (for beneficiary portal)
+    // Initialize fetch only after determining filter status to avoid fetching all requests first
     LaunchedEffect(filterByCurrentUser, currentUserId) {
-        if (filterByCurrentUser && currentUserId != null) {
-            viewModel.setFilterUserId(currentUserId)
-        } else if (!filterByCurrentUser) {
+        if (filterByCurrentUser) {
+            // Beneficiary view: wait for userId, then set filter (setFilterUserId calls fetchRequests)
+            if (currentUserId != null) {
+                viewModel.setFilterUserId(currentUserId)
+            }
+        } else {
+            // Admin view: set filter to null and fetch (setFilterUserId calls fetchRequests)
             viewModel.setFilterUserId(null)
         }
     }
@@ -219,10 +224,24 @@ fun PickupRequestsView(
             onReject = { reason ->
                 viewModel.rejectRequest(request.id, reason)
             },
+            onProposeNewDate = { date ->
+                viewModel.proposeNewDate(request.id, date)
+            },
             onComplete = {
                 viewModel.completeRequest(request.id)
             },
-            profilePictureRepository = profilePictureRepository
+            onCancelDelivery = { beneficiaryAbsent ->
+                viewModel.cancelDelivery(request.id, beneficiaryAbsent)
+            },
+            profilePictureRepository = profilePictureRepository,
+            isBeneficiaryView = filterByCurrentUser,
+            onAcceptEmployeeDate = {
+                viewModel.acceptEmployeeProposedDate(request.id)
+            },
+            onProposeNewDeliveryDate = { date ->
+                viewModel.proposeNewDeliveryDate(request.id, date)
+            },
+            currentUserId = currentUserId
         )
     }
 
@@ -265,14 +284,24 @@ fun PickupRequestsView(
             // --- Status Header (Blue strip) ---
             when (currentUiState) {
                 is PickupRequestsUiState.Success -> {
-                    // Use the total count from repository if available, otherwise fallback to fetched count
-                    val pendingCount = pendingRequestsCount 
-                        ?: currentUiState.requests.count { it.status == 0 } // SUBMETIDO
+                    // For beneficiary view, always count from filtered requests
+                    // For admin view, use repository count if available
+                    val pendingCount = if (filterByCurrentUser) {
+                        // Count from the filtered requests list (only current user's requests)
+                        currentUiState.requests.count { it.status == 0 } // SUBMETIDO
+                    } else {
+                        // Use repository count for admin view
+                        pendingRequestsCount ?: currentUiState.requests.count { it.status == 0 }
+                    }
                     StatusHeader(pendingCount = pendingCount)
                 }
                 else -> {
-                    // Show count even during loading if we have it cached
-                    val displayCount = pendingRequestsCount ?: 0
+                    // Show count even during loading
+                    val displayCount = if (filterByCurrentUser) {
+                        0 // Beneficiary view: show 0 during loading
+                    } else {
+                        pendingRequestsCount ?: 0 // Admin view: use cached count
+                    }
                     StatusHeader(pendingCount = displayCount)
                 }
             }
@@ -343,7 +372,16 @@ fun PickupRequestsView(
                         RequestStatus.CANCELADO -> 3
                     }
                     
-                    val filteredRequests = currentUiState.requests.filter { it.status == statusInt }
+                    // Filter by status and ensure only current user's requests in beneficiary mode
+                    val filteredRequests = currentUiState.requests.filter { request ->
+                        val matchesStatus = request.status == statusInt
+                        val matchesUser = if (filterByCurrentUser && currentUserId != null) {
+                            request.userId == currentUserId
+                        } else {
+                            true
+                        }
+                        matchesStatus && matchesUser
+                    }
                     
                     if (filteredRequests.isEmpty()) {
                         Box(

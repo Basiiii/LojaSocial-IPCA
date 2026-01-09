@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,6 +27,9 @@ class RequestItemsViewModel @Inject constructor(
 
     private val _submissionState = MutableStateFlow<SubmissionState>(SubmissionState.Idle)
     val submissionState: StateFlow<SubmissionState> = _submissionState.asStateFlow()
+
+    private val _proposedDeliveryDate = MutableStateFlow<Date?>(null)
+    val proposedDeliveryDate: StateFlow<Date?> = _proposedDeliveryDate.asStateFlow()
 
     private var lastVisibleId: String? = null
     private var isLoading = false
@@ -108,17 +112,31 @@ class RequestItemsViewModel @Inject constructor(
         _productQuantities.value = emptyMap()
     }
 
+    fun setProposedDeliveryDate(date: Date?) {
+        _proposedDeliveryDate.value = date
+    }
+
+    fun clearProposedDeliveryDate() {
+        _proposedDeliveryDate.value = null
+    }
+
     fun submitRequest() {
         val itemsToSend = _productQuantities.value
         if (itemsToSend.isEmpty()) {
             return
         }
+        // Date is obligatory - validate before submitting
+        if (_proposedDeliveryDate.value == null) {
+            _submissionState.value = SubmissionState.Error("Por favor, selecione uma data de entrega")
+            return
+        }
         viewModelScope.launch {
             _submissionState.value = SubmissionState.Loading
-            val result = requestsRepository.submitRequest(itemsToSend)
+            val result = requestsRepository.submitRequest(itemsToSend, _proposedDeliveryDate.value)
             result.fold(
                 onSuccess = {
                     clearQuantities()
+                    clearProposedDeliveryDate()
                     _submissionState.value = SubmissionState.Success
                 },
                 onFailure = { error ->

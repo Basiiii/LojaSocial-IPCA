@@ -15,6 +15,7 @@ import com.lojasocial.app.repository.product.ExpirationRepository
 import com.lojasocial.app.repository.user.UserProfile
 import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.repository.user.ProfilePictureRepository
+import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.ui.components.AppLayout
 import com.lojasocial.app.ui.components.GreetingSection
 import com.lojasocial.app.ui.profile.ProfileView
@@ -22,6 +23,7 @@ import com.lojasocial.app.ui.support.SupportView
 import com.lojasocial.app.ui.chat.ChatView
 import com.lojasocial.app.ui.calendar.CalendarView
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun BeneficiaryPortalView(
@@ -35,6 +37,7 @@ fun BeneficiaryPortalView(
     userRepository: UserRepository,
     profilePictureRepository: ProfilePictureRepository,
     expirationRepository: ExpirationRepository? = null,
+    requestsRepository: RequestsRepository? = null,
     onLogout: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToExpiringItems: () -> Unit = {},
@@ -43,6 +46,15 @@ fun BeneficiaryPortalView(
     onTabChange: ((String) -> Unit)? = null
 ) {
     var isChatOpen by remember { mutableStateOf(false) }
+    var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
+    
+    // Fetch pending requests count for current user
+    LaunchedEffect(requestsRepository) {
+        requestsRepository?.getRequests()?.collect { requests ->
+            // Count requests with status 0 (SUBMETIDO) - only current user's requests
+            pendingRequestsCount = requests.count { it.status == 0 }
+        }
+    }
 
     val content = @Composable { paddingValues: PaddingValues ->
         when (currentTab) {
@@ -66,7 +78,8 @@ fun BeneficiaryPortalView(
                     QuickActionsSection(
                         onNavigateToOrders = onNavigateToOrders ?: {},
                         onNavigateToPickups = onNavigateToPickups ?: {},
-                        onSupportClick = { onTabChange?.invoke("support") }
+                        onSupportClick = { onTabChange?.invoke("support") },
+                        pendingRequestsCount = pendingRequestsCount
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -208,6 +221,7 @@ fun BeneficiaryPreview() {
             authRepository = mockAuthRepository,
             userRepository = mockUserRepository,
             profilePictureRepository = mockProfilePictureRepository,
+            requestsRepository = null,
             onNavigateToOrders = {},
             onNavigateToPickups = {}
         )

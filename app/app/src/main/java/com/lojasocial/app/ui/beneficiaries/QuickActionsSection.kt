@@ -36,7 +36,8 @@ fun QuickActionsSection(
     modifier: Modifier = Modifier,
     onNavigateToOrders: () -> Unit,
     onNavigateToPickups: () -> Unit,
-    onSupportClick: () -> Unit = {}
+    onSupportClick: () -> Unit = {},
+    pendingRequestsCount: Int? = null
 ) {
     Column(modifier = modifier) {
         Text(
@@ -75,8 +76,8 @@ fun QuickActionsSection(
             buttonText = "Gere Pedidos",
             backgroundColor = com.lojasocial.app.ui.theme.BrandPurple,
             icon = Icons.Default.Inventory2,
-            badgeCount = 2,
-            badgeLabel = "Pendentes",
+            badgeCount = if (pendingRequestsCount != null && pendingRequestsCount > 0) pendingRequestsCount else null,
+            badgeLabel = if (pendingRequestsCount != null && pendingRequestsCount > 0) "Pendentes" else null,
             onClick = onNavigateToPickups
         )
     }

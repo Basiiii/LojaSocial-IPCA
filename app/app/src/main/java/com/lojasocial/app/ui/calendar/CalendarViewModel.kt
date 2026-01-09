@@ -38,6 +38,7 @@ class CalendarViewModel @Inject constructor(
     
     private val _isEmployee = MutableStateFlow(false)
     private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
     private val _isBeneficiary = MutableStateFlow(false)
     private val _isBeneficiaryPortal = MutableStateFlow(false)
     
@@ -349,6 +350,48 @@ class CalendarViewModel @Inject constructor(
     fun clearSelectedRequest() {
         _selectedRequest.value = null
         _userProfile.value = null
+    }
+    
+    /**
+     * Completes a request (status 2 = CONCLUIDO).
+     */
+    fun completeRequest(requestId: String) {
+        viewModelScope.launch {
+            _isLoadingRequest.value = true
+            val result = requestsRepository.completeRequest(requestId)
+            result.fold(
+                onSuccess = {
+                    _isLoadingRequest.value = false
+                    clearSelectedRequest()
+                    // Reload accepted requests to reflect the change
+                    loadAcceptedRequests()
+                },
+                onFailure = {
+                    _isLoadingRequest.value = false
+                }
+            )
+        }
+    }
+    
+    /**
+     * Cancels a delivery (status 3 = CANCELADO).
+     */
+    fun cancelDelivery(requestId: String, beneficiaryAbsent: Boolean = false) {
+        viewModelScope.launch {
+            _isLoadingRequest.value = true
+            val result = requestsRepository.cancelDelivery(requestId, beneficiaryAbsent)
+            result.fold(
+                onSuccess = {
+                    _isLoadingRequest.value = false
+                    clearSelectedRequest()
+                    // Reload accepted requests to reflect the change
+                    loadAcceptedRequests()
+                },
+                onFailure = {
+                    _isLoadingRequest.value = false
+                }
+            )
+        }
     }
     
     /**
