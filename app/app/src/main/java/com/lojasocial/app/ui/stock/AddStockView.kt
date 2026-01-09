@@ -2,12 +2,18 @@ package com.lojasocial.app.ui.stock
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.util.Log
 import android.view.Gravity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
+import androidx.camera.core.CameraControl
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview as CameraPreview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
@@ -17,56 +23,53 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil.compose.AsyncImage
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import java.util.concurrent.Executors
-import com.lojasocial.app.ui.theme.TextDark
-import com.lojasocial.app.ui.theme.ScanBlue
-import com.lojasocial.app.ui.theme.ScanRed
-import com.lojasocial.app.ui.theme.LojaSocialPrimary
-import com.lojasocial.app.utils.AppConstants
-import com.lojasocial.app.viewmodel.AddStockViewModel
-import com.lojasocial.app.viewmodel.AddStockUiState
 import com.lojasocial.app.domain.product.ProductCategory
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
 import com.lojasocial.app.ui.components.ProductImage
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.PhotoLibrary
+import com.lojasocial.app.ui.theme.LojaSocialPrimary
+import com.lojasocial.app.ui.theme.ScanBlue
+import com.lojasocial.app.ui.theme.ScanRed
+import com.lojasocial.app.ui.theme.TextDark
+import com.lojasocial.app.utils.AppConstants
 import com.lojasocial.app.utils.FileUtils
+import com.lojasocial.app.viewmodel.AddStockUiState
+import com.lojasocial.app.viewmodel.AddStockViewModel
 import java.io.File
-import androidx.core.content.FileProvider
+import java.util.concurrent.Executors
 
 @Composable
 fun AddStockScreen(
@@ -74,25 +77,18 @@ fun AddStockScreen(
     viewModel: AddStockViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    
-    // State for step navigation
-    var currentStep by remember { mutableStateOf("scan") } // "scan" or "form"
-    
-    // State for manual product addition
+    var currentStep by remember { mutableStateOf("scan") }
     var isManualAddition by remember { mutableStateOf(false) }
-    
-    // UI State
+
     val uiState by viewModel.uiState.collectAsState()
     val productData by viewModel.productData.collectAsState()
-    
-    // Auto-advance to form when product is successfully loaded or manual entry 
+
     LaunchedEffect(productData, isManualAddition) {
         if (currentStep == "scan" && (productData != null || isManualAddition)) {
             currentStep = "form"
         }
     }
-    
-    // Handle barcode scanning
+
     LaunchedEffect(Unit) {
         try {
             Log.d("AddStockScreen", "Screen initialized successfully")
@@ -100,20 +96,15 @@ fun AddStockScreen(
             Log.e("AddStockScreen", "Screen initialization failed", e)
         }
     }
-    
-    // Barcode scanning handler
+
     fun onBarcodeScanned(barcode: String) {
-        Log.d("AddStockView", "onBarcodeScanned called with: $barcode")
         if (barcode == "MANUAL") {
-            // Manual entry - don't fetch product data
-            Log.d("AddStockView", "Switching to manual mode from scanner")
             isManualAddition = true
             viewModel.setManualMode(true)
             viewModel.onBarcodeChanged("")
             viewModel.onProductNameChanged("")
             currentStep = "form"
         } else {
-            Log.d("AddStockView", "Handling real scanned barcode")
             isManualAddition = false
             viewModel.setManualMode(false)
             viewModel.onBarcodeChanged(barcode)
@@ -121,19 +112,15 @@ fun AddStockScreen(
             viewModel.onBarcodeScanned(barcode)
         }
     }
-    
-    // Auto-advance to form when product is successfully loaded
+
     LaunchedEffect(productData) {
         if (productData != null && currentStep == "scan") {
             currentStep = "form"
         }
     }
-    
-    // Show success message and return to scan screen after adding product
+
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let { message ->
-            Log.d("ScanStock", message)
-
             Toast.makeText(context, message, Toast.LENGTH_SHORT).apply {
                 setGravity(Gravity.BOTTOM, 0, 150)
             }.show()
@@ -142,15 +129,8 @@ fun AddStockScreen(
             viewModel.setManualMode(false)
         }
     }
-    
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            Log.e("ScanStock", error)
-        }
-    }
-    
+
     if (currentStep == "scan") {
-        // Fullscreen scanning view
         ScanStepScreen(
             onNavigateBack = onNavigateBack,
             onBarcodeScanned = { barcode ->
@@ -158,12 +138,11 @@ fun AddStockScreen(
             }
         )
     } else {
-        // Form view
         FormStepScreen(
             viewModel = viewModel,
             uiState = uiState,
             productData = productData,
-            onNavigateBack = { 
+            onNavigateBack = {
                 currentStep = "scan"
                 isManualAddition = false
             }
@@ -177,35 +156,27 @@ fun ScanStepScreen(
     onBarcodeScanned: (String) -> Unit
 ) {
     val context = LocalContext.current
-    
-    // Camera and barcode scanning state
     var hasCameraPermission by remember { mutableStateOf(false) }
     var isFlashOn by remember { mutableStateOf(false) }
-    
-    // Camera permission launcher
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted ->
             hasCameraPermission = granted
-            if (!granted) {
-                Log.e("ScanStepScreen", "Camera permission denied")
-            }
         }
     )
-    
-    // Check camera permission
+
     LaunchedEffect(Unit) {
         hasCameraPermission = ContextCompat.checkSelfPermission(
             context, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
-        
+
         if (!hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
-    
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Camera preview
         if (hasCameraPermission) {
             CameraPreview(
                 onBarcodeDetected = onBarcodeScanned,
@@ -216,9 +187,7 @@ fun ScanStepScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = Icons.Default.QrCode,
                         contentDescription = "Camera Required",
@@ -234,11 +203,9 @@ fun ScanStepScreen(
                 }
             }
         }
-        
-        // Scanning overlay
+
         ScanningOverlay()
-        
-        // Header with back button 
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -246,12 +213,8 @@ fun ScanStepScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(
-                onClick = {
-                    Log.d("ScanStepScreen", "Back button clicked")
-                    onNavigateBack()
-                },
-                modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                onClick = onNavigateBack,
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -259,11 +222,10 @@ fun ScanStepScreen(
                     tint = Color.White
                 )
             }
-            
+
             IconButton(
                 onClick = { isFlashOn = !isFlashOn },
-                modifier = Modifier
-                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
             ) {
                 Icon(
                     imageVector = if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
@@ -272,28 +234,21 @@ fun ScanStepScreen(
                 )
             }
         }
-        
-        // Manual Entry Button
+
         Box(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {                
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Button(
                     onClick = { onBarcodeScanned("MANUAL") },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = LojaSocialPrimary
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = LojaSocialPrimary),
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text(
                         text = "Adicionar Produto Manualmente",
@@ -314,11 +269,6 @@ fun FormStepScreen(
     productData: com.lojasocial.app.domain.product.Product?,
     onNavigateBack: () -> Unit,
 ) {
-    Log.e("AddStockView_DEBUG", "=== FORM STEP SCREEN CALLED ===")
-    Log.e("AddStockView_DEBUG", "isLoading: ${uiState.isLoading}")
-    Log.e("AddStockView_DEBUG", "isManualMode: ${viewModel.isManualMode.collectAsState().value}")
-    
-    // Form fields
     val barcode by viewModel.barcode.collectAsState()
     val productName by viewModel.productName.collectAsState()
     val productBrand by viewModel.productBrand.collectAsState()
@@ -330,110 +280,72 @@ fun FormStepScreen(
     val campaign by viewModel.campaign.collectAsState()
     val campaigns by viewModel.campaigns.collectAsState()
     val isManualMode by viewModel.isManualMode.collectAsState()
-    
+
     val context = LocalContext.current
-    
-    // Expiry date toggle state
     var expiryDateEnabled by remember { mutableStateOf(true) }
-    
-    // Date picker state
     var showDatePicker by remember { mutableStateOf(false) }
-    
-    // Campaign dropdown state
     var campaignExpanded by remember { mutableStateOf(false) }
-    
-    // Category dropdown state
     var categoryExpanded by remember { mutableStateOf(false) }
-    
-    // Image picker launcher (gallery)
+    var isBarcodeEditable by remember { mutableStateOf(false) }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            // Convert and compress image to Base64
             val result = FileUtils.convertImageToBase64(
                 context = context,
                 uri = it,
+                filePath = null,
                 maxWidth = 800,
                 maxHeight = 800,
                 quality = 85
             )
-            
             result.fold(
                 onSuccess = { base64 ->
                     viewModel.onProductSerializedImageChanged(base64)
-                    // Clear imageUrl when serialized image is set
                     viewModel.onProductImageUrlChanged("")
                 },
-                onFailure = { error ->
-                    Log.e("AddStockView", "Error processing image: ${error.message}")
-                }
+                onFailure = { error -> Log.e("AddStockView", "Error: ${error.message}") }
             )
         }
     }
-    
-    // Camera launcher with file provider
+
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
-    var cameraImagePath by remember { mutableStateOf<String?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            val uri = cameraImageUri
-            val filePath = cameraImagePath
-            
-            if (uri != null) {
-                // Use file path if available (for EXIF), otherwise use URI only
+            cameraImageUri?.let { uri ->
                 val result = FileUtils.convertImageToBase64(
                     context = context,
                     uri = uri,
-                    filePath = filePath,
+                    filePath = null,
                     maxWidth = 800,
                     maxHeight = 800,
                     quality = 85
                 )
-                
                 result.fold(
                     onSuccess = { base64 ->
-                        Log.d("AddStockView", "Camera image processed successfully, base64 length: ${base64.length}")
                         viewModel.onProductSerializedImageChanged(base64)
                         viewModel.onProductImageUrlChanged("")
                     },
-                    onFailure = { error ->
-                        Log.e("AddStockView", "Error processing camera image: ${error.message}", error)
-                    }
+                    onFailure = { error -> Log.e("AddStockView", "Error: ${error.message}") }
                 )
-            } else {
-                Log.e("AddStockView", "Camera image URI is null")
             }
         }
     }
-    
-    // Function to create camera URI
+
     fun createCameraUri(): Uri? {
         return try {
             val photoFile = File(context.cacheDir, "product_photo_${System.currentTimeMillis()}.jpg")
-            val filePath = photoFile.absolutePath
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                photoFile
-            ).also {
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile).also {
                 cameraImageUri = it
-                cameraImagePath = filePath
             }
-        } catch (e: Exception) {
-            Log.e("AddStockView", "Error creating camera URI: ${e.message}")
-            null
-        }
+        } catch (e: Exception) { null }
     }
-    
-    // Create a Product object for ProductImage composable
-    // Always use current state values, especially for serializedImage
+
     val productForDisplay = remember(productName, productBrand, productCategory, productImageUrl, productSerializedImage, productData) {
-        // If we have a name or brand, use current form values
-        // Otherwise, use productData but override with current serializedImage
-        val product = if (productName.isNotEmpty() || productBrand.isNotEmpty()) {
+        if (productName.isNotEmpty() || productBrand.isNotEmpty()) {
             com.lojasocial.app.domain.product.Product(
                 name = productName,
                 brand = productBrand,
@@ -442,31 +354,25 @@ fun FormStepScreen(
                 serializedImage = productSerializedImage
             )
         } else {
-            // Use productData as base, but always use current serializedImage if available
             (productData ?: com.lojasocial.app.domain.product.Product()).copy(
                 serializedImage = productSerializedImage ?: productData?.serializedImage
             )
         }
-        Log.d("AddStockView", "productForDisplay updated - serializedImage length: ${product.serializedImage?.length ?: 0}, imageUrl: ${product.imageUrl}, name: ${product.name}")
-        product
     }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to Scanner"
-                )
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -476,30 +382,19 @@ fun FormStepScreen(
                 color = TextDark
             )
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Product info card with editable fields
+
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = ScanBlue.copy(alpha = 0.1f))
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Produto",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = ScanBlue
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Product image with options to add image
+            Column(modifier = Modifier.padding(16.dp)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF0F0F0))
                 ) {
                     ProductImage(
                         product = productForDisplay,
@@ -507,62 +402,100 @@ fun FormStepScreen(
                         contentScale = ContentScale.Fit,
                         contentDescription = "Imagem do Produto"
                     )
-                    
-                    // Overlay buttons to add/change image
+
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Camera button
                         Surface(
-                            onClick = { 
-                                createCameraUri()?.let { uri ->
-                                    cameraLauncher.launch(uri)
-                                }
-                            },
+                            onClick = { createCameraUri()?.let { cameraLauncher.launch(it) } },
                             modifier = Modifier.size(40.dp),
                             shape = RoundedCornerShape(20.dp),
-                            color = ScanBlue
+                            color = LojaSocialPrimary
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = "Tirar foto",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.CameraAlt, "Foto", tint = Color.White)
                             }
                         }
-                        
-                        // Gallery button
+
                         Surface(
                             onClick = { imagePickerLauncher.launch("image/*") },
                             modifier = Modifier.size(40.dp),
                             shape = RoundedCornerShape(20.dp),
-                            color = ScanBlue
+                            color = LojaSocialPrimary
                         ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PhotoLibrary,
-                                    contentDescription = "Escolher da galeria",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.PhotoLibrary, "Galeria", tint = Color.White)
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Editable product name
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val isEditable = isManualMode || isBarcodeEditable
+
+                    OutlinedTextField(
+                        value = barcode,
+                        onValueChange = {
+                            viewModel.onBarcodeChanged(it)
+                            if (isBarcodeEditable && !isManualMode) {
+                                viewModel.onProductNameChanged("")
+                                viewModel.onProductBrandChanged("")
+                                viewModel.onProductImageUrlChanged("")
+                                viewModel.onProductSerializedImageChanged(null)
+                            }
+                        },
+                        label = { Text("Código de Barras") },
+                        modifier = Modifier.weight(1f),
+                        enabled = !uiState.isLoading,
+                        readOnly = !isEditable,
+                        singleLine = true,
+                        trailingIcon = if (!isEditable) {
+                            {
+                                IconButton(onClick = { isBarcodeEditable = true }) {
+                                    Icon(Icons.Default.Edit, "Editar", tint = LojaSocialPrimary)
+                                }
+                            }
+                        } else null
+                    )
+                    Button(
+                        onClick = { if (barcode.isNotEmpty()) viewModel.fetchProductDataForCurrentBarcode() },
+                        enabled = !uiState.isLoading && barcode.isNotEmpty(),
+                        shape = RoundedCornerShape(128.dp),
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .height(56.dp)
+                            .width(56.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Icon(Icons.Default.Search, "Procurar")
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Detalhes do Produto",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = LojaSocialPrimary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
                     value = productName,
                     onValueChange = { viewModel.onProductNameChanged(it) },
@@ -570,254 +503,171 @@ fun FormStepScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isLoading
                 )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Barcode input
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // In manual mode, always keep the barcode as an editable field
-                    if (isManualMode) {
-                        OutlinedTextField(
-                            value = barcode,
-                            onValueChange = { viewModel.onBarcodeChanged(it) },
-                            label = { Text("Código de Barras") },
-                            modifier = Modifier.weight(1f),
-                            enabled = !uiState.isLoading,
-                            placeholder = { Text("Digite o código de barras") }
-                        )
-                    } else {
-                        // In scan mode, show the scanned barcode as read-only text
-                        OutlinedTextField(
-                            value = barcode,
-                            onValueChange = {},
-                            label = { Text("Código de Barras") },
-                            modifier = Modifier.weight(1f),
-                            enabled = false
-                        )
-                    }
 
-                    Button(
-                        onClick = { 
-                            if (barcode.isNotEmpty()) {
-                                viewModel.fetchProductDataForCurrentBarcode()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = productBrand,
+                    onValueChange = { viewModel.onProductBrandChanged(it) },
+                    label = { Text("Marca") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = !categoryExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = ProductCategory.fromId(productCategory)?.displayName ?: "Alimentar",
+                        onValueChange = {},
+                        label = { Text("Categoria") },
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        enabled = !uiState.isLoading
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        ProductCategory.getAllCategories().forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category.displayName) },
+                                onClick = {
+                                    viewModel.onProductCategoryChanged(category.id)
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Stock e Validade",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = LojaSocialPrimary
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { viewModel.onQuantityChanged(it) },
+                    label = { Text("Quantidade") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Data de Validade", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(checked = expiryDateEnabled, onCheckedChange = { expiryDateEnabled = it }, enabled = !uiState.isLoading)
+                }
+
+                if (expiryDateEnabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = expiryDate,
+                        onValueChange = { viewModel.onExpiryDateChanged(it) },
+                        label = { Text("DD/MM/AAAA") },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePicker = true }) {
+                                Icon(Icons.Default.DateRange, "Selecionar Data")
                             }
                         },
-                        enabled = !uiState.isLoading && barcode.isNotEmpty(),
-                        modifier = Modifier.height(56.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.isLoading
+                    )
+                    CustomDatePickerDialog(
+                        showDialog = showDatePicker,
+                        onDateSelected = { d, m, y ->
+                            viewModel.onExpiryDateChanged(String.format("%02d/%02d/%04d", d, m, y))
+                            showDatePicker = false
+                        },
+                        onDismiss = { showDatePicker = false }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = campaignExpanded,
+                    onExpandedChange = { campaignExpanded = !campaignExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = campaign,
+                        onValueChange = { viewModel.onCampaignChanged(it) },
+                        label = { Text("Campanha (Opcional)") },
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campaignExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        enabled = !uiState.isLoading
+                    )
+                    ExposedDropdownMenu(
+                        expanded = campaignExpanded,
+                        onDismissRequest = { campaignExpanded = false }
                     ) {
-                        Text("Procurar")
-                    }
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Brand field
-        OutlinedTextField(
-            value = productBrand,
-            onValueChange = { viewModel.onProductBrandChanged(it) },
-            label = { Text("Marca") },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Category dropdown
-        ExposedDropdownMenuBox(
-            expanded = categoryExpanded,
-            onExpandedChange = { categoryExpanded = !categoryExpanded }
-        ) {
-            OutlinedTextField(
-                value = ProductCategory.fromId(productCategory)?.displayName ?: "Alimentar",
-                onValueChange = {},
-                label = { Text("Categoria") },
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(),
-                enabled = !uiState.isLoading
-            )
-            
-            ExposedDropdownMenu(
-                expanded = categoryExpanded,
-                onDismissRequest = { categoryExpanded = false }
-            ) {
-                ProductCategory.getAllCategories().forEach { category ->
-                    DropdownMenuItem(
-                        text = { Text(category.displayName) },
-                        onClick = {
-                            viewModel.onProductCategoryChanged(category.id)
-                            categoryExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Quantity field
-        OutlinedTextField(
-            value = quantity,
-            onValueChange = { viewModel.onQuantityChanged(it) },
-            label = { Text("Quantidade") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Expiry date toggle and field
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Data de Validade",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextDark
-            )
-            
-            // Toggle switch
-            Switch(
-                checked = expiryDateEnabled,
-                onCheckedChange = { expiryDateEnabled = it },
-                enabled = !uiState.isLoading
-            )
-        }
-
-        if (expiryDateEnabled) {
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = expiryDate,
-                onValueChange = { viewModel.onExpiryDateChanged(it) },
-                label = { Text("Data de Validade (DD/MM/AAAA)") },
-                placeholder = { Text("DD/MM/AAAA") },
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Selecionar Data"
+                        DropdownMenuItem(
+                            text = { Text("Nenhuma Campanha") },
+                            onClick = {
+                                viewModel.onCampaignChanged("")
+                                campaignExpanded = false
+                            }
                         )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading
-            )
-
-            // Date Picker Dialog
-            CustomDatePickerDialog(
-                showDialog = showDatePicker,
-                onDateSelected = { day, month, year ->
-                    val formattedDate = String.format("%02d/%02d/%04d", day, month, year)
-                    viewModel.onExpiryDateChanged(formattedDate)
-                    showDatePicker = false
-                },
-                onDismiss = { showDatePicker = false }
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Campaign dropdown
-        ExposedDropdownMenuBox(
-            expanded = campaignExpanded,
-            onExpandedChange = { campaignExpanded = !campaignExpanded }
-        ) {
-            OutlinedTextField(
-                value = campaign,
-                onValueChange = { viewModel.onCampaignChanged(it) },
-                label = { Text("Campanha (Opcional)") },
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = campaignExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(),
-                enabled = !uiState.isLoading
-            )
-            
-            ExposedDropdownMenu(
-                expanded = campaignExpanded,
-                onDismissRequest = { campaignExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Nenhuma Campanha") },
-                    onClick = {
-                        viewModel.onCampaignChanged("")
-                        campaignExpanded = false
-                    }
-                )
-                
-                campaigns.forEach { campaign ->
-                    DropdownMenuItem(
-                        text = { Text(campaign.name) },
-                        onClick = {
-                            viewModel.onCampaignSelected(campaign)
-                            campaignExpanded = false
+                        campaigns.forEach { c ->
+                            DropdownMenuItem(
+                                text = { Text(c.name) },
+                                onClick = {
+                                    viewModel.onCampaignSelected(c)
+                                    campaignExpanded = false
+                                }
+                            )
                         }
-                    )
+                    }
                 }
             }
         }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        // Add to stock button
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Button(
-            onClick = { 
-                if (!expiryDateEnabled) {
-                    // Set a default expiry date when disabled
-                    viewModel.onExpiryDateChanged("Sem Validade")
-                }
-                viewModel.addToStock() 
+            onClick = {
+                if (!expiryDateEnabled) viewModel.onExpiryDateChanged("Sem Validade")
+                viewModel.addToStock()
             },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading && quantity.isNotEmpty() && (quantity.toIntOrNull()
-                ?: 0) > 0
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            enabled = !uiState.isLoading && quantity.isNotEmpty() && (quantity.toIntOrNull() ?: 0) > 0,
+            colors = ButtonDefaults.buttonColors(containerColor = LojaSocialPrimary)
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
             } else {
-                Text("Adicionar ao Stock")
+                Text("Adicionar ao Stock", fontWeight = FontWeight.Bold)
             }
         }
-        
-        // Success/Error messages
-        uiState.successMessage?.let { message ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50))
-            ) {
-                Text(
-                    text = message,
-                    modifier = Modifier.padding(16.dp),
-                    color = Color.White
-                )
+
+        uiState.successMessage?.let {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50))) {
+                Text(text = it, modifier = Modifier.padding(16.dp), color = Color.White)
             }
         }
-        
-        uiState.error?.let { error ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(containerColor = ScanRed)
-            ) {
-                Text(
-                    text = error,
-                    modifier = Modifier.padding(16.dp),
-                    color = Color.White
-                )
+
+        uiState.error?.let {
+            Card(colors = CardDefaults.cardColors(containerColor = ScanRed)) {
+                Text(text = it, modifier = Modifier.padding(16.dp), color = Color.White)
             }
         }
     }
@@ -830,40 +680,23 @@ fun CameraPreview(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val executor = remember { Executors.newSingleThreadExecutor() }
-    
     val barcodeScanner = remember {
         BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(
-                    Barcode.FORMAT_EAN_13,
-                    Barcode.FORMAT_EAN_8,
-                    Barcode.FORMAT_UPC_A,
-                    Barcode.FORMAT_UPC_E
-                )
-                .build()
+            BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS).build()
         )
     }
-    
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
-    
-    LaunchedEffect(isFlashOn) {
-        cameraControl?.enableTorch(isFlashOn)
-    }
-    
+
+    LaunchedEffect(isFlashOn) { cameraControl?.enableTorch(isFlashOn) }
+
     AndroidView(
         factory = { ctx ->
             val previewView = PreviewView(ctx)
-            
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
-                
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-                
+                val preview = CameraPreview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
                 val imageAnalyzer = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
@@ -872,23 +705,13 @@ fun CameraPreview(
                             processImageProxy(imageProxy, barcodeScanner, onBarcodeDetected)
                         }
                     }
-                
-                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                
                 try {
                     cameraProvider.unbindAll()
-                    val camera = cameraProvider.bindToLifecycle(
-                        lifecycleOwner, cameraSelector, preview, imageAnalyzer
-                    )
-                    
+                    val camera = cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageAnalyzer)
                     cameraControl = camera.cameraControl
-                    
                     camera.cameraControl.enableTorch(isFlashOn)
-                } catch (exc: Exception) {
-                    Log.e("CameraPreview", "Use case binding failed", exc)
-                }
+                } catch (exc: Exception) { Log.e("CameraPreview", "Binding failed", exc) }
             }, ContextCompat.getMainExecutor(context))
-            
             previewView
         },
         modifier = Modifier.fillMaxSize()
@@ -906,15 +729,9 @@ private fun processImageProxy(
         val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         barcodeScanner.process(image)
             .addOnSuccessListener { barcodes ->
-                for (barcode in barcodes) {
-                    barcode.rawValue?.let { value ->
-                        onBarcodeDetected(value)
-                    }
-                }
+                for (barcode in barcodes) barcode.rawValue?.let { onBarcodeDetected(it) }
             }
-            .addOnCompleteListener {
-                imageProxy.close()
-            }
+            .addOnCompleteListener { imageProxy.close() }
     } else {
         imageProxy.close()
     }
@@ -922,87 +739,27 @@ private fun processImageProxy(
 
 @Composable
 fun ScanningOverlay() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        // Semi-transparent dark overlay background
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(
-                color = Color.Black.copy(alpha = 0.5f),
-                size = size
-            )
+            drawRect(color = Color.Black.copy(alpha = 0.5f), size = size)
         }
-        
-        // Scan box in center
-        Box(
-            modifier = Modifier.size(280.dp, 160.dp)
-        ) {
+        Box(modifier = Modifier.size(280.dp, 160.dp)) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val strokeWidth = 4.dp.toPx()
                 val cornerSize = 20.dp.toPx()
-
-                // Blue Corners
                 val blueColor = ScanBlue
 
-                // Top Left Corner
-                drawLine(
-                    color = blueColor,
-                    start = Offset(0f, 0f),
-                    end = Offset(cornerSize, 0f),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = blueColor,
-                    start = Offset(0f, 0f),
-                    end = Offset(0f, cornerSize),
-                    strokeWidth = strokeWidth
-                )
-
-                // Top Right Corner
-                drawLine(
-                    color = blueColor,
-                    start = Offset(size.width, 0f),
-                    end = Offset(size.width - cornerSize, 0f),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = blueColor,
-                    start = Offset(size.width, 0f),
-                    end = Offset(size.width, cornerSize),
-                    strokeWidth = strokeWidth
-                )
-
-                // Bottom Left Corner
-                drawLine(
-                    color = blueColor,
-                    start = Offset(0f, size.height),
-                    end = Offset(0f, size.height - cornerSize),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = blueColor,
-                    start = Offset(0f, size.height),
-                    end = Offset(cornerSize, size.height),
-                    strokeWidth = strokeWidth
-                )
-
-                // Bottom Right Corner
-                drawLine(
-                    color = blueColor,
-                    start = Offset(size.width, size.height),
-                    end = Offset(size.width - cornerSize, size.height),
-                    strokeWidth = strokeWidth
-                )
-                drawLine(
-                    color = blueColor,
-                    start = Offset(size.width, size.height),
-                    end = Offset(size.width, size.height - cornerSize),
-                    strokeWidth = strokeWidth
-                )
-
+                listOf(
+                    Offset(0f, 0f) to listOf(Offset(cornerSize, 0f), Offset(0f, cornerSize)),
+                    Offset(size.width, 0f) to listOf(Offset(size.width - cornerSize, 0f), Offset(size.width, cornerSize)),
+                    Offset(0f, size.height) to listOf(Offset(0f, size.height - cornerSize), Offset(cornerSize, size.height)),
+                    Offset(size.width, size.height) to listOf(Offset(size.width - cornerSize, size.height), Offset(size.width, size.height - cornerSize))
+                ).forEach { (start, ends) ->
+                    ends.forEach { end ->
+                        drawLine(color = blueColor, start = start, end = end, strokeWidth = strokeWidth)
+                    }
+                }
             }
         }
     }
 }
-
