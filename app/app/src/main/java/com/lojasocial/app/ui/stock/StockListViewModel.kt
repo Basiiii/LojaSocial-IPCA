@@ -25,6 +25,7 @@ data class StockListUiState(
     val products: List<ProductWithStock> = emptyList(),
     val filteredProducts: List<ProductWithStock> = emptyList(),
     val selectedCategories: Set<ProductCategory> = emptySet(),
+    val searchQuery: String = "",
     val error: String? = null
 )
 
@@ -103,26 +104,40 @@ class StockListViewModel @Inject constructor(
         } else {
             currentSelected.add(category)
         }
-        applyFilters(currentSelected)
+        applyFilters(currentSelected, _uiState.value.searchQuery)
     }
 
     fun clearFilters() {
-        applyFilters(emptySet())
+        applyFilters(emptySet(), _uiState.value.searchQuery)
     }
 
-    private fun applyFilters(selectedCategories: Set<ProductCategory>) {
+    fun setSearchQuery(query: String) {
+        applyFilters(_uiState.value.selectedCategories, query)
+    }
+
+    private fun applyFilters(selectedCategories: Set<ProductCategory>, searchQuery: String) {
         val allProducts = _uiState.value.products
-        val filtered = if (selectedCategories.isEmpty()) {
-            allProducts
-        } else {
-            allProducts.filter { productWithStock ->
+        var filtered = allProducts
+        
+        // Filter by category
+        if (selectedCategories.isNotEmpty()) {
+            filtered = filtered.filter { productWithStock ->
                 val category = ProductCategory.fromId(productWithStock.product.category)
                 category != null && selectedCategories.contains(category)
             }
         }
         
+        // Filter by search query (name or brand)
+        if (searchQuery.isNotBlank()) {
+            filtered = filtered.filter { productWithStock ->
+                productWithStock.product.name.contains(searchQuery, ignoreCase = true) ||
+                productWithStock.product.brand.contains(searchQuery, ignoreCase = true)
+            }
+        }
+        
         _uiState.value = _uiState.value.copy(
             selectedCategories = selectedCategories,
+            searchQuery = searchQuery,
             filteredProducts = filtered
         )
     }

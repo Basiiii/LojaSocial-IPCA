@@ -37,6 +37,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.lojasocial.app.domain.product.ProductCategory
 import com.lojasocial.app.utils.AppConstants
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.lojasocial.app.ui.theme.LojaSocialPrimary
 
 enum class StockStatus(val label: String, val color: Color, val bgColor: Color) {
     IN_STOCK("Em stock", Color(0xFF1B5E20), Color(0xFFDFF7E2)),
@@ -60,6 +64,7 @@ fun StockListView(
     viewModel: StockListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showSearchBar by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Color(0xFFF8F9FA),
@@ -81,7 +86,7 @@ fun StockListView(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = { showSearchBar = !showSearchBar }) {
                         Icon(Icons.Default.Search, contentDescription = "Pesquisar", tint = Color.Gray)
                     }
                 },
@@ -129,6 +134,14 @@ fun StockListView(
                         .padding(paddingValues)
                         .fillMaxSize()
                 ) {
+                    if (showSearchBar) {
+                        StockListSearchBar(
+                            searchQuery = uiState.searchQuery,
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            onClose = { showSearchBar = false }
+                        )
+                    }
+                    
                     StockListFilterHeader(
                         productCount = uiState.filteredProducts.size,
                         onFilterClick = { },
@@ -317,6 +330,41 @@ fun StockListFilterHeader(
         }
         HorizontalDivider(thickness = 1.dp, color = Color(0xFFEEEEEE))
     }
+}
+
+@Composable
+fun StockListSearchBar(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onClose: () -> Unit
+) {
+    OutlinedTextField(
+        value = searchQuery,
+        onValueChange = onSearchQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        placeholder = { Text("Pesquisar produtos...", color = Color.Gray) },
+        leadingIcon = { 
+            Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) 
+        },
+        trailingIcon = {
+            if (searchQuery.isNotEmpty()) {
+                IconButton(onClick = { onSearchQueryChange("") }) {
+                    Icon(Icons.Default.Close, contentDescription = "Limpar", tint = Color.Gray)
+                }
+            }
+        },
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = Color.White,
+            focusedContainerColor = Color.White,
+            unfocusedBorderColor = Color(0xFFE5E7EB),
+            focusedBorderColor = LojaSocialPrimary,
+            cursorColor = LojaSocialPrimary
+        ),
+        singleLine = true
+    )
 }
 
 @Composable
