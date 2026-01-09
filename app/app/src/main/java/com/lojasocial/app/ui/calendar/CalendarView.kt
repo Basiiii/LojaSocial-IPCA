@@ -50,6 +50,7 @@ fun CalendarView(
     val selectedRequest by viewModel.selectedRequest.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val isLoadingRequest by viewModel.isLoadingRequest.collectAsState()
+    val currentUserId by viewModel.currentUserId.collectAsState()
     
     // Update ViewModel with portal context
     LaunchedEffect(isBeneficiaryPortal) {
@@ -154,14 +155,31 @@ fun CalendarView(
                 viewModel.clearSelectedRequest()
             },
             onAccept = { date ->
-                // Request is already accepted, so this might not be needed
-                // But keeping for consistency
+                // Not used for PENDENTE_LEVANTAMENTO status in calendar
                 viewModel.clearSelectedRequest()
             },
             onReject = { reason ->
-                // Request is already accepted, so this might not be needed
-                // But keeping for consistency
+                // Not used for PENDENTE_LEVANTAMENTO status in calendar
                 viewModel.clearSelectedRequest()
+            },
+            onComplete = {
+                viewModel.completeRequest(request.id)
+            },
+            onCancelDelivery = { beneficiaryAbsent ->
+                viewModel.cancelDelivery(request.id, beneficiaryAbsent)
+            },
+            profilePictureRepository = null,
+            isBeneficiaryView = isBeneficiaryPortal,
+            onAcceptEmployeeDate = {
+                // Not used in calendar context
+            },
+            onProposeNewDeliveryDate = { date ->
+                // Not used in calendar context
+            },
+            currentUserId = currentUserId,
+            onRescheduleDelivery = { date ->
+                // Determine if employee or beneficiary is rescheduling based on portal context
+                viewModel.rescheduleDelivery(request.id, date, isEmployeeRescheduling = !isBeneficiaryPortal)
             }
         )
     }

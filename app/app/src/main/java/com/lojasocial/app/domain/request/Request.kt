@@ -12,6 +12,7 @@ import java.util.Date
  * @property submissionDate Date when the request was submitted
  * @property totalItems Total number of items in the request
  * @property scheduledPickupDate Optional scheduled pickup date (set when request is accepted)
+ * @property proposedDeliveryDate Optional proposed delivery date (set by the user when submitting the request)
  * @property rejectionReason Optional reason for rejection
  * @property items List of items in the request (loaded separately from subcollection)
  */
@@ -23,6 +24,7 @@ data class Request(
     val submissionDate: Date? = null,
     val totalItems: Int = 0,
     val scheduledPickupDate: Date? = null,
+    val proposedDeliveryDate: Date? = null,
     val rejectionReason: String? = null,
     val items: List<RequestItemDetail> = emptyList()
 )

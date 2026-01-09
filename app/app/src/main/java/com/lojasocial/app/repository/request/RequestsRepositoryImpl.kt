@@ -209,6 +209,7 @@ class RequestsRepositoryImpl @Inject constructor(
                     val submissionDate = convertToDate(data["submissionDate"])
                     val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
                     val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+                    val proposedDeliveryDate = convertToDate(data["proposedDeliveryDate"])
                     val rejectionReason = data["rejectionReason"] as? String
 
                     // Get items map - category will be loaded asynchronously if needed
@@ -237,6 +238,7 @@ class RequestsRepositoryImpl @Inject constructor(
                         submissionDate = submissionDate,
                         totalItems = totalItems,
                         scheduledPickupDate = scheduledPickupDate,
+                        proposedDeliveryDate = proposedDeliveryDate,
                         rejectionReason = rejectionReason,
                         items = minimalItems
                     )
@@ -321,6 +323,7 @@ class RequestsRepositoryImpl @Inject constructor(
                     val submissionDate = convertToDate(data["submissionDate"])
                     val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
                     val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+                    val proposedDeliveryDate = convertToDate(data["proposedDeliveryDate"])
                     val rejectionReason = data["rejectionReason"] as? String
 
                     // Get items map - category will be loaded separately
@@ -349,6 +352,7 @@ class RequestsRepositoryImpl @Inject constructor(
                         submissionDate = submissionDate,
                         totalItems = totalItems,
                         scheduledPickupDate = scheduledPickupDate,
+                        proposedDeliveryDate = proposedDeliveryDate,
                         rejectionReason = rejectionReason,
                         items = minimalItems
                     )
@@ -400,6 +404,113 @@ class RequestsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getRequestsByUserId(userId: String): Result<List<Request>> {
+        return try {
+            // Filter at database level using whereEqualTo
+            val snapshot = try {
+                firestore.collection("requests")
+                    .whereEqualTo("userId", userId)
+                    .orderBy("submissionDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                // If orderBy fails (index missing), get without ordering
+                Log.w("RequestsRepository", "OrderBy failed, fetching without order: ${e.message}")
+                firestore.collection("requests")
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .await()
+            }
+
+            val requests = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    val requestUserId = data["userId"] as? String ?: return@mapNotNull null
+                    val status = (data["status"] as? Long)?.toInt() ?: 0
+                    val submissionDate = convertToDate(data["submissionDate"])
+                    val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
+                    val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+                    val proposedDeliveryDate = convertToDate(data["proposedDeliveryDate"])
+                    val rejectionReason = data["rejectionReason"] as? String
+
+                    // Get items map - category will be loaded separately
+                    val itemsMap = data["items"] as? Map<*, *>
+                    
+                    // Create a minimal item list with default category (will be updated)
+                    val minimalItems = if (itemsMap != null && itemsMap.isNotEmpty()) {
+                        listOf(
+                            com.lojasocial.app.domain.request.RequestItemDetail(
+                                productDocId = "",
+                                productName = "",
+                                quantity = 0,
+                                brand = "",
+                                expiryDate = null,
+                                category = 1 // Default, will be updated
+                            )
+                        )
+                    } else {
+                        emptyList()
+                    }
+
+                    Request(
+                        id = doc.id,
+                        userId = requestUserId,
+                        status = status,
+                        submissionDate = submissionDate,
+                        totalItems = totalItems,
+                        scheduledPickupDate = scheduledPickupDate,
+                        proposedDeliveryDate = proposedDeliveryDate,
+                        rejectionReason = rejectionReason,
+                        items = minimalItems
+                    )
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error parsing document ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+            
+            // Load categories for requests with items in parallel
+            val requestsWithCategories = coroutineScope {
+                requests.map { request ->
+                    async {
+                        if (request.items.isNotEmpty()) {
+                            val doc = snapshot.documents.find { it.id == request.id }
+                            val itemsMap = doc?.data?.get("items") as? Map<*, *>
+                            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                                val requestCategory = getRequestCategory(itemsMap)
+                                // Use the category if all items have the same category, otherwise use 0 to indicate "Vários"
+                                val categoryToUse = requestCategory ?: 0 // 0 means multiple categories
+                                request.copy(
+                                    items = listOf(
+                                        request.items.first().copy(category = categoryToUse)
+                                    )
+                                )
+                            } else {
+                                request
+                            }
+                        } else {
+                            request
+                        }
+                    }
+                }.awaitAll()
+            }
+
+            // Sort manually if we couldn't use orderBy
+            val sortedRequests = if (snapshot.documents.isEmpty() || 
+                snapshot.documents.firstOrNull()?.data?.get("submissionDate") != null) {
+                requestsWithCategories.sortedByDescending { it.submissionDate ?: Date(0) }
+            } else {
+                requestsWithCategories
+            }
+
+            Log.d("RequestsRepository", "Fetched ${sortedRequests.size} requests for user $userId")
+            Result.success(sortedRequests)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error fetching requests by userId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getRequestsPaginated(
         limit: Int,
         lastSubmissionDate: Date?
@@ -433,6 +544,7 @@ class RequestsRepositoryImpl @Inject constructor(
                     val submissionDate = convertToDate(data["submissionDate"])
                     val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
                     val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+                    val proposedDeliveryDate = convertToDate(data["proposedDeliveryDate"])
                     val rejectionReason = data["rejectionReason"] as? String
                     
                     // Get items map - category will be loaded separately
@@ -461,6 +573,7 @@ class RequestsRepositoryImpl @Inject constructor(
                         submissionDate = submissionDate,
                         totalItems = totalItems,
                         scheduledPickupDate = scheduledPickupDate,
+                        proposedDeliveryDate = proposedDeliveryDate,
                         rejectionReason = rejectionReason,
                         items = minimalItems
                     )
@@ -515,6 +628,7 @@ class RequestsRepositoryImpl @Inject constructor(
             val submissionDate = convertToDate(data["submissionDate"])
             val totalItems = (data["totalItems"] as? Long)?.toInt() ?: 0
             val scheduledPickupDate = convertToDate(data["scheduledPickupDate"])
+            val proposedDeliveryDate = convertToDate(data["proposedDeliveryDate"])
             val rejectionReason = data["rejectionReason"] as? String
 
             // Load items from request document
@@ -582,6 +696,7 @@ class RequestsRepositoryImpl @Inject constructor(
                 submissionDate = submissionDate,
                 totalItems = totalItems,
                 scheduledPickupDate = scheduledPickupDate,
+                proposedDeliveryDate = proposedDeliveryDate,
                 rejectionReason = rejectionReason,
                 items = items
             )
@@ -703,6 +818,101 @@ class RequestsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun proposeNewDate(requestId: String, proposedDate: Date): Result<Unit> {
+        return try {
+            val timestamp = Timestamp(proposedDate)
+            firestore.collection("requests").document(requestId)
+                .update("scheduledPickupDate", timestamp)
+                .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "propose_new_date",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "proposedDate" to proposedDate.toString()
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun proposeNewDeliveryDate(requestId: String, proposedDate: Date): Result<Unit> {
+        return try {
+            val timestamp = Timestamp(proposedDate)
+            // Update proposedDeliveryDate and clear scheduledPickupDate to reset negotiation
+            firestore.collection("requests").document(requestId)
+                .update(
+                    mapOf(
+                        "proposedDeliveryDate" to timestamp,
+                        "scheduledPickupDate" to FieldValue.delete()
+                    )
+                )
+                .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "propose_new_delivery_date",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "proposedDate" to proposedDate.toString()
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun acceptEmployeeProposedDate(requestId: String): Result<Unit> {
+        return try {
+            // Get the request to retrieve scheduledPickupDate
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val scheduledPickupDate = requestDoc.getTimestamp("scheduledPickupDate")
+            if (scheduledPickupDate == null) {
+                return Result.failure(Exception("No scheduled pickup date found"))
+            }
+            
+            // Update status to PENDENTE_LEVANTAMENTO
+            firestore.collection("requests").document(requestId)
+                .update("status", 1) // PENDENTE_LEVANTAMENTO
+                .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "accept_employee_proposed_date",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "scheduledPickupDate" to scheduledPickupDate.toDate().toString()
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getPendingRequestsCount(): Result<Int> {
         return try {
             // Use a count aggregation query to efficiently get the total number of pending requests
@@ -742,10 +952,17 @@ class RequestsRepositoryImpl @Inject constructor(
             val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
             val itemsMap = requestData["items"] as? Map<*, *>
             
+            // Validate that request is in a state that can be completed
+            val currentStatus = (requestData["status"] as? Long)?.toInt() ?: (requestData["status"] as? Int) ?: 0
+            if (currentStatus != 1) { // Only PENDENTE_LEVANTAMENTO (1) can be completed
+                return Result.failure(Exception("Request must be in PENDENTE_LEVANTAMENTO status to be completed"))
+            }
+            
             // Decrease quantity and reservedQuantity using transaction
+            // The itemsMap contains the exact quantities reserved for THIS specific request
             if (itemsMap != null && itemsMap.isNotEmpty()) {
                 firestore.runTransaction { transaction ->
-                    // PHASE 1: Read all item documents first
+                    // PHASE 1: Read all item documents first and validate
                     val itemData = itemsMap.mapNotNull { (itemDocIdObj, quantityObj) ->
                         val itemDocId = itemDocIdObj as? String ?: return@mapNotNull null
                         val quantityToDeduct = when (quantityObj) {
@@ -764,11 +981,23 @@ class RequestsRepositoryImpl @Inject constructor(
                                 val currentReserved = (itemDoc.getLong("reservedQuantity")?.toInt()
                                     ?: (itemDoc.get("reservedQuantity") as? Int) ?: 0)
                                 
+                                // Safety check: ensure we don't deduct more than what's reserved
+                                // This protects against edge cases where reservedQuantity might be less than expected
+                                val actualDeduction = minOf(quantityToDeduct, currentReserved)
+                                
+                                // Calculate new values
                                 val newQuantity = maxOf(0, currentQuantity - quantityToDeduct)
-                                val newReserved = maxOf(0, currentReserved - quantityToDeduct)
+                                // Only deduct what's actually reserved (protects other requests' reservations)
+                                val newReserved = maxOf(0, currentReserved - actualDeduction)
+                                
+                                // Log warning if there's a mismatch (shouldn't happen in normal flow)
+                                if (actualDeduction < quantityToDeduct) {
+                                    Log.w("RequestsRepository", "Warning: Attempting to deduct $quantityToDeduct but only $currentReserved is reserved for item $itemDocId in request $requestId")
+                                }
                                 
                                 Triple(itemRef, newQuantity, newReserved)
                             } else {
+                                Log.w("RequestsRepository", "Item document $itemDocId not found when completing request $requestId")
                                 null
                             }
                         } else {
@@ -786,7 +1015,7 @@ class RequestsRepositoryImpl @Inject constructor(
                 }.await()
             }
             
-            // Update request status
+            // Update request status to CONCLUIDO (2)
             firestore.collection("requests").document(requestId)
                 .update("status", 2) // CONCLUIDO
                 .await()
@@ -806,6 +1035,189 @@ class RequestsRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("RequestsRepository", "Error completing request: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun cancelDelivery(requestId: String, beneficiaryAbsent: Boolean): Result<Unit> {
+        return try {
+            // First, get the request to retrieve items
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val itemsMap = requestData["items"] as? Map<*, *>
+            val userId = requestData["userId"] as? String
+            
+            // Validate that request is in a state that can be cancelled
+            val currentStatus = (requestData["status"] as? Long)?.toInt() ?: (requestData["status"] as? Int) ?: 0
+            if (currentStatus != 1) { // Only PENDENTE_LEVANTAMENTO (1) can be cancelled
+                return Result.failure(Exception("Request must be in PENDENTE_LEVANTAMENTO status to be cancelled"))
+            }
+            
+            // Release reserved quantities (decrease reservedQuantity) but do NOT decrease actual quantity
+            // The itemsMap contains the exact quantities reserved for THIS specific request
+            if (itemsMap != null && itemsMap.isNotEmpty()) {
+                firestore.runTransaction { transaction ->
+                    // PHASE 1: Read all item documents first and validate
+                    val itemData = itemsMap.mapNotNull { (itemDocIdObj, quantityObj) ->
+                        val itemDocId = itemDocIdObj as? String ?: return@mapNotNull null
+                        val quantityToRelease = when (quantityObj) {
+                            is Long -> quantityObj.toInt()
+                            is Int -> quantityObj
+                            else -> 0
+                        }
+                        
+                        if (quantityToRelease > 0) {
+                            val itemRef = firestore.collection("items").document(itemDocId)
+                            val itemDoc = transaction.get(itemRef)
+                            
+                            if (itemDoc.exists()) {
+                                val currentReserved = (itemDoc.getLong("reservedQuantity")?.toInt()
+                                    ?: (itemDoc.get("reservedQuantity") as? Int) ?: 0)
+                                
+                                // Safety check: ensure we don't release more than what's reserved
+                                val actualRelease = minOf(quantityToRelease, currentReserved)
+                                
+                                // Only decrease reservedQuantity, NOT actual quantity
+                                val newReserved = maxOf(0, currentReserved - actualRelease)
+                                
+                                // Log warning if there's a mismatch (shouldn't happen in normal flow)
+                                if (actualRelease < quantityToRelease) {
+                                    Log.w("RequestsRepository", "Warning: Attempting to release $quantityToRelease but only $currentReserved is reserved for item $itemDocId in request $requestId")
+                                }
+                                
+                                Pair(itemRef, newReserved)
+                            } else {
+                                Log.w("RequestsRepository", "Item document $itemDocId not found when cancelling request $requestId")
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }
+                    
+                    // PHASE 2: Now do all writes - only update reservedQuantity, NOT quantity
+                    itemData.forEach { (itemRef, newReserved) ->
+                        transaction.update(itemRef, "reservedQuantity", newReserved)
+                    }
+                }.await()
+            }
+            
+            // Update request status to CANCELADO (3)
+            firestore.collection("requests").document(requestId)
+                .update("status", 3) // CANCELADO
+                .await()
+            
+            // If beneficiary was absent, add the date to the absence array
+            if (beneficiaryAbsent && userId != null) {
+                try {
+                    val userRef = firestore.collection("users").document(userId)
+                    val userDoc = userRef.get().await()
+                    
+                    if (userDoc.exists()) {
+                        // Get current absence array or create empty list
+                        val currentAbsences = userDoc.get("absence") as? List<*>
+                        val absenceList = mutableListOf<Any>()
+                        
+                        // Add existing absences to the list (preserve them, filter out nulls)
+                        currentAbsences?.forEach { item ->
+                            if (item != null) {
+                                absenceList.add(item)
+                            }
+                        }
+                        
+                        // Add current date to the array
+                        val currentDate = Timestamp.now()
+                        absenceList.add(currentDate)
+                        
+                        // Update user document with the new absence array
+                        userRef.update("absence", absenceList).await()
+                        Log.d("RequestsRepository", "Added absence date for user $userId. Total absences: ${absenceList.size}")
+                    } else {
+                        Log.w("RequestsRepository", "User document $userId not found when adding absence")
+                    }
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error adding absence date: ${e.message}", e)
+                    // Don't fail the entire operation if absence update fails
+                }
+            }
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "cancel_delivery",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "beneficiaryAbsent" to beneficiaryAbsent
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error cancelling delivery: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean): Result<Unit> {
+        return try {
+            // First, get the request to validate status
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            
+            // Validate that request is in PENDENTE_LEVANTAMENTO status
+            val currentStatus = (requestData["status"] as? Long)?.toInt() ?: (requestData["status"] as? Int) ?: 0
+            if (currentStatus != 1) { // Only PENDENTE_LEVANTAMENTO (1) can be rescheduled
+                return Result.failure(Exception("Request must be in PENDENTE_LEVANTAMENTO status to be rescheduled"))
+            }
+            
+            val timestamp = Timestamp(newDate)
+            // Change status back to SUBMETIDO (0) and set the appropriate date field based on who is rescheduling
+            val updateData = mutableMapOf<String, Any>(
+                "status" to 0 // SUBMETIDO
+            )
+            
+            if (isEmployeeRescheduling) {
+                // Employee rescheduling: set scheduledPickupDate (employee proposal) and clear proposedDeliveryDate
+                updateData["scheduledPickupDate"] = timestamp
+                updateData["proposedDeliveryDate"] = FieldValue.delete()
+            } else {
+                // Beneficiary rescheduling: set proposedDeliveryDate (beneficiary proposal) and clear scheduledPickupDate
+                updateData["proposedDeliveryDate"] = timestamp
+                updateData["scheduledPickupDate"] = FieldValue.delete()
+            }
+            
+            firestore.collection("requests").document(requestId)
+                .update(updateData)
+                .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "reschedule_delivery",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "newDate" to newDate.toString(),
+                        "isEmployeeRescheduling" to isEmployeeRescheduling
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error rescheduling delivery: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -832,7 +1244,7 @@ class RequestsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun submitRequest(selectedItems: Map<String, Int>): Result<Unit> {
+    override suspend fun submitRequest(selectedItems: Map<String, Int>, proposedDeliveryDate: Date?): Result<Unit> {
         return try {
             val currentUser = auth.currentUser ?: return Result.failure(Exception("User not authenticated"))
 
@@ -978,6 +1390,11 @@ class RequestsRepositoryImpl @Inject constructor(
                     "totalItems" to verifiedItems.values.sum(),
                     "items" to itemsMapForFirestore
                 )
+                
+                // Add proposed delivery date if provided
+                proposedDeliveryDate?.let { date ->
+                    requestsData["proposedDeliveryDate"] = Timestamp(date)
+                }
                 
                 firestore.collection("requests")
                     .add(requestsData)

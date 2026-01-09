@@ -209,7 +209,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    requestsRepository = requestsRepository
                 )
             }
             composable(Screen.BeneficiaryPortal.Profile.route) { backStackEntry ->
@@ -220,7 +221,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    requestsRepository = requestsRepository
                 )
             }
             composable(Screen.BeneficiaryPortal.Support.route) { backStackEntry ->
@@ -231,7 +233,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    requestsRepository = requestsRepository
                 )
             }
             composable(Screen.BeneficiaryPortal.Calendar.route) { backStackEntry ->
@@ -242,7 +245,8 @@ fun NavigationGraph(
                     authRepository = authRepository,
                     userRepository = userRepository,
                     profilePictureRepository = profilePictureRepository,
-                    expirationRepository = expirationRepository
+                    expirationRepository = expirationRepository,
+                    requestsRepository = requestsRepository
                 )
             }
         }
@@ -757,7 +761,8 @@ private fun BeneficiaryPortalTabContent(
     authRepository: AuthRepository,
     userRepository: UserRepository,
     profilePictureRepository: ProfilePictureRepository,
-    expirationRepository: ExpirationRepository? = null
+    expirationRepository: ExpirationRepository? = null,
+    requestsRepository: RequestsRepository? = null
 ) {
     // Observe current user to get fresh profile data - this ensures the name updates when user changes
     val currentUser = authRepository.getCurrentUser()
@@ -810,6 +815,7 @@ private fun BeneficiaryPortalTabContent(
         userRepository = userRepository,
         profilePictureRepository = profilePictureRepository,
         expirationRepository = expirationRepository,
+        requestsRepository = requestsRepository,
         onLogout = {
             navController.navigate(Screen.Login.route) { 
                 popUpTo(0) { inclusive = true } 

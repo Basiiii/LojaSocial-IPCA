@@ -38,6 +38,7 @@ class CalendarViewModel @Inject constructor(
     
     private val _isEmployee = MutableStateFlow(false)
     private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
     private val _isBeneficiary = MutableStateFlow(false)
     private val _isBeneficiaryPortal = MutableStateFlow(false)
     
@@ -352,6 +353,48 @@ class CalendarViewModel @Inject constructor(
     }
     
     /**
+     * Completes a request (status 2 = CONCLUIDO).
+     */
+    fun completeRequest(requestId: String) {
+        viewModelScope.launch {
+            _isLoadingRequest.value = true
+            val result = requestsRepository.completeRequest(requestId)
+            result.fold(
+                onSuccess = {
+                    _isLoadingRequest.value = false
+                    clearSelectedRequest()
+                    // Reload accepted requests to reflect the change
+                    loadAcceptedRequests()
+                },
+                onFailure = {
+                    _isLoadingRequest.value = false
+                }
+            )
+        }
+    }
+    
+    /**
+     * Cancels a delivery (status 3 = CANCELADO).
+     */
+    fun cancelDelivery(requestId: String, beneficiaryAbsent: Boolean = false) {
+        viewModelScope.launch {
+            _isLoadingRequest.value = true
+            val result = requestsRepository.cancelDelivery(requestId, beneficiaryAbsent)
+            result.fold(
+                onSuccess = {
+                    _isLoadingRequest.value = false
+                    clearSelectedRequest()
+                    // Reload accepted requests to reflect the change
+                    loadAcceptedRequests()
+                },
+                onFailure = {
+                    _isLoadingRequest.value = false
+                }
+            )
+        }
+    }
+    
+    /**
      * Sets whether the calendar is being accessed from the beneficiary portal.
      * This affects filtering of accepted requests.
      */
@@ -359,6 +402,27 @@ class CalendarViewModel @Inject constructor(
         _isBeneficiaryPortal.value = isBeneficiaryPortal
         // Reload accepted requests with new context
         loadAcceptedRequests()
+    }
+    
+    /**
+     * Reschedules a delivery (changes status from PENDENTE_LEVANTAMENTO back to SUBMETIDO).
+     */
+    fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean) {
+        viewModelScope.launch {
+            _isLoadingRequest.value = true
+            val result = requestsRepository.rescheduleDelivery(requestId, newDate, isEmployeeRescheduling)
+            result.fold(
+                onSuccess = {
+                    _isLoadingRequest.value = false
+                    clearSelectedRequest()
+                    // Reload accepted requests to reflect the change
+                    loadAcceptedRequests()
+                },
+                onFailure = {
+                    _isLoadingRequest.value = false
+                }
+            )
+        }
     }
 }
 

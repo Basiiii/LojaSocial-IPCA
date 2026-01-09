@@ -48,12 +48,19 @@ class PickupRequestsViewModel @Inject constructor(
     private var lastLoadedSubmissionDate: Date? = null
 
     init {
-        fetchRequests()
+        // Don't fetch requests here - wait for filter to be set by the View
+        // This prevents fetching all requests before we know if we should filter by user
         fetchPendingRequestsCount()
     }
 
     fun setFilterUserId(userId: String?) {
         filterUserId = userId
+        // Clear pending count when switching to user filter (beneficiary view)
+        // The count will be calculated from the filtered requests list
+        if (userId != null) {
+            _pendingRequestsCount.value = null
+        }
+        // Always fetch requests when filter is set/changed
         fetchRequests()
     }
 
@@ -63,20 +70,28 @@ class PickupRequestsViewModel @Inject constructor(
             lastLoadedSubmissionDate = null
             _hasMoreRequests.value = true
             
-            // Use getRequests() Flow when filtering by current user (for beneficiaries)
-            // This ensures Firestore query-level filtering which respects security rules
+            // Use getRequestsByUserId() when filtering by specific user (for beneficiaries)
+            // This ensures Firestore query-level filtering at the database level
             // Use pagination for admins viewing all requests
-            if (filterUserId != null) {
-                // For beneficiaries: use Flow-based fetching (respects security rules)
-                repository.getRequests()
-                    .catch { exception ->
-                        _uiState.value = PickupRequestsUiState.Error(exception.message ?: "Erro ao carregar pedidos")
-                        _hasMoreRequests.value = false
-                    }
-                    .collect { requests ->
-                        _uiState.value = PickupRequestsUiState.Success(requests)
-                        _hasMoreRequests.value = false // No pagination for user-specific requests
-                    }
+            val currentFilterUserId = filterUserId
+            if (currentFilterUserId != null) {
+                // For beneficiaries: fetch only requests for the specific user (database-level filter)
+                try {
+                    val result = repository.getRequestsByUserId(currentFilterUserId)
+                    result.fold(
+                        onSuccess = { requests ->
+                            _uiState.value = PickupRequestsUiState.Success(requests)
+                            _hasMoreRequests.value = false // No pagination for user-specific requests
+                        },
+                        onFailure = { error ->
+                            _uiState.value = PickupRequestsUiState.Error(error.message ?: "Erro ao carregar pedidos")
+                            _hasMoreRequests.value = false
+                        }
+                    )
+                } catch (e: Exception) {
+                    _uiState.value = PickupRequestsUiState.Error(e.message ?: "Erro ao carregar pedidos")
+                    _hasMoreRequests.value = false
+                }
             } else {
                 // For admins: use pagination
                 try {
@@ -129,6 +144,13 @@ class PickupRequestsViewModel @Inject constructor(
             val result = repository.getRequestById(requestId)
             result.fold(
                 onSuccess = { request ->
+                    // If filtering by user (beneficiary mode), validate the request belongs to that user
+                    if (filterUserId != null && request.userId != filterUserId) {
+                        _actionState.value = ActionState.Error("Não tem permissão para ver este pedido")
+                        _actionState.value = ActionState.Idle
+                        return@launch
+                    }
+                    
                     _selectedRequest.value = request
                     // Fetch user profile
                     val userResult = repository.getUserProfile(request.userId)
@@ -209,6 +231,62 @@ class PickupRequestsViewModel @Inject constructor(
         }
     }
 
+    fun proposeNewDate(requestId: String, proposedDate: Date) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.proposeNewDate(requestId, proposedDate)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Nova data proposta")
+                    // Refresh the selected request to show updated date
+                    selectRequest(requestId)
+                    fetchRequests()
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao propor nova data")
+                }
+            )
+        }
+    }
+
+    fun acceptEmployeeProposedDate(requestId: String) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.acceptEmployeeProposedDate(requestId)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Data aceite")
+                    clearSelectedRequest()
+                    launch {
+                        fetchRequests()
+                        fetchPendingRequestsCount()
+                    }
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao aceitar data")
+                }
+            )
+        }
+    }
+
+    fun proposeNewDeliveryDate(requestId: String, proposedDate: Date) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.proposeNewDeliveryDate(requestId, proposedDate)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Nova data proposta")
+                    // Refresh the selected request to show updated date
+                    selectRequest(requestId)
+                    fetchRequests()
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao propor nova data")
+                }
+            )
+        }
+    }
+
     fun completeRequest(requestId: String) {
         viewModelScope.launch {
             _actionState.value = ActionState.Loading
@@ -222,6 +300,42 @@ class PickupRequestsViewModel @Inject constructor(
                 },
                 onFailure = { error ->
                     _actionState.value = ActionState.Error(error.message ?: "Erro ao concluir pedido")
+                }
+            )
+        }
+    }
+
+    fun cancelDelivery(requestId: String, beneficiaryAbsent: Boolean = false) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.cancelDelivery(requestId, beneficiaryAbsent)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Entrega cancelada")
+                    clearSelectedRequest()
+                    fetchRequests() // Refresh list
+                    fetchPendingRequestsCount() // Refresh count
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao cancelar entrega")
+                }
+            )
+        }
+    }
+
+    fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.rescheduleDelivery(requestId, newDate, isEmployeeRescheduling)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Entrega reagendada")
+                    clearSelectedRequest()
+                    fetchRequests() // Refresh list
+                    fetchPendingRequestsCount() // Refresh count
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao reagendar entrega")
                 }
             )
         }
