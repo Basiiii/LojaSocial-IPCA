@@ -149,7 +149,7 @@ fun StockListView(
                     } else {
                         LazyColumn(
                             contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(uiState.filteredProducts) { productWithStock ->
                                 ProductCard(
@@ -174,8 +174,6 @@ fun StockListFilterHeader(
     var showFilterMenu by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
     val selectedCategories = uiState.selectedCategories
-
-    // App Blue Color (extracted for reuse within this scope)
     val accentColor = Color(0xFF2D75F0)
 
     Column {
@@ -194,7 +192,6 @@ fun StockListFilterHeader(
                 fontWeight = FontWeight.Medium
             )
 
-            // Filter Button Chip
             Box {
                 Surface(
                     onClick = { showFilterMenu = true },
@@ -222,19 +219,17 @@ fun StockListFilterHeader(
                     }
                 }
 
-                // Modern Minimalist Dropdown
                 DropdownMenu(
                     expanded = showFilterMenu,
                     onDismissRequest = { showFilterMenu = false },
                     modifier = Modifier
                         .width(260.dp)
                         .background(Color.White),
-                    shape = RoundedCornerShape(16.dp), // Modern rounded corners
+                    shape = RoundedCornerShape(16.dp),
                     containerColor = Color.White,
                     tonalElevation = 8.dp,
                     shadowElevation = 8.dp
                 ) {
-                    // Header
                     Text(
                         text = "Filtrar por Categoria",
                         style = MaterialTheme.typography.labelLarge,
@@ -244,7 +239,6 @@ fun StockListFilterHeader(
 
                     HorizontalDivider(color = Color(0xFFF0F0F0))
 
-                    // Categories
                     ProductCategory.values().forEach { category ->
                         val categoryName = when (category) {
                             ProductCategory.ALIMENTAR -> "Alimentar"
@@ -295,7 +289,6 @@ fun StockListFilterHeader(
                         )
                     }
 
-                    // Reset Filter Action
                     if (selectedCategories.isNotEmpty()) {
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 4.dp),
@@ -348,8 +341,7 @@ fun ProductCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
@@ -365,6 +357,7 @@ fun ProductCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Main Text Column
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = productWithStock.product.name,
@@ -372,17 +365,23 @@ fun ProductCard(
                     fontSize = 14.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = Color.Black
+                    color = Color.Black,
+                    lineHeight = 16.sp
                 )
+
+                // Increased gap between Name and Brand
                 Spacer(modifier = Modifier.height(4.dp))
+
                 if (productWithStock.product.brand.isNotEmpty()) {
                     Text(
                         text = productWithStock.product.brand,
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = Color.Gray,
+                        lineHeight = 14.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                 }
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -399,22 +398,27 @@ fun ProductCard(
                         color = Color.Gray
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Surface(
-                    color = status.bgColor,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "${status.label} (${productWithStock.totalStock})",
-                        color = status.color,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.width(8.dp))
+
+            // Stock Label (Moved to Right)
+            Surface(
+                color = status.bgColor,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "${status.label} (${productWithStock.totalStock})",
+                    color = status.color,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Action Button
             IconButton(
                 onClick = onNavigateClick,
                 modifier = Modifier.size(40.dp)

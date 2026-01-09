@@ -405,7 +405,8 @@ fun FormStepScreen(
                 // Barcode input
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // In manual mode, always keep the barcode as an editable field
                     if (isManualMode) {

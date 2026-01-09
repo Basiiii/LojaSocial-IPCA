@@ -33,9 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.domain.product.ProductCategory
+import com.lojasocial.app.domain.stock.StockItem
 import com.lojasocial.app.utils.AppConstants
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import java.text.SimpleDateFormat
@@ -127,7 +130,7 @@ fun StockItemsView(
                         .padding(paddingValues)
                         .fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced spacing between cards slightly
                 ) {
                     items(uiState.items) { itemWithProduct ->
                         StockItemCard(
@@ -147,6 +150,34 @@ fun StockItemCard(
     viewModel: StockItemsViewModel
 ) {
     var showCampaignDialog by remember { mutableStateOf(false) }
+    
+    StockItemCardContent(
+        itemWithProduct = itemWithProduct,
+        onCampaignInfoClick = {
+            itemWithProduct.stockItem.campaignId?.let { campaignId ->
+                showCampaignDialog = true
+            }
+        }
+    )
+    
+    if (showCampaignDialog && itemWithProduct.stockItem.campaignId != null) {
+        val campaignId = itemWithProduct.stockItem.campaignId!!
+        CampaignDetailsDialog(
+            campaignId = campaignId,
+            viewModel = viewModel,
+            onDismiss = { 
+                showCampaignDialog = false
+                viewModel.resetCampaignState()
+            }
+        )
+    }
+}
+
+@Composable
+private fun StockItemCardContent(
+    itemWithProduct: StockItemWithProduct,
+    onCampaignInfoClick: () -> Unit = {}
+) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val category = itemWithProduct.product?.let { ProductCategory.fromId(it.category) }
     val categoryIcon = when (category) {
@@ -166,12 +197,12 @@ fun StockItemCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(64.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFFE5E7EB)),
                 contentAlignment = Alignment.Center
@@ -185,70 +216,67 @@ fun StockItemCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
+            // Middle Column: Text Information
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Quantidade: ${itemWithProduct.stockItem.quantity}",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = Color.Black
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    lineHeight = 16.sp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Minimized Spacer
+                Spacer(modifier = Modifier.height(6.dp))
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // Validade Column
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Validade",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            color = Color.Gray
+                            lineHeight = 12.sp
                         )
-                        Spacer(modifier = Modifier.height(1.dp))
-                        itemWithProduct.stockItem.expirationDate?.let { expDate ->
-                            Text(
-                                text = dateFormat.format(expDate),
-                                fontSize = 10.sp,
-                                color = Color.Gray
-                            )
-                        } ?: run {
-                            Text(
-                                text = "Sem data",
-                                fontSize = 10.sp,
-                                color = Color.Gray
-                            )
-                        }
+                        Text(
+                            text = itemWithProduct.stockItem.expirationDate?.let { dateFormat.format(it) } ?: "Sem data",
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = 12.sp
+                        )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    // Adicionado Column
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Adicionado",
+                            fontSize = 12.sp,
+                            color = Color.Gray,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            color = Color.Gray
+                            lineHeight = 12.sp
                         )
-                        Spacer(modifier = Modifier.height(1.dp))
                         Text(
                             text = dateFormat.format(itemWithProduct.stockItem.createdAt),
-                            fontSize = 10.sp,
-                            color = Color.Gray
+                            fontSize = 11.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = 12.sp
                         )
                     }
                 }
             }
-            
+
+            // Info Icon (Right)
             if (hasCampaign) {
-                Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
-                    onClick = {
-                        itemWithProduct.stockItem.campaignId?.let { campaignId ->
-                            android.util.Log.d("StockItemCard", "Info button clicked for campaignId: $campaignId")
-                            showCampaignDialog = true
-                        }
-                    },
-                    modifier = Modifier.size(40.dp)
+                    onClick = onCampaignInfoClick,
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
@@ -259,22 +287,6 @@ fun StockItemCard(
                 }
             }
         }
-    }
-    
-    if (showCampaignDialog && itemWithProduct.stockItem.campaignId != null) {
-        val campaignId = itemWithProduct.stockItem.campaignId!!
-        LaunchedEffect(campaignId) {
-            android.util.Log.d("StockItemCard", "Dialog shown, loading campaign: $campaignId")
-            viewModel.loadCampaign(campaignId)
-        }
-        CampaignDetailsDialog(
-            campaignId = campaignId,
-            viewModel = viewModel,
-            onDismiss = { 
-                showCampaignDialog = false
-                viewModel.resetCampaignState()
-            }
-        )
     }
 }
 
@@ -288,7 +300,6 @@ fun CampaignDetailsDialog(
     val campaignState by viewModel.campaignState.collectAsState()
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
 
-    // Load campaign data
     LaunchedEffect(campaignId) {
         if (campaignId.isNotEmpty()) {
             viewModel.loadCampaign(campaignId)
@@ -296,7 +307,6 @@ fun CampaignDetailsDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        // Main Container: A floating Card
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -310,29 +320,13 @@ fun CampaignDetailsDialog(
                     .fillMaxWidth()
                     .padding(24.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Detalhes da Campanha",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = Color.Black
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.Close,
-                            contentDescription = "Fechar",
-                            tint = Color.Gray
-                        )
-                    }
-                }
+                Text(
+                    text = "Detalhes da Campanha",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Black
+                )
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 16.dp),
@@ -356,7 +350,7 @@ fun CampaignDetailsDialog(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
                         ) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.Info,
+                                imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 tint = Color.Red,
                                 modifier = Modifier.size(32.dp)
@@ -372,7 +366,6 @@ fun CampaignDetailsDialog(
                     campaignState.campaign != null -> {
                         val campaign = campaignState.campaign!!
 
-                        // Campaign Name
                         Text(
                             text = "Nome",
                             style = MaterialTheme.typography.labelMedium,
@@ -384,10 +377,9 @@ fun CampaignDetailsDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = Color.Black
                         )
-
+                        
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Dates Section
                         Text(
                             text = "Duração",
                             style = MaterialTheme.typography.labelMedium,
@@ -395,7 +387,7 @@ fun CampaignDetailsDialog(
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.DateRange,
+                                imageVector = Icons.Default.DateRange,
                                 contentDescription = null,
                                 tint = LojaSocialPrimary,
                                 modifier = Modifier.size(16.dp)
@@ -407,7 +399,6 @@ fun CampaignDetailsDialog(
                                 color = Color.Black
                             )
                         }
-
                     }
                 }
 
@@ -421,6 +412,103 @@ fun CampaignDetailsDialog(
                 ) {
                     Text("OK", fontWeight = FontWeight.SemiBold)
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, name = "Stock Items View")
+@Composable
+private fun StockItemsViewPreview() {
+    val mockProduct = Product(
+        id = "123456789",
+        name = "Desodorizante Unisexo",
+        brand = "Dove",
+        category = 3,
+        imageUrl = ""
+    )
+    
+    val futureDate = Calendar.getInstance().apply {
+        add(Calendar.DAY_OF_MONTH, 30)
+    }.time
+    val pastDate = Calendar.getInstance().apply {
+        add(Calendar.DAY_OF_MONTH, -5)
+    }.time
+    
+    val mockItems = listOf(
+        StockItemWithProduct(
+            stockItem = StockItem(
+                id = "item1",
+                barcode = "123456789",
+                quantity = 5,
+                createdAt = pastDate,
+                expirationDate = futureDate,
+                campaignId = "Campanha de Verão"
+            ),
+            product = mockProduct
+        ),
+        StockItemWithProduct(
+            stockItem = StockItem(
+                id = "item2",
+                barcode = "123456789",
+                quantity = 3,
+                createdAt = pastDate,
+                expirationDate = null,
+                campaignId = null
+            ),
+            product = mockProduct
+        ),
+        StockItemWithProduct(
+            stockItem = StockItem(
+                id = "item3",
+                barcode = "123456789",
+                quantity = 10,
+                createdAt = pastDate,
+                expirationDate = futureDate,
+                campaignId = "Campanha de Inverno"
+            ),
+            product = mockProduct
+        )
+    )
+    
+    Scaffold(
+        containerColor = Color(0xFFF8F9FA),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = mockProduct.name,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color.Black
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.White
+                )
+            )
+        }
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(mockItems) { itemWithProduct ->
+                StockItemCardContent(
+                    itemWithProduct = itemWithProduct,
+                    onCampaignInfoClick = {}
+                )
             }
         }
     }
