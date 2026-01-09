@@ -1165,6 +1165,63 @@ class RequestsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean): Result<Unit> {
+        return try {
+            // First, get the request to validate status
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            
+            // Validate that request is in PENDENTE_LEVANTAMENTO status
+            val currentStatus = (requestData["status"] as? Long)?.toInt() ?: (requestData["status"] as? Int) ?: 0
+            if (currentStatus != 1) { // Only PENDENTE_LEVANTAMENTO (1) can be rescheduled
+                return Result.failure(Exception("Request must be in PENDENTE_LEVANTAMENTO status to be rescheduled"))
+            }
+            
+            val timestamp = Timestamp(newDate)
+            // Change status back to SUBMETIDO (0) and set the appropriate date field based on who is rescheduling
+            val updateData = mutableMapOf<String, Any>(
+                "status" to 0 // SUBMETIDO
+            )
+            
+            if (isEmployeeRescheduling) {
+                // Employee rescheduling: set scheduledPickupDate (employee proposal) and clear proposedDeliveryDate
+                updateData["scheduledPickupDate"] = timestamp
+                updateData["proposedDeliveryDate"] = FieldValue.delete()
+            } else {
+                // Beneficiary rescheduling: set proposedDeliveryDate (beneficiary proposal) and clear scheduledPickupDate
+                updateData["proposedDeliveryDate"] = timestamp
+                updateData["scheduledPickupDate"] = FieldValue.delete()
+            }
+            
+            firestore.collection("requests").document(requestId)
+                .update(updateData)
+                .await()
+            
+            // Log audit action
+            val currentUser = authRepository.getCurrentUser()
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "reschedule_delivery",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "requestId" to requestId,
+                        "newDate" to newDate.toString(),
+                        "isEmployeeRescheduling" to isEmployeeRescheduling
+                    )
+                )
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error rescheduling delivery: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getUserFcmToken(userId: String): Result<String?> {
         return try {
             val userDoc = firestore.collection("users").document(userId).get().await()

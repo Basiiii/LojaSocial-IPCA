@@ -112,6 +112,15 @@ interface RequestsRepository {
      * This is an efficient query that only counts documents without fetching them.
      */
     suspend fun getPendingRequestsCount(): Result<Int>
+    
+    /**
+     * Reschedules a delivery (changes status from PENDENTE_LEVANTAMENTO back to SUBMETIDO).
+     * Proposes a new date and clears the other party's date to restart the negotiation flow.
+     * @param requestId The ID of the request to reschedule
+     * @param newDate The new proposed delivery date
+     * @param isEmployeeRescheduling If true, sets scheduledPickupDate (employee proposal). If false, sets proposedDeliveryDate (beneficiary proposal).
+     */
+    suspend fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean): Result<Unit>
 }
 
 /**

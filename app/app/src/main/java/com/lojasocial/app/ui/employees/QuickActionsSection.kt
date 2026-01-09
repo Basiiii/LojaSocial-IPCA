@@ -53,8 +53,8 @@ fun QuickActionsSection(
             buttonText = "Gere Pedidos",
             backgroundColor = BrandPurple,
             icon = Icons.Default.Inventory2,
-            badgeCount = pendingRequestsCount ?: 0,
-            badgeLabel = "Pendentes",
+            badgeCount = if (pendingRequestsCount != null && pendingRequestsCount > 0) pendingRequestsCount else null,
+            badgeLabel = if (pendingRequestsCount != null && pendingRequestsCount > 0) "Pendentes" else null,
             onClick = onNavigateToPickupRequests
         )
 

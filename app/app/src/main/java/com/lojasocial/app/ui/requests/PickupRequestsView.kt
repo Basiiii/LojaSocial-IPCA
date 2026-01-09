@@ -241,7 +241,12 @@ fun PickupRequestsView(
             onProposeNewDeliveryDate = { date ->
                 viewModel.proposeNewDeliveryDate(request.id, date)
             },
-            currentUserId = currentUserId
+            currentUserId = currentUserId,
+            onRescheduleDelivery = { date ->
+                // Determine if employee or beneficiary is rescheduling based on filterByCurrentUser
+                // filterByCurrentUser = true means beneficiary view, false means employee view
+                viewModel.rescheduleDelivery(request.id, date, isEmployeeRescheduling = !filterByCurrentUser)
+            }
         )
     }
 

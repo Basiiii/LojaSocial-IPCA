@@ -403,5 +403,26 @@ class CalendarViewModel @Inject constructor(
         // Reload accepted requests with new context
         loadAcceptedRequests()
     }
+    
+    /**
+     * Reschedules a delivery (changes status from PENDENTE_LEVANTAMENTO back to SUBMETIDO).
+     */
+    fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean) {
+        viewModelScope.launch {
+            _isLoadingRequest.value = true
+            val result = requestsRepository.rescheduleDelivery(requestId, newDate, isEmployeeRescheduling)
+            result.fold(
+                onSuccess = {
+                    _isLoadingRequest.value = false
+                    clearSelectedRequest()
+                    // Reload accepted requests to reflect the change
+                    loadAcceptedRequests()
+                },
+                onFailure = {
+                    _isLoadingRequest.value = false
+                }
+            )
+        }
+    }
 }
 

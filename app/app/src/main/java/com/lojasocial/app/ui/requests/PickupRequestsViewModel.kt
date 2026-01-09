@@ -323,6 +323,24 @@ class PickupRequestsViewModel @Inject constructor(
         }
     }
 
+    fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean) {
+        viewModelScope.launch {
+            _actionState.value = ActionState.Loading
+            val result = repository.rescheduleDelivery(requestId, newDate, isEmployeeRescheduling)
+            result.fold(
+                onSuccess = {
+                    _actionState.value = ActionState.Success("Entrega reagendada")
+                    clearSelectedRequest()
+                    fetchRequests() // Refresh list
+                    fetchPendingRequestsCount() // Refresh count
+                },
+                onFailure = { error ->
+                    _actionState.value = ActionState.Error(error.message ?: "Erro ao reagendar entrega")
+                }
+            )
+        }
+    }
+
     fun clearSelectedRequest() {
         _selectedRequest.value = null
         _userProfile.value = null

@@ -176,7 +176,11 @@ fun CalendarView(
             onProposeNewDeliveryDate = { date ->
                 // Not used in calendar context
             },
-            currentUserId = currentUserId
+            currentUserId = currentUserId,
+            onRescheduleDelivery = { date ->
+                // Determine if employee or beneficiary is rescheduling based on portal context
+                viewModel.rescheduleDelivery(request.id, date, isEmployeeRescheduling = !isBeneficiaryPortal)
+            }
         )
     }
 }

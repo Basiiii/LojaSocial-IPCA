@@ -75,7 +75,8 @@ fun RequestDetailsDialog(
     isBeneficiaryView: Boolean = false,
     onAcceptEmployeeDate: () -> Unit = {},
     onProposeNewDeliveryDate: (Date) -> Unit = {},
-    currentUserId: String? = null
+    currentUserId: String? = null,
+    onRescheduleDelivery: (Date) -> Unit = {}
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showRejectDialog by remember { mutableStateOf(false) }
@@ -305,11 +306,12 @@ fun RequestDetailsDialog(
                             // Beneficiary side: no buttons shown (waiting for employee response)
                         }
                     } else if (status == RequestStatus.PENDENTE_LEVANTAMENTO && canAcceptReject) {
-                        // For employees: Show Complete and Cancel buttons
-                        // For beneficiaries: Show only information (no buttons)
+                        // For employees: Show Complete, Cancel, and Reschedule buttons
+                        // For beneficiaries: Show Reschedule button
                         // If user owns the request and is viewing from employee side, show only info
                         val isOwnRequest = currentUserId != null && currentUserId == request.userId
                         if (!isBeneficiaryView && !isOwnRequest) {
+                            // Employee side
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -342,7 +344,24 @@ fun RequestDetailsDialog(
                                     }
                                 }
                                 
-                                // Cancel Delivery Button (Red/Orange)
+                                // Reschedule Button (Blue - same as "Propor data")
+                                Button(
+                                    onClick = {
+                                        showDatePicker = true
+                                    },
+                                    enabled = !isLoading,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D75F0)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Reagendar Entrega", fontSize = 16.sp, color = Color.White)
+                                }
+                                
+                                // Cancel Delivery Button (Red)
                                 Button(
                                     onClick = {
                                         showCancelDeliveryDialog = true
@@ -359,8 +378,33 @@ fun RequestDetailsDialog(
                                     Text("Cancelar Entrega", fontSize = 16.sp, color = Color.White)
                                 }
                             }
+                        } else if (isBeneficiaryView) {
+                            // Beneficiary side - show Reschedule button
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.White)
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        showDatePicker = true
+                                    },
+                                    enabled = !isLoading,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D75F0)),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Reagendar Entrega", fontSize = 16.sp, color = Color.White)
+                                }
+                            }
                         }
-                        // For beneficiaries, no buttons are shown - just information
+                        // If user owns the request and is viewing from employee side, no buttons are shown
                     } else {
                         // Close Button
                         Box(
@@ -402,11 +446,25 @@ fun RequestDetailsDialog(
             }
             selectedDate = calendar.time
             showDatePicker = false
-            // Automatically propose the selected date
-            if (isBeneficiaryView) {
-                onProposeNewDeliveryDate(calendar.time)
+            // If status is PENDENTE_LEVANTAMENTO, use reschedule; otherwise use normal propose flow
+            val currentStatus = when (request.status) {
+                0 -> RequestStatus.SUBMETIDO
+                1 -> RequestStatus.PENDENTE_LEVANTAMENTO
+                2 -> RequestStatus.CONCLUIDO
+                3 -> RequestStatus.CANCELADO
+                4 -> RequestStatus.REJEITADO
+                else -> RequestStatus.SUBMETIDO
+            }
+            if (currentStatus == RequestStatus.PENDENTE_LEVANTAMENTO) {
+                // Reschedule delivery
+                onRescheduleDelivery(calendar.time)
             } else {
-                onProposeNewDate(calendar.time)
+                // Normal propose flow
+                if (isBeneficiaryView) {
+                    onProposeNewDeliveryDate(calendar.time)
+                } else {
+                    onProposeNewDate(calendar.time)
+                }
             }
         },
         onDismiss = { showDatePicker = false },
