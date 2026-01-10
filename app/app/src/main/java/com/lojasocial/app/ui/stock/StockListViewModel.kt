@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.util.Date
 import javax.inject.Inject
 
@@ -57,13 +60,21 @@ class StockListViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 
-                // Get all products
-                val products = productRepository.getAllProducts()
-                Log.d("StockListViewModel", "Found ${products.size} products")
-                
-                // Get all stock items
+                // OPTIMIZATION: Fetch stock items first, then batch fetch only products that have stock
+                // This avoids fetching all products when we only need those with stock
+                Log.d("StockListViewModel", "Fetching stock items...")
                 val stockItems = stockItemRepository.getAllStockItems()
                 Log.d("StockListViewModel", "Found ${stockItems.size} stock items")
+                
+                if (stockItems.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        products = emptyList(),
+                        filteredProducts = emptyList(),
+                        error = null
+                    )
+                    return@launch
+                }
                 
                 // Group stock items by barcode and calculate total stock and expiry info (optimized single pass)
                 val stockByBarcode = stockItems.groupBy { it.barcode }
@@ -85,7 +96,16 @@ class StockListViewModel @Inject constructor(
                         Triple(totalStock, earliestExpiry, hasExpiry)
                     }
                 
-                // Create ProductWithStock list (unsorted for now)
+                // Get unique barcodes that have stock (these are the product IDs)
+                val barcodesWithStock = stockByBarcode.keys.toList()
+                Log.d("StockListViewModel", "Batch fetching ${barcodesWithStock.size} products with stock")
+                
+                // OPTIMIZATION: Batch fetch only products that have stock
+                // This is much faster than fetching all products
+                val products = productRepository.getProductsByBarcodes(barcodesWithStock)
+                Log.d("StockListViewModel", "Found ${products.size} products with stock")
+                
+                // Create ProductWithStock list (only for products we fetched)
                 val productsWithStock = products.map { product ->
                     val (totalStock, earliestExpiry, hasExpiry) = stockByBarcode[product.id] 
                         ?: Triple(0, null as Date?, false)
@@ -103,7 +123,7 @@ class StockListViewModel @Inject constructor(
                         earliestExpiryDate = earliestExpiry,
                         hasExpiryDate = hasExpiry
                     )
-                }.filter { it.totalStock > 0 } // Only show products with stock
+                }
                 
                 // Apply default sorting (by name)
                 val sorted = productsWithStock.sortedBy { it.product.name }

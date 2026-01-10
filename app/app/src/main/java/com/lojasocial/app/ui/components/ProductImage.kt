@@ -19,8 +19,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +46,7 @@ import com.lojasocial.app.utils.FileUtils
  * @param modifier Modifier for the image container
  * @param contentScale How to scale the image
  * @param contentDescription Description for accessibility
+ * @param backgroundColor Optional background color to fill transparent areas (alpha channel)
  */
 @Composable
 fun ProductImage(
@@ -51,7 +54,8 @@ fun ProductImage(
     preDecodedBitmap: androidx.compose.ui.graphics.ImageBitmap? = null,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    backgroundColor: androidx.compose.ui.graphics.Color? = null
 ) {
     val context = LocalContext.current
     
@@ -112,6 +116,15 @@ fun ProductImage(
     }
     
     Box(modifier = modifier) {
+        // Background color layer (shows through transparent areas)
+        backgroundColor?.let { bgColor ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(bgColor)
+            )
+        }
+        
         // Use pre-decoded bitmap if available, otherwise use decoded bitmap
         val currentBitmap = preDecodedBitmap ?: imageBitmap
         when {
