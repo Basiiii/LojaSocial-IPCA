@@ -285,7 +285,7 @@ fun DeleteScanStepScreen(
                         .height(50.dp)
                 ) {
                     Text(
-                        text = "Eliminar Produto Manualmente",
+                        text = "Reduzir Produto Manualmente",
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
@@ -436,7 +436,7 @@ fun FormStepScreen(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Eliminar Stock",
+                text = "Reduzir Stock",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = TextDark
@@ -454,7 +454,7 @@ fun FormStepScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Produto a Eliminar",
+                    text = "Produto a Reduzir",
                     style = MaterialTheme.typography.labelMedium,
                     color = ScanRed
                 )
@@ -565,6 +565,18 @@ fun FormStepScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Quantity to reduce field
+        OutlinedTextField(
+            value = uiState.quantityToReduce,
+            onValueChange = { viewModel.onQuantityToReduceChanged(it) },
+            label = { Text("Quantidade a Reduzir") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isLoading
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
         // Quantity field (read-only)
         OutlinedTextField(
             value = quantity,
@@ -631,11 +643,16 @@ fun FormStepScreen(
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Delete from stock button
+        // Reduce stock button
         Button(
-            onClick = { viewModel.deleteFromStock() },
+            onClick = { viewModel.reduceFromStock() },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading && quantity.isNotEmpty() && (quantity.toIntOrNull() ?: 0) > 0,
+            enabled = !uiState.isLoading && 
+                     quantity.isNotEmpty() && 
+                     (quantity.toIntOrNull() ?: 0) > 0 &&
+                     uiState.quantityToReduce.isNotEmpty() &&
+                     (uiState.quantityToReduce.toIntOrNull() ?: 0) > 0 &&
+                     (uiState.quantityToReduce.toIntOrNull() ?: 0) <= (quantity.toIntOrNull() ?: 0),
             colors = ButtonDefaults.buttonColors(
                 containerColor = ScanRed
             )
@@ -648,11 +665,11 @@ fun FormStepScreen(
             } else {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = "Reduce",
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Eliminar do Stock")
+                Text("Reduzir Stock")
             }
         }
         

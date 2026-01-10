@@ -180,6 +180,10 @@ class DeleteStockViewModel @Inject constructor(
         _expiryDate.value = date
     }
     
+    fun onQuantityToReduceChanged(quantityToReduce: String) {
+        _uiState.value = _uiState.value.copy(quantityToReduce = quantityToReduce)
+    }
+    
     fun onCampaignChanged(campaign: String) {
         _campaign.value = campaign
     }
@@ -291,6 +295,159 @@ class DeleteStockViewModel @Inject constructor(
         _campaign.value = campaign.name
     }
     
+    fun reduceFromStock() {
+        viewModelScope.launch {
+            try {
+                val currentStockItem = _stockItemData.value
+                val currentBarcode = _barcode.value
+                val currentProduct = _productData.value
+                val currentUser = authRepository.getCurrentUser()
+
+                Log.d("DeleteStockViewModel", "Current user: ${currentUser?.uid}")
+                Log.d("DeleteStockViewModel", "Current user email: ${currentUser?.email}")
+
+                if (currentBarcode.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Código de barras é obrigatório"
+                    )
+                    return@launch
+                }
+
+                if (currentStockItem == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Nenhum item em stock selecionado para redução"
+                    )
+                    return@launch
+                }
+
+                Log.d("DeleteStockViewModel", "Reducing stock item: ${currentStockItem.id}")
+                
+                // Get the quantity to reduce from user input
+                val quantityToReduce = _uiState.value.quantityToReduce.toIntOrNull() ?: 1
+                if (quantityToReduce <= 0) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Quantidade a reduzir deve ser maior que zero"
+                    )
+                    return@launch
+                }
+                
+                val currentQuantity = currentStockItem.quantity
+                if (quantityToReduce > currentQuantity) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Não é possível reduzir $quantityToReduce unidade(s). Stock disponível: $currentQuantity unidade(s)"
+                    )
+                    return@launch
+                }
+                
+                val newQuantity = maxOf(0, currentQuantity - quantityToReduce)
+                
+                if (newQuantity == 0) {
+                    // Delete the item completely when quantity reaches zero
+                    Log.d("DeleteStockViewModel", "Quantity reached zero, deleting stock item: ${currentStockItem.id}")
+                    
+                    val deleteResult = stockItemRepository.deleteStockItem(currentStockItem.id)
+                    Log.d("DeleteStockViewModel", "Delete result: $deleteResult")
+                    
+                    if (!deleteResult) {
+                        _uiState.value = _uiState.value.copy(
+                            error = "Erro ao reduzir item do stock. Verifique se tem permissões de administrador."
+                        )
+                        return@launch
+                    }
+                    
+                    // Log audit action for deletion
+                    viewModelScope.launch {
+                        val detailsMap = mutableMapOf<String, Any>(
+                            "barcode" to currentBarcode,
+                            "oldQuantity" to currentQuantity,
+                            "newQuantity" to 0,
+                            "reducedAmount" to quantityToReduce,
+                            "productName" to (currentProduct?.name ?: "Produto Desconhecido"),
+                            "stockItemId" to currentStockItem.id,
+                            "reason" to "quantity_reached_zero"
+                        )
+                        
+                        currentStockItem.campaignId?.let { campaignId ->
+                            detailsMap["campaignId"] = campaignId
+                        }
+                        
+                        auditRepository.logAction(
+                            action = "delete_item_zero_quantity",
+                            userId = currentUser?.uid,
+                            details = detailsMap
+                        )
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        successMessage = "Stock eliminado completamente! Reduzido $quantityToReduce unidade(s)."
+                    )
+                    
+                    // Reset form since item was deleted
+                    _quantity.value = "0"
+                    _expiryDate.value = "mm/dd/aaaa"
+                    _campaign.value = ""
+                    _productData.value = null
+                    _stockItemData.value = null
+                    _productName.value = ""
+                    _productBrand.value = ""
+                    _productCategory.value = 1
+                    _productImageUrl.value = ""
+                    _barcode.value = ""
+                    _uiState.value = _uiState.value.copy(quantityToReduce = "1")
+                    
+                    return@launch
+                }
+                
+                // Update the stock item quantity
+                productRepository.updateStockItemQuantity(currentStockItem.id, newQuantity)
+                Log.d("DeleteStockViewModel", "Stock quantity reduced successfully from $currentQuantity to $newQuantity")
+                
+                // Update local state
+                _quantity.value = newQuantity.toString()
+                val updatedStockItem = currentStockItem.copy(quantity = newQuantity)
+                _stockItemData.value = updatedStockItem
+                
+                // Log audit action
+                viewModelScope.launch {
+                    // Build details map
+                    val detailsMap = mutableMapOf<String, Any>(
+                        "barcode" to currentBarcode,
+                        "oldQuantity" to currentQuantity,
+                        "newQuantity" to newQuantity,
+                        "reducedAmount" to quantityToReduce,
+                        "productName" to (currentProduct?.name ?: "Produto Desconhecido"),
+                        "stockItemId" to currentStockItem.id
+                    )
+                    
+                    // Add campaignId to details if present
+                    currentStockItem.campaignId?.let { campaignId ->
+                        detailsMap["campaignId"] = campaignId
+                    }
+                    
+                    // Log reduce_item action
+                    auditRepository.logAction(
+                        action = "reduce_item",
+                        userId = currentUser?.uid,
+                        details = detailsMap
+                    )
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    successMessage = "Stock reduzido com sucesso! Reduzido $quantityToReduce unidade(s). Nova quantidade: $newQuantity",
+                    quantityToReduce = "1"
+                )
+
+            } catch (e: Exception) {
+                Log.e("DeleteStockViewModel", "Error reducing from stock", e)
+                _uiState.value = _uiState.value.copy(
+                    error = "Erro ao reduzir stock: ${e.message}"
+                )
+            }
+        }
+    }
+    
     fun deleteFromStock() {
         viewModelScope.launch {
             try {
@@ -325,7 +482,7 @@ class DeleteStockViewModel @Inject constructor(
                 if (!deleteResult) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "Erro ao eliminar item do stock. Verifique se tem permissões de administrador."
+                        error = "Erro ao reduzir item do stock. Verifique se tem permissões de administrador."
                     )
                     return@launch
                 }
@@ -377,7 +534,7 @@ class DeleteStockViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("DeleteStockViewModel", "Error deleting from stock", e)
                 _uiState.value = _uiState.value.copy(
-                    error = "Erro ao eliminar do stock: ${e.message}"
+                    error = "Erro ao reduzir do stock: ${e.message}"
                 )
             }
         }
@@ -388,5 +545,6 @@ class DeleteStockViewModel @Inject constructor(
 data class DeleteStockUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val quantityToReduce: String = "1"
 )

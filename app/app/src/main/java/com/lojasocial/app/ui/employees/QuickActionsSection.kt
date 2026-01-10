@@ -88,9 +88,9 @@ fun QuickActionsSection(
         Spacer(modifier = Modifier.height(16.dp))
 
         ActionCard(
-            title = "Elimina do Stock",
-            description = "Elimina um artigo do stock, fazendo scan do código barras",
-            buttonText = "Elimina Item",
+            title = "Reduz do Stock",
+            description = "Reduz um artigo do stock, fazendo scan do código barras",
+            buttonText = "Reduzir Stock",
             backgroundColor = ScanRed,
             icon = Icons.Default.Delete,
             onClick = onNavigateToDeleteStock
