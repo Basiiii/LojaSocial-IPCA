@@ -302,8 +302,21 @@ fun FormStepScreen(
             )
             result.fold(
                 onSuccess = { base64 ->
-                    viewModel.onProductSerializedImageChanged(base64)
-                    viewModel.onProductImageUrlChanged("")
+                    // Remove background from the image
+                    viewModel.removeBackgroundFromImage(
+                        imageBase64 = base64,
+                        onSuccess = { processedBase64 ->
+                            viewModel.onProductSerializedImageChanged(processedBase64)
+                            viewModel.onProductImageUrlChanged("")
+                            Log.d("AddStockView", "Image processed and background removed")
+                        },
+                        onFailure = { errorMsg ->
+                            // If background removal fails, use original image
+                            Log.w("AddStockView", "Background removal failed: $errorMsg, using original image")
+                            viewModel.onProductSerializedImageChanged(base64)
+                            viewModel.onProductImageUrlChanged("")
+                        }
+                    )
                 },
                 onFailure = { error -> Log.e("AddStockView", "Error: ${error.message}") }
             )
@@ -326,8 +339,21 @@ fun FormStepScreen(
                 )
                 result.fold(
                     onSuccess = { base64 ->
-                        viewModel.onProductSerializedImageChanged(base64)
-                        viewModel.onProductImageUrlChanged("")
+                        // Remove background from the image
+                        viewModel.removeBackgroundFromImage(
+                            imageBase64 = base64,
+                            onSuccess = { processedBase64 ->
+                                viewModel.onProductSerializedImageChanged(processedBase64)
+                                viewModel.onProductImageUrlChanged("")
+                                Log.d("AddStockView", "Camera image processed and background removed")
+                            },
+                            onFailure = { errorMsg ->
+                                // If background removal fails, use original image
+                                Log.w("AddStockView", "Background removal failed: $errorMsg, using original image")
+                                viewModel.onProductSerializedImageChanged(base64)
+                                viewModel.onProductImageUrlChanged("")
+                            }
+                        )
                     },
                     onFailure = { error -> Log.e("AddStockView", "Error: ${error.message}") }
                 )

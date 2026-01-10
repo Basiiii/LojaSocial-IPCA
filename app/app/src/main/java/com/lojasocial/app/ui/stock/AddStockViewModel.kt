@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.api.BarcodeProduct
+import com.lojasocial.app.api.ImageApiService
+import com.lojasocial.app.api.RemoveBackgroundRequest
 import com.lojasocial.app.domain.campaign.Campaign
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.domain.stock.StockItem
@@ -26,7 +28,8 @@ class AddStockViewModel @Inject constructor(
     private val stockItemRepository: StockItemRepository,
     private val campaignRepository: CampaignRepository,
     private val auditRepository: AuditRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val imageApiService: ImageApiService
 ) : ViewModel() {
     
     // UI State
@@ -176,6 +179,64 @@ class AddStockViewModel @Inject constructor(
     
     fun onProductSerializedImageChanged(serializedImage: String?) {
         _productSerializedImage.value = serializedImage
+    }
+    
+    /**
+     * Removes the background from the product image using remove.bg API.
+     * 
+     * @param imageBase64 The base64-encoded image to process
+     * @param onSuccess Callback with the processed image base64 string
+     * @param onFailure Callback with error message
+     */
+    fun removeBackgroundFromImage(
+        imageBase64: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                
+                val request = RemoveBackgroundRequest(imageBase64 = imageBase64)
+                val response = imageApiService.removeBackground(
+                    authorization = "Bearer lojasocial2025",
+                    contentType = "application/json",
+                    request = request
+                )
+                
+                if (response.isSuccessful) {
+                    val processedImage = response.body()?.imageBase64
+                    if (processedImage != null) {
+                        _productSerializedImage.value = processedImage
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                        onSuccess(processedImage)
+                        Log.d("AddStockViewModel", "Background removed successfully")
+                    } else {
+                        val errorMsg = "Failed to process image: empty response"
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = errorMsg
+                        )
+                        onFailure(errorMsg)
+                    }
+                } else {
+                    val errorMsg = "Failed to remove background: ${response.code()}"
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = errorMsg
+                    )
+                    onFailure(errorMsg)
+                }
+            } catch (e: Exception) {
+                val errorMsg = "Error removing background: ${e.message}"
+                Log.e("AddStockViewModel", errorMsg, e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = errorMsg
+                )
+                onFailure(errorMsg)
+            }
+        }
     }
     
     fun onQuantityChanged(quantity: String) {
