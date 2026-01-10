@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -222,6 +223,27 @@ fun BeneficiaryListItem(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
+            
+            if (beneficiary.absences > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFFF6B35),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${beneficiary.absences} ${if (beneficiary.absences == 1) "falta" else "faltas"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFFF6B35),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
 
         // Arrow

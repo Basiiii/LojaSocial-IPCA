@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -37,12 +38,14 @@ import com.lojasocial.app.utils.FileUtils
  * @param profile The user profile data containing name and email
  * @param modifier Optional modifier for custom styling
  * @param onEditPictureClick Callback invoked when the edit icon is clicked
+ * @param isBeneficiaryPortal Whether the user is in the beneficiary portal (shows absences if true)
  */
 @Composable
 fun ProfileHeader(
     profile: UserProfile?,
     modifier: Modifier = Modifier,
-    onEditPictureClick: () -> Unit = {}
+    onEditPictureClick: () -> Unit = {},
+    isBeneficiaryPortal: Boolean = false
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -135,6 +138,26 @@ fun ProfileHeader(
                 fontSize = 14.sp,
                 color = TextGray
             )
+            if (isBeneficiaryPortal && profile != null && profile.absences > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFFF6B35),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${profile.absences} ${if (profile.absences == 1) "falta" else "faltas"}",
+                        fontSize = 14.sp,
+                        color = Color(0xFFFF6B35),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
 }

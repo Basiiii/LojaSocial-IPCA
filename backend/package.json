@@ -14,7 +14,8 @@
     "dotenv": "^16.4.5",
     "cors": "^2.8.5",
     "firebase-admin": "^12.0.0",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "form-data": "^4.0.0"
   },
   "keywords": ["llm", "api", "openrouter", "ai"],
   "author": "Loja Social IPCA",

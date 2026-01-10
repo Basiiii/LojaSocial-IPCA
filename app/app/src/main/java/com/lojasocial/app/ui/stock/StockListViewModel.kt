@@ -12,19 +12,30 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
 
 data class ProductWithStock(
     val product: Product,
     val totalStock: Int,
-    val categoryName: String
+    val categoryName: String,
+    val earliestExpiryDate: Date? = null, // Earliest expiry date among all stock items for this product
+    val hasExpiryDate: Boolean = false // Whether any stock item has an expiry date
 )
+
+enum class SortOption {
+    NAME, // Sort by product name
+    EXPIRY_DATE // Sort by earliest expiry date
+}
 
 data class StockListUiState(
     val isLoading: Boolean = true,
     val products: List<ProductWithStock> = emptyList(),
     val filteredProducts: List<ProductWithStock> = emptyList(),
     val selectedCategories: Set<ProductCategory> = emptySet(),
+    val searchQuery: String = "",
+    val sortBy: SortOption = SortOption.NAME,
+    val hideNonPerishable: Boolean = false,
     val error: String? = null
 )
 
@@ -54,13 +65,30 @@ class StockListViewModel @Inject constructor(
                 val stockItems = stockItemRepository.getAllStockItems()
                 Log.d("StockListViewModel", "Found ${stockItems.size} stock items")
                 
-                // Group stock items by barcode and calculate total stock
+                // Group stock items by barcode and calculate total stock and expiry info (optimized single pass)
                 val stockByBarcode = stockItems.groupBy { it.barcode }
-                    .mapValues { (_, items) -> items.sumOf { it.quantity } }
+                    .mapValues { (_, items) -> 
+                        var totalStock = 0
+                        var earliestExpiry: Date? = null
+                        var hasExpiry = false
+                        
+                        items.forEach { item ->
+                            totalStock += item.quantity
+                            item.expirationDate?.let { expDate ->
+                                hasExpiry = true
+                                if (earliestExpiry == null || expDate.before(earliestExpiry)) {
+                                    earliestExpiry = expDate
+                                }
+                            }
+                        }
+                        
+                        Triple(totalStock, earliestExpiry, hasExpiry)
+                    }
                 
-                // Create ProductWithStock list
+                // Create ProductWithStock list (unsorted for now)
                 val productsWithStock = products.map { product ->
-                    val totalStock = stockByBarcode[product.id] ?: 0
+                    val (totalStock, earliestExpiry, hasExpiry) = stockByBarcode[product.id] 
+                        ?: Triple(0, null as Date?, false)
                     val categoryName = when (ProductCategory.fromId(product.category)) {
                         ProductCategory.ALIMENTAR -> "Alimentar"
                         ProductCategory.HIGIENE_PESSOAL -> "Higiene"
@@ -71,15 +99,21 @@ class StockListViewModel @Inject constructor(
                     ProductWithStock(
                         product = product,
                         totalStock = totalStock,
-                        categoryName = categoryName
+                        categoryName = categoryName,
+                        earliestExpiryDate = earliestExpiry,
+                        hasExpiryDate = hasExpiry
                     )
                 }.filter { it.totalStock > 0 } // Only show products with stock
-                .sortedBy { it.product.name }
+                
+                // Apply default sorting (by name)
+                val sorted = productsWithStock.sortedBy { it.product.name }
                 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     products = productsWithStock,
-                    filteredProducts = productsWithStock,
+                    filteredProducts = sorted,
+                    sortBy = SortOption.NAME,
+                    hideNonPerishable = false,
                     error = null
                 )
             } catch (e: Exception) {
@@ -103,27 +137,99 @@ class StockListViewModel @Inject constructor(
         } else {
             currentSelected.add(category)
         }
-        applyFilters(currentSelected)
+        applyFilters(
+            currentSelected, 
+            _uiState.value.searchQuery,
+            _uiState.value.sortBy,
+            _uiState.value.hideNonPerishable
+        )
     }
 
     fun clearFilters() {
-        applyFilters(emptySet())
+        applyFilters(
+            emptySet(), 
+            "",
+            SortOption.NAME,
+            false
+        )
     }
 
-    private fun applyFilters(selectedCategories: Set<ProductCategory>) {
+    fun setSearchQuery(query: String) {
+        applyFilters(
+            _uiState.value.selectedCategories, 
+            query,
+            _uiState.value.sortBy,
+            _uiState.value.hideNonPerishable
+        )
+    }
+
+    fun setSortBy(sortOption: SortOption) {
+        applyFilters(
+            _uiState.value.selectedCategories,
+            _uiState.value.searchQuery,
+            sortOption,
+            _uiState.value.hideNonPerishable
+        )
+    }
+
+    fun setHideNonPerishable(hide: Boolean) {
+        applyFilters(
+            _uiState.value.selectedCategories,
+            _uiState.value.searchQuery,
+            _uiState.value.sortBy,
+            hide
+        )
+    }
+
+    private fun applyFilters(
+        selectedCategories: Set<ProductCategory>, 
+        searchQuery: String,
+        sortBy: SortOption,
+        hideNonPerishable: Boolean
+    ) {
         val allProducts = _uiState.value.products
-        val filtered = if (selectedCategories.isEmpty()) {
-            allProducts
-        } else {
-            allProducts.filter { productWithStock ->
+        var filtered = allProducts
+        
+        // Filter by category
+        if (selectedCategories.isNotEmpty()) {
+            filtered = filtered.filter { productWithStock ->
                 val category = ProductCategory.fromId(productWithStock.product.category)
                 category != null && selectedCategories.contains(category)
             }
         }
         
+        // Filter by search query (name or brand)
+        if (searchQuery.isNotBlank()) {
+            filtered = filtered.filter { productWithStock ->
+                productWithStock.product.name.contains(searchQuery, ignoreCase = true) ||
+                productWithStock.product.brand.contains(searchQuery, ignoreCase = true)
+            }
+        }
+        
+        // Filter out non-perishable items if enabled
+        if (hideNonPerishable) {
+            filtered = filtered.filter { it.hasExpiryDate }
+        }
+        
+        // Sort the filtered results
+        val sorted = when (sortBy) {
+            SortOption.NAME -> filtered.sortedBy { it.product.name }
+            SortOption.EXPIRY_DATE -> filtered.sortedWith(compareBy(
+                // First, items with expiry dates (0) come before those without (1)
+                { if (it.earliestExpiryDate == null) 1 else 0 },
+                // Then sort by expiry date (earliest first)
+                { it.earliestExpiryDate ?: Date(Long.MAX_VALUE) },
+                // Finally sort by name for items without expiry dates
+                { it.product.name }
+            ))
+        }
+        
         _uiState.value = _uiState.value.copy(
             selectedCategories = selectedCategories,
-            filteredProducts = filtered
+            searchQuery = searchQuery,
+            sortBy = sortBy,
+            hideNonPerishable = hideNonPerishable,
+            filteredProducts = sorted
         )
     }
 }

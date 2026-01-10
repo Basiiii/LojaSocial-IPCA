@@ -18,11 +18,13 @@ import com.lojasocial.app.repository.user.UserProfile
  * 
  * @param profile The user profile data to display
  * @param onEditPictureClick Callback invoked when the edit icon is clicked
+ * @param isBeneficiaryPortal Whether the user is in the beneficiary portal (shows absences if true)
  */
 @Composable
 fun ProfileHeaderCard(
     profile: UserProfile?,
-    onEditPictureClick: () -> Unit = {}
+    onEditPictureClick: () -> Unit = {},
+    isBeneficiaryPortal: Boolean = false
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -33,7 +35,8 @@ fun ProfileHeaderCard(
         ProfileHeader(
             profile = profile,
             modifier = Modifier.padding(20.dp),
-            onEditPictureClick = onEditPictureClick
+            onEditPictureClick = onEditPictureClick,
+            isBeneficiaryPortal = isBeneficiaryPortal
         )
     }
 }

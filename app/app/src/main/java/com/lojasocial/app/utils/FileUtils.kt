@@ -7,7 +7,10 @@ import android.graphics.Matrix
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
+import android.util.Log
+import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 
 /**
@@ -162,6 +165,7 @@ object FileUtils {
     fun compressImage(
         context: Context,
         uri: Uri,
+        filePath: String? = null,
         maxWidth: Int = 800,
         maxHeight: Int = 800,
         quality: Int = 85
@@ -196,6 +200,81 @@ object FileUtils {
                     var bitmap = BitmapFactory.decodeStream(resized, null, decodeOptions)
                         ?: return Result.failure(Exception("Failed to decode image"))
                     
+                    // Read EXIF orientation and rotate if needed
+                    // Note: EXIF reading is optional - if it fails, we continue without rotation
+                    try {
+                        val exif: ExifInterface? = try {
+                            when {
+                                // Use provided file path if available (most reliable for EXIF)
+                                filePath != null && File(filePath).exists() -> {
+                                    ExifInterface(filePath)
+                                }
+                                // Try file path from URI
+                                uri.scheme == "file" -> {
+                                    val path = uri.path
+                                    if (path != null && File(path).exists()) {
+                                        ExifInterface(path)
+                                    } else {
+                                        null
+                                    }
+                                }
+                                // For content URIs, try InputStream (may not work for all URIs)
+                                else -> {
+                                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                                        ExifInterface(stream)
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // EXIF reading failed - this is OK, we'll continue without rotation
+                            Log.d("FileUtils", "EXIF reading skipped: ${e.message}")
+                            null
+                        }
+                        
+                        exif?.let {
+                            try {
+                                val orientation = it.getAttributeInt(
+                                    ExifInterface.TAG_ORIENTATION,
+                                    ExifInterface.ORIENTATION_NORMAL
+                                )
+                                
+                                if (orientation != ExifInterface.ORIENTATION_NORMAL) {
+                                    val matrix = Matrix()
+                                    when (orientation) {
+                                        ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                                        ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                                        ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                                        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                                        ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                                        ExifInterface.ORIENTATION_TRANSPOSE -> {
+                                            matrix.postRotate(90f)
+                                            matrix.postScale(-1f, 1f)
+                                        }
+                                        ExifInterface.ORIENTATION_TRANSVERSE -> {
+                                            matrix.postRotate(-90f)
+                                            matrix.postScale(-1f, 1f)
+                                        }
+                                    }
+                                    
+                                    val rotatedBitmap = Bitmap.createBitmap(
+                                        bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+                                    )
+                                    if (rotatedBitmap != bitmap) {
+                                        bitmap.recycle()
+                                        bitmap = rotatedBitmap
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // Rotation failed - continue with original bitmap
+                                Log.d("FileUtils", "Image rotation skipped: ${e.message}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // If EXIF processing fails completely, continue without rotation
+                        // This should never happen due to nested try-catch, but just in case
+                        Log.d("FileUtils", "EXIF processing failed, continuing without rotation: ${e.message}")
+                    }
+                    
                     // Further resize if needed to ensure exact dimensions
                     if (bitmap.width > maxWidth || bitmap.height > maxHeight) {
                         val width = bitmap.width
@@ -206,15 +285,28 @@ object FileUtils {
                         )
                         val newWidth = (width * ratio).toInt()
                         val newHeight = (height * ratio).toInt()
-                        bitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                        if (resizedBitmap != bitmap) {
+                            bitmap.recycle()
+                            bitmap = resizedBitmap
+                        }
                     }
                     
                     // Compress to JPEG
                     val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+                    val compressSuccess = bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+                    if (!compressSuccess) {
+                        bitmap.recycle()
+                        return Result.failure(Exception("Failed to compress image"))
+                    }
+                    val compressedBytes = outputStream.toByteArray()
                     bitmap.recycle()
                     
-                    Result.success(outputStream.toByteArray())
+                    if (compressedBytes.isEmpty()) {
+                        return Result.failure(Exception("Compressed image is empty"))
+                    }
+                    
+                    Result.success(compressedBytes)
                 } ?: Result.failure(Exception("Failed to open image stream"))
             } ?: Result.failure(Exception("Failed to open input stream"))
         } catch (e: Exception) {
@@ -239,11 +331,12 @@ object FileUtils {
     fun convertImageToBase64(
         context: Context,
         uri: Uri,
+        filePath: String? = null,
         maxWidth: Int = 800,
         maxHeight: Int = 800,
         quality: Int = 85
     ): Result<String> {
-        return compressImage(context, uri, maxWidth, maxHeight, quality)
+        return compressImage(context, uri, filePath, maxWidth, maxHeight, quality)
             .mapCatching { bytes ->
                 Base64.encodeToString(bytes, Base64.DEFAULT)
             }

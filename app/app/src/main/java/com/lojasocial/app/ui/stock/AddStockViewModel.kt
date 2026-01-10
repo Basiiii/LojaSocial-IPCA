@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.api.BarcodeProduct
+import com.lojasocial.app.api.ImageApiService
+import com.lojasocial.app.api.RemoveBackgroundRequest
 import com.lojasocial.app.domain.campaign.Campaign
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.domain.stock.StockItem
@@ -26,7 +28,8 @@ class AddStockViewModel @Inject constructor(
     private val stockItemRepository: StockItemRepository,
     private val campaignRepository: CampaignRepository,
     private val auditRepository: AuditRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val imageApiService: ImageApiService
 ) : ViewModel() {
     
     // UI State
@@ -56,6 +59,9 @@ class AddStockViewModel @Inject constructor(
     
     private val _productImageUrl = MutableStateFlow("")
     val productImageUrl: StateFlow<String> = _productImageUrl.asStateFlow()
+    
+    private val _productSerializedImage = MutableStateFlow<String?>(null)
+    val productSerializedImage: StateFlow<String?> = _productSerializedImage.asStateFlow()
     
     // Manual mode flag
     private val _isManualMode = MutableStateFlow(false)
@@ -133,6 +139,7 @@ class AddStockViewModel @Inject constructor(
             _productBrand.value = ""
             _productCategory.value = 1 // Default to Alimentar
             _productImageUrl.value = ""
+            _productSerializedImage.value = null
             
             // Also clear any loading state
             _uiState.value = _uiState.value.copy(isLoading = false)
@@ -168,6 +175,68 @@ class AddStockViewModel @Inject constructor(
     
     fun onProductImageUrlChanged(imageUrl: String) {
         _productImageUrl.value = imageUrl
+    }
+    
+    fun onProductSerializedImageChanged(serializedImage: String?) {
+        _productSerializedImage.value = serializedImage
+    }
+    
+    /**
+     * Removes the background from the product image using remove.bg API.
+     * 
+     * @param imageBase64 The base64-encoded image to process
+     * @param onSuccess Callback with the processed image base64 string
+     * @param onFailure Callback with error message
+     */
+    fun removeBackgroundFromImage(
+        imageBase64: String,
+        onSuccess: (String) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                
+                val request = RemoveBackgroundRequest(imageBase64 = imageBase64)
+                val response = imageApiService.removeBackground(
+                    authorization = "Bearer lojasocial2025",
+                    contentType = "application/json",
+                    request = request
+                )
+                
+                if (response.isSuccessful) {
+                    val processedImage = response.body()?.imageBase64
+                    if (processedImage != null) {
+                        _productSerializedImage.value = processedImage
+                        _uiState.value = _uiState.value.copy(isLoading = false)
+                        onSuccess(processedImage)
+                        Log.d("AddStockViewModel", "Background removed successfully")
+                    } else {
+                        val errorMsg = "Failed to process image: empty response"
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = errorMsg
+                        )
+                        onFailure(errorMsg)
+                    }
+                } else {
+                    val errorMsg = "Failed to remove background: ${response.code()}"
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = errorMsg
+                    )
+                    onFailure(errorMsg)
+                }
+            } catch (e: Exception) {
+                val errorMsg = "Error removing background: ${e.message}"
+                Log.e("AddStockViewModel", errorMsg, e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = errorMsg
+                )
+                onFailure(errorMsg)
+            }
+        }
     }
     
     fun onQuantityChanged(quantity: String) {
@@ -234,6 +303,7 @@ class AddStockViewModel @Inject constructor(
                     _productCategory.value = product.category
                     Log.d("AddStockViewModel", "Setting productImageUrl to: ${product.imageUrl}")
                     _productImageUrl.value = product.imageUrl
+                    _productSerializedImage.value = product.serializedImage
                     
                     Log.d("AddStockViewModel", "All fields set. Final values - name: ${_productName.value}, brand: ${_productBrand.value}, category: ${_productCategory.value}, imageUrl: ${_productImageUrl.value}")
                     
@@ -362,7 +432,8 @@ class AddStockViewModel @Inject constructor(
                     name = _productName.value,
                     brand = _productBrand.value,
                     category = _productCategory.value,
-                    imageUrl = _productImageUrl.value
+                    imageUrl = _productImageUrl.value,
+                    serializedImage = _productSerializedImage.value
                 )
                 productRepository.saveOrUpdateProduct(productToSave, currentBarcode)
 
@@ -419,6 +490,7 @@ class AddStockViewModel @Inject constructor(
                 _productBrand.value = ""
                 _productCategory.value = 1 // Default to Alimentar
                 _productImageUrl.value = ""
+                _productSerializedImage.value = null
 
             } catch (e: Exception) {
                 Log.e("AddStockViewModel", "Error adding to stock", e)

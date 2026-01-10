@@ -23,6 +23,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import com.lojasocial.app.utils.FileUtils
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +47,7 @@ import com.lojasocial.app.domain.product.ProductCategory
 import com.lojasocial.app.domain.stock.StockItem
 import com.lojasocial.app.utils.AppConstants
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
+import com.lojasocial.app.ui.components.ProductImage
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -52,9 +59,42 @@ fun StockItemsView(
     viewModel: StockItemsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(barcode) {
         viewModel.loadStockItems(barcode)
+    }
+    
+    // Decode product image once (since all items share the same product)
+    // Only decode if there's no imageUrl (imageUrl is faster)
+    val hasImageUrl = !uiState.product?.imageUrl.isNullOrEmpty()
+    var decodedProductImage by remember(uiState.product?.serializedImage, hasImageUrl) { 
+        mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) 
+    }
+    
+    LaunchedEffect(uiState.product?.serializedImage, hasImageUrl) {
+        // Skip Base64 decoding if imageUrl exists (it's faster)
+        if (!hasImageUrl) {
+            decodedProductImage = null // Reset when product changes
+            uiState.product?.serializedImage?.let { base64 ->
+                if (base64.isNotBlank()) {
+                    // Decode on background thread
+                    decodedProductImage = withContext(Dispatchers.IO) {
+                        try {
+                            val bytes = FileUtils.convertBase64ToFile(base64).getOrNull()
+                            bytes?.let {
+                                BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
+                            }
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                }
+            }
+        } else {
+            // Clear decoded image if imageUrl is available
+            decodedProductImage = null
+        }
     }
 
     Scaffold(
@@ -132,10 +172,14 @@ fun StockItemsView(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp) // Reduced spacing between cards slightly
                 ) {
-                    items(uiState.items) { itemWithProduct ->
+                    items(
+                        items = uiState.items,
+                        key = { it.stockItem.id }
+                    ) { itemWithProduct ->
                         StockItemCard(
                             itemWithProduct = itemWithProduct,
-                            viewModel = viewModel
+                            viewModel = viewModel,
+                            preDecodedImage = decodedProductImage
                         )
                     }
                 }
@@ -147,7 +191,8 @@ fun StockItemsView(
 @Composable
 fun StockItemCard(
     itemWithProduct: StockItemWithProduct,
-    viewModel: StockItemsViewModel
+    viewModel: StockItemsViewModel,
+    preDecodedImage: androidx.compose.ui.graphics.ImageBitmap? = null
 ) {
     var showCampaignDialog by remember { mutableStateOf(false) }
     
@@ -157,7 +202,8 @@ fun StockItemCard(
             itemWithProduct.stockItem.campaignId?.let { campaignId ->
                 showCampaignDialog = true
             }
-        }
+        },
+        preDecodedImage = preDecodedImage
     )
     
     if (showCampaignDialog && itemWithProduct.stockItem.campaignId != null) {
@@ -173,21 +219,15 @@ fun StockItemCard(
     }
 }
 
+// Shared date formatter to avoid creating it for each card
+private val sharedDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
 @Composable
 private fun StockItemCardContent(
     itemWithProduct: StockItemWithProduct,
-    onCampaignInfoClick: () -> Unit = {}
+    onCampaignInfoClick: () -> Unit = {},
+    preDecodedImage: androidx.compose.ui.graphics.ImageBitmap? = null
 ) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    val category = itemWithProduct.product?.let { ProductCategory.fromId(it.category) }
-    val categoryIcon = when (category) {
-        ProductCategory.ALIMENTAR -> Icons.Default.Restaurant
-        ProductCategory.HIGIENE_PESSOAL -> Icons.Default.Spa
-        ProductCategory.CASA -> Icons.Default.Home
-        null -> Icons.Default.ShoppingCart
-    }
-    val imageUrl = itemWithProduct.product?.imageUrl?.ifEmpty { AppConstants.DEFAULT_PRODUCT_IMAGE_URL } 
-        ?: AppConstants.DEFAULT_PRODUCT_IMAGE_URL
     val hasCampaign = itemWithProduct.stockItem.campaignId != null
     
     Card(
@@ -200,21 +240,15 @@ private fun StockItemCardContent(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            ProductImage(
+                product = itemWithProduct.product,
+                preDecodedBitmap = preDecodedImage,
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFFE5E7EB)),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = itemWithProduct.product?.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    error = rememberVectorPainter(categoryIcon)
-                )
-            }
+                contentScale = ContentScale.Crop
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -244,7 +278,7 @@ private fun StockItemCardContent(
                             lineHeight = 12.sp
                         )
                         Text(
-                            text = itemWithProduct.stockItem.expirationDate?.let { dateFormat.format(it) } ?: "Sem data",
+                            text = itemWithProduct.stockItem.expirationDate?.let { sharedDateFormat.format(it) } ?: "Sem data",
                             fontSize = 11.sp,
                             color = Color.Gray,
                             fontWeight = FontWeight.Normal,
@@ -262,7 +296,7 @@ private fun StockItemCardContent(
                             lineHeight = 12.sp
                         )
                         Text(
-                            text = dateFormat.format(itemWithProduct.stockItem.createdAt),
+                            text = sharedDateFormat.format(itemWithProduct.stockItem.createdAt),
                             fontSize = 11.sp,
                             color = Color.Gray,
                             fontWeight = FontWeight.Normal,

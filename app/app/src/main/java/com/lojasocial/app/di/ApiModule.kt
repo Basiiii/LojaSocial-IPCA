@@ -4,6 +4,7 @@ import android.util.Log
 import com.lojasocial.app.BuildConfig
 import com.lojasocial.app.api.AuditApiService
 import com.lojasocial.app.api.ExpirationApiService
+import com.lojasocial.app.api.ImageApiService
 import com.lojasocial.app.api.ProductApiService
 import com.lojasocial.app.utils.AppConstants
 import dagger.Module
@@ -105,5 +106,16 @@ object ApiModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         return auditRetrofit.create(AuditApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideImageApiService(okHttpClient: OkHttpClient): ImageApiService {
+        val imageRetrofit = Retrofit.Builder()
+            .baseUrl(AppConstants.API_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        return imageRetrofit.create(ImageApiService::class.java)
     }
 }
