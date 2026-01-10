@@ -40,11 +40,13 @@ data class ExpiringItemWithProduct(
  * - Error: An error occurred while loading items
  * 
  * @property isLoading Whether the items are currently being loaded from the repository
- * @property items List of expiring items with their product information, sorted by urgency
+ * @property items List of expiring items with their product information, filtered and sorted by urgency
+ * @property allItems Complete list of expiring items without filtering, used for filter operations
  * @property error Error message if loading failed, null otherwise. Should be displayed to the user when not null.
  */
 data class ExpiringItemsUiState(
     val isLoading: Boolean = false,
     val items: List<ExpiringItemWithProduct> = emptyList(),
+    val allItems: List<ExpiringItemWithProduct>? = null,
     val error: String? = null
 )

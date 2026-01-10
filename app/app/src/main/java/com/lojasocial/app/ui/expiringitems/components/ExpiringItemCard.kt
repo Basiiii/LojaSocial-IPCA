@@ -2,18 +2,25 @@ package com.lojasocial.app.ui.expiringitems.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.domain.stock.StockItem
@@ -31,8 +38,8 @@ import java.util.*
  * It displays all relevant information administrators need to make decisions about
  * expiring inventory:
  * 
- * - **Product Image**: Visual representation of the product (with fallback to default image)
- * - **Product Name**: Full name of the product
+ * - **Product Image**: Visual representation of product (with fallback to default image)
+ * - **Product Name**: Full name of product
  * - **Brand**: Product brand name (if available)
  * - **Expiration Badge**: Color-coded urgency indicator showing days until expiration
  *   - Red: Expires today (0 days)
@@ -40,18 +47,29 @@ import java.util.*
  *   - Orange: Expires in 2-3 days
  * - **Quantity**: Current stock quantity
  * - **Expiration Date**: Formatted expiration date (DD/MM/YYYY)
+ * - **Quantity Selection**: Interactive controls to select quantities for action
  * 
- * The urgency color provides immediate visual feedback about how critical the expiration is,
+ * The urgency color provides immediate visual feedback about how critical expiration is,
  * helping administrators prioritize which items need attention first.
  * 
  * @param item The expiring item with product information to display. Contains stock item data,
  *             product details, and calculated days until expiration.
+ * @param selectedQuantity Currently selected quantity for this item
+ * @param onQuantityIncrease Callback when quantity is increased
+ * @param onQuantityDecrease Callback when quantity is decreased
+ * @param maxQuantity Maximum quantity that can be selected (defaults to available stock)
  * 
  * @see ExpiringItemWithProduct The domain model for expiring items
  * @see ExpirationBadge The badge component showing expiration urgency
  */
 @Composable
-fun ExpiringItemCard(item: ExpiringItemWithProduct) {
+fun ExpiringItemCard(
+    item: ExpiringItemWithProduct,
+    selectedQuantity: Int = 0,
+    onQuantityIncrease: () -> Unit = {},
+    onQuantityDecrease: () -> Unit = {},
+    maxQuantity: Int = item.stockItem.quantity
+) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val expirationDateText = item.stockItem.expirationDate?.let { dateFormat.format(it) } ?: "Sem data"
     
@@ -66,73 +84,119 @@ fun ExpiringItemCard(item: ExpiringItemWithProduct) {
         colors = CardDefaults.cardColors(containerColor = LojaSocialSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp)
         ) {
-            // Product Image
-            AsyncImage(
-                model = item.product?.imageUrl ?: AppConstants.DEFAULT_PRODUCT_IMAGE_URL,
-                contentDescription = item.product?.name ?: AppConstants.DEFAULT_PRODUCT_CONTENT_DESCRIPTION,
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(BorderColor),
-                contentScale = ContentScale.Crop
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Product Image
+                AsyncImage(
+                    model = item.product?.imageUrl ?: AppConstants.DEFAULT_PRODUCT_IMAGE_URL,
+                    contentDescription = item.product?.name ?: AppConstants.DEFAULT_PRODUCT_CONTENT_DESCRIPTION,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BorderColor),
+                    contentScale = ContentScale.Crop
+                )
 
-            // Product Info
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                // Product Info
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = item.product?.name ?: "Produto desconhecido",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    if (item.product?.brand?.isNotEmpty() == true) {
+                        Text(
+                            text = item.product.brand,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGray
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ExpirationBadge(
+                            daysUntilExpiration = item.daysUntilExpiration,
+                            urgencyColor = urgencyColor
+                        )
+
+                        Text(
+                            text = "•",
+                            color = TextGray
+                        )
+
+                        Text(
+                            text = "Qtd: ${item.stockItem.quantity}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextGray
+                        )
+                    }
+
+                    Text(
+                        text = "Validade: $expirationDateText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextGray
+                    )
+                }
+            }
+
+            // Quantity Selection Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = item.product?.name ?: "Produto desconhecido",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = "Selecionar quantidade:",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = TextDark,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    fontWeight = FontWeight.Medium
                 )
-
-                if (item.product?.brand?.isNotEmpty() == true) {
-                    Text(
-                        text = item.product.brand,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextGray
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ExpirationBadge(
-                        daysUntilExpiration = item.daysUntilExpiration,
-                        urgencyColor = urgencyColor
+                    QuantityButton(
+                        icon = Icons.Default.Remove,
+                        onClick = onQuantityDecrease,
+                        enabled = selectedQuantity > 0,
+                        isRemoveButton = true
                     )
-
                     Text(
-                        text = "•",
-                        color = TextGray
+                        text = "$selectedQuantity",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.width(30.dp),
+                        textAlign = TextAlign.Center
                     )
-
-                    Text(
-                        text = "Qtd: ${item.stockItem.quantity}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextGray
+                    QuantityButton(
+                        icon = Icons.Default.Add,
+                        onClick = onQuantityIncrease,
+                        enabled = selectedQuantity < maxQuantity,
+                        isRemoveButton = false
                     )
                 }
-
-                Text(
-                    text = "Validade: $expirationDateText",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextGray
-                )
             }
         }
     }
@@ -177,7 +241,42 @@ private fun ExpirationBadge(
 }
 
 /**
- * Preview composable for the ExpiringItemCard component with item expiring today.
+ * Quantity selection button component.
+ * 
+ * Provides a circular button for increasing or decreasing item quantities with
+ * consistent styling and proper disabled states.
+ * 
+ * @param icon The icon to display (Add or Remove)
+ * @param onClick Callback when button is clicked
+ * @param enabled Whether the button is enabled
+ * @param isRemoveButton Whether this is a remove button (affects disabled styling)
+ */
+@Composable
+private fun QuantityButton(
+    icon: ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    isRemoveButton: Boolean
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = LojaSocialPrimary,
+            contentColor = Color.White,
+            disabledContainerColor = if (isRemoveButton) LojaSocialPrimary else InactiveFilterBackground,
+            disabledContentColor = if (isRemoveButton) Color.White else TextGray
+        )
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
+ * Preview composable for ExpiringItemCard component with item expiring today.
  */
 @Preview(showBackground = true)
 @Composable

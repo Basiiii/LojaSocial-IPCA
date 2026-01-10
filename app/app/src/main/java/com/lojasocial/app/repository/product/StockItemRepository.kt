@@ -57,6 +57,20 @@ class StockItemRepository @Inject constructor(
     }
 
     /**
+     * Deletes a stock item from the items collection
+     * @param stockItemId The ID of the stock item to delete
+     * @return Boolean indicating success or failure
+     */
+    suspend fun deleteStockItem(stockItemId: String): Boolean {
+        return try {
+            itemsCollection.document(stockItemId).delete().await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
      * Get items expiring within the specified number of days
      * @param daysThreshold Number of days to check ahead (default: 3)
      * @return List of StockItems expiring within the threshold
