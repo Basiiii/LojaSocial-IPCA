@@ -51,6 +51,7 @@ fun EmployeePortalView(
     onNavigateToAuditLogs: () -> Unit = {},
     onNavigateToBeneficiaries: () -> Unit = {},
     onNavigateToStockList: () -> Unit = {},
+    onNavigateToUrgentRequest: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
@@ -104,6 +105,7 @@ fun EmployeePortalView(
                         onSupportClick = { onTabChange?.invoke("support") },
                         onNavigateToApplications = onNavigateToApplications,
                         onNavigateToPickupRequests = onNavigateToPickupRequests,
+                        onNavigateToUrgentRequest = onNavigateToUrgentRequest,
                         pendingRequestsCount = pendingRequestsCount,
                         pendingApplicationsCount = pendingApplicationsCount
                     )
@@ -242,6 +244,9 @@ fun EmployeeScreenPreview() {
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
             override suspend fun getAllBeneficiaries() = flow {
+                emit(emptyList<UserProfile>())
+            }
+            override suspend fun getAllUsers() = flow {
                 emit(emptyList<UserProfile>())
             }
         }

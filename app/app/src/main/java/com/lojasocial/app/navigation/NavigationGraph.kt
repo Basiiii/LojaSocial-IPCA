@@ -310,6 +310,17 @@ fun NavigationGraph(
             )
         }
 
+        // Urgent Request
+        composable(Screen.UrgentRequest.route) {
+            com.lojasocial.app.ui.urgentRequest.UrgentRequestView(
+                onBackClick = { navController.navigateUp() },
+                requestsRepository = requestsRepository,
+                userRepository = userRepository,
+                profilePictureRepository = profilePictureRepository,
+                productRepository = null // Can be added if needed
+            )
+        }
+
         // Application Flow
         navigation(
             startDestination = Screen.ApplicationFlow.PersonalInfo.route,
@@ -733,6 +744,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToStockList = {
             navController.navigate(Screen.StockList.route)
+        },
+        onNavigateToUrgentRequest = {
+            navController.navigate(Screen.UrgentRequest.route)
         },
         currentTab = tab,
         onTabChange = { newTab ->

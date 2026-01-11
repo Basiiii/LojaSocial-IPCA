@@ -1410,4 +1410,193 @@ class RequestsRepositoryImpl @Inject constructor(
             Result.failure(Exception("Error submitting request: ${e.message}", e))
         }
     }
+
+    override suspend fun createUrgentRequest(userId: String, selectedItems: Map<String, Int>): Result<String> {
+        return try {
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                return Result.failure(Exception("User not authenticated"))
+            }
+
+            if (selectedItems.isEmpty()) {
+                return Result.failure(Exception("No items selected"))
+            }
+
+            // Validate items and calculate quantities to deduct
+            // First, collect item document IDs and quantities
+            val itemsToProcess = mutableMapOf<String, Int>()
+
+            selectedItems.forEach { (productDocId, requestedQuantity) ->
+                try {
+                    // First check if it's a document ID
+                    val itemDoc = firestore.collection("items").document(productDocId).get().await()
+                    
+                    if (itemDoc.exists()) {
+                        val itemQuantity = ((itemDoc.data?.get("quantity") as? Long)?.toInt()
+                            ?: (itemDoc.data?.get("quantity") as? Int) ?: 0)
+                        val reservedQuantity = ((itemDoc.data?.get("reservedQuantity") as? Long)?.toInt()
+                            ?: (itemDoc.data?.get("reservedQuantity") as? Int) ?: 0)
+                        val available = itemQuantity - reservedQuantity
+                        
+                        if (available > 0) {
+                            itemsToProcess[productDocId] = minOf(requestedQuantity, available)
+                        }
+                    } else {
+                        // It's a productId/barcode, search for items by barcode or productId
+                        // Try barcode first (most common case)
+                        var itemsSnapshot = try {
+                            firestore.collection("items")
+                                .whereEqualTo("barcode", productDocId)
+                                .get()
+                                .await()
+                        } catch (e: Exception) {
+                            null
+                        }
+                        
+                        // If not found by barcode, try productId
+                        if (itemsSnapshot == null || itemsSnapshot.isEmpty) {
+                            itemsSnapshot = try {
+                                firestore.collection("items")
+                                    .whereEqualTo("productId", productDocId)
+                                    .get()
+                                    .await()
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        
+                        if (itemsSnapshot == null || itemsSnapshot.isEmpty) {
+                            Log.w("RequestsRepository", "Item $productDocId not found by document ID, barcode, or productId")
+                            return@forEach
+                        }
+                        
+                        // Filter items with available stock > 0 and sort by expiry date
+                        val availableItems = itemsSnapshot.documents.mapNotNull { doc ->
+                            val itemQuantity = ((doc.data?.get("quantity") as? Long)?.toInt()
+                                ?: (doc.data?.get("quantity") as? Int) ?: 0)
+                            val reservedQuantity = ((doc.data?.get("reservedQuantity") as? Long)?.toInt()
+                                ?: (doc.data?.get("reservedQuantity") as? Int) ?: 0)
+                            val available = itemQuantity - reservedQuantity
+                            
+                            if (available > 0) {
+                                val expiryDate = (doc.data?.get("expiryDate") as? Timestamp)
+                                    ?: (doc.data?.get("expirationDate") as? Timestamp)
+                                Triple(doc.id, available, expiryDate?.toDate()?.time ?: Long.MAX_VALUE)
+                            } else {
+                                null
+                            }
+                        }
+                        
+                        if (availableItems.isEmpty()) {
+                            Log.w("RequestsRepository", "No available stock for item $productDocId")
+                            return@forEach
+                        }
+                        
+                        // Sort by expiry date (earliest first)
+                        val sortedItems = availableItems.sortedBy { it.third }
+                        
+                        var remainingQuantity = requestedQuantity
+                        for ((docId, available, _) in sortedItems) {
+                            if (remainingQuantity <= 0) break
+                            
+                            val quantityToUse = minOf(remainingQuantity, available)
+                            itemsToProcess[docId] = quantityToUse
+                            remainingQuantity -= quantityToUse
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error processing item $productDocId: ${e.message}", e)
+                    // Continue with other items
+                }
+            }
+
+            if (itemsToProcess.isEmpty()) {
+                return Result.failure(Exception("No items available to process. Selected items: ${selectedItems.keys.joinToString()}"))
+            }
+
+            val verifiedItems = itemsToProcess
+
+            if (verifiedItems.isEmpty()) {
+                return Result.failure(Exception("No valid items to process"))
+            }
+
+            // Generate request ID before transaction
+            val requestRef = firestore.collection("requests").document()
+            val requestId = requestRef.id
+            
+            // Use transaction to decrease quantities and create request
+            firestore.runTransaction { transaction ->
+                // PHASE 1: Read all item documents and validate
+                val itemData = verifiedItems.mapNotNull { (itemDocId, quantityToDeduct) ->
+                    val itemRef = firestore.collection("items").document(itemDocId)
+                    val itemDoc = transaction.get(itemRef)
+                    
+                    if (itemDoc.exists()) {
+                        val data = itemDoc.data ?: return@mapNotNull null
+                        val currentQuantity = (data["quantity"] as? Long)?.toInt()
+                            ?: (data["quantity"] as? Int) ?: 0
+                        val currentReserved = (data["reservedQuantity"] as? Long)?.toInt()
+                            ?: (data["reservedQuantity"] as? Int) ?: 0
+                        
+                        if (currentQuantity < quantityToDeduct) {
+                            throw Exception("Insufficient quantity for item ${data["name"] ?: itemDocId}")
+                        }
+                        
+                        val newQuantity = maxOf(0, currentQuantity - quantityToDeduct)
+                        val newReserved = maxOf(0, currentReserved - quantityToDeduct)
+                        
+                        Triple(itemRef, newQuantity, newReserved)
+                    } else {
+                        null
+                    }
+                }
+                
+                // PHASE 2: Update all items
+                itemData.forEach { (itemRef, newQuantity, newReserved) ->
+                    transaction.update(itemRef, mapOf(
+                        "quantity" to newQuantity,
+                        "reservedQuantity" to newReserved
+                    ))
+                }
+                
+                // PHASE 3: Create request document with CONCLUIDO status
+                val itemsMapForFirestore = HashMap<String, Any>().apply {
+                    verifiedItems.forEach { (docId, quantity) ->
+                        this[docId] = quantity.toLong()
+                    }
+                }
+                
+                val submissionTimestamp = FieldValue.serverTimestamp()
+                val requestsData = hashMapOf<String, Any>(
+                    "userId" to userId,
+                    "status" to 2, // CONCLUIDO
+                    "submissionDate" to submissionTimestamp,
+                    "scheduledPickupDate" to submissionTimestamp, // Data de recolha = data de submissão
+                    "totalItems" to verifiedItems.values.sum(),
+                    "items" to itemsMapForFirestore
+                )
+                
+                transaction.set(requestRef, requestsData)
+                requestId // Return the document ID
+            }.await()
+            
+            // Log audit action
+            CoroutineScope(Dispatchers.IO).launch {
+                auditRepository.logAction(
+                    action = "create_urgent_request",
+                    userId = currentUser.uid,
+                    details = mapOf(
+                        "beneficiaryUserId" to userId,
+                        "itemsCount" to verifiedItems.size,
+                        "requestId" to requestId
+                    )
+                )
+            }
+            
+            Result.success(requestId)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error creating urgent request: ${e.message}", e)
+            Result.failure(Exception("Error creating urgent request: ${e.message}", e))
+        }
+    }
 }
