@@ -70,6 +70,7 @@ fun InstitutionDropdownField(
                 .sortedByDescending { it.lastPickup?.toDate() }
                 .take(3)
         }
+        .distinctBy { it.name.lowercase().trim() }
     }
 
     // Auto-expand dropdown when typing and there are matches

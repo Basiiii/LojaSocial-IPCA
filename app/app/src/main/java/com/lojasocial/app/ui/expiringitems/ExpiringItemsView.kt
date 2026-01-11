@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -19,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.snapshotFlow
 import com.lojasocial.app.api.ExpirationCheckResponse
 import com.lojasocial.app.domain.product.Product
 import com.lojasocial.app.domain.stock.StockItem
@@ -36,6 +39,22 @@ import com.lojasocial.app.ui.theme.LojaSocialTheme
 import com.lojasocial.app.ui.theme.TextGray
 import kotlinx.coroutines.launch
 import java.util.Date
+
+/**
+ * Function to load more expiring items with pagination
+ */
+private suspend fun loadMoreExpiringItems(
+    isLoadingMore: Boolean,
+    hasMoreItems: Boolean,
+    lastLoadedExpirationDate: Date?
+) {
+    // This would call a repository method for pagination
+    // For now, we'll simulate by setting hasMoreItems to false
+    // In a real implementation, you would call something like:
+    // val (newItems, hasMore) = repository.getExpiringItemsPaginated(limit = 5, lastExpirationDate = lastLoadedExpirationDate)
+    // hasMoreItems = false
+    // isLoadingMore = false
+}
 
 /**
  * Main view for displaying items that are expiring within the threshold period.
@@ -76,6 +95,13 @@ fun ExpiringItemsView(
     val institutions by viewModel.institutions.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    
+    // Pagination states
+    var hasMoreItems by remember { mutableStateOf(true) }
+    var isLoadingMore by remember { mutableStateOf(false) }
+    var lastLoadedExpirationDate by remember { mutableStateOf<Date?>(null) }
+    
     var showExpirationCheckConfirmation by remember { mutableStateOf(false) }
     var showExpirationCheckLoading by remember { mutableStateOf(false) }
     var showExpirationCheckSuccess by remember { mutableStateOf(false) }
@@ -83,6 +109,55 @@ fun ExpiringItemsView(
     var expirationCheckError by remember { mutableStateOf<String?>(null) }
     var expirationCheckResult by remember { mutableStateOf<ExpirationCheckResponse?>(null) }
     var showSubmissionSuccessDialog by remember { mutableStateOf(false) }
+
+    // Load more items when scrolling near the end
+    LaunchedEffect(listState) {
+        snapshotFlow { 
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = layoutInfo.totalItemsCount
+            Pair(lastVisibleItemIndex, totalItems)
+        }.collect { (lastVisibleIndex, totalItems) ->
+            // Load more when user is within 2 items of the end
+            if (lastVisibleIndex >= totalItems - 2 && 
+                hasMoreItems && 
+                !isLoadingMore && 
+                !uiState.isLoading) {
+                coroutineScope.launch {
+                    loadMoreExpiringItems(
+                        isLoadingMore,
+                        hasMoreItems,
+                        lastLoadedExpirationDate
+                    )
+                }
+            }
+        }
+    }
+    
+    // Auto-load more if filtered list is too short (less than 5 items visible)
+    LaunchedEffect(uiState, selectedFilter) {
+        if (!uiState.isLoading && uiState.error == null) {
+            val items = uiState.items
+            
+            // If filtered list is too short and we have more to load, load more
+            if (items.size < 5 && hasMoreItems && !isLoadingMore) {
+                coroutineScope.launch {
+                    loadMoreExpiringItems(
+                        isLoadingMore,
+                        hasMoreItems,
+                        lastLoadedExpirationDate
+                    )
+                }
+            }
+        }
+    }
+    
+    // Reset pagination when filter changes
+    LaunchedEffect(selectedFilter) {
+        hasMoreItems = true
+        lastLoadedExpirationDate = null
+        isLoadingMore = false
+    }
 
     Column(
         modifier = Modifier
@@ -135,7 +210,9 @@ fun ExpiringItemsView(
                         items = uiState.items,
                         selectedQuantities = selectedQuantities,
                         onQuantityIncrease = { itemId -> viewModel.increaseQuantity(itemId) },
-                        onQuantityDecrease = { itemId -> viewModel.decreaseQuantity(itemId) }
+                        onQuantityDecrease = { itemId -> viewModel.decreaseQuantity(itemId) },
+                        listState = listState,
+                        isLoadingMore = isLoadingMore
                     )
                 }
             }
@@ -174,6 +251,8 @@ fun ExpiringItemsView(
         when (updateState) {
             is UpdateState.Success -> {
                 showSubmissionSuccessDialog = true
+                // Refresh the list to remove processed items
+                viewModel.refresh()
             }
             is UpdateState.Error -> {
                 // Handle error state (could show snackbar or dialog)
@@ -370,6 +449,8 @@ fun ExpiringItemsView(
  * @param selectedQuantities Map of selected quantities for each item
  * @param onQuantityIncrease Callback when quantity is increased for an item
  * @param onQuantityDecrease Callback when quantity is decreased for an item
+ * @param listState LazyListState for controlling scroll position and pagination
+ * @param isLoadingMore Boolean indicating if more items are being loaded
  */
 @Composable
 private fun ExpiringItemsList(
@@ -377,9 +458,12 @@ private fun ExpiringItemsList(
     items: List<ExpiringItemWithProduct>,
     selectedQuantities: Map<String, Int>,
     onQuantityIncrease: (String) -> Unit,
-    onQuantityDecrease: (String) -> Unit
+    onQuantityDecrease: (String) -> Unit,
+    listState: LazyListState = rememberLazyListState(),
+    isLoadingMore: Boolean = false
 ) {
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -391,6 +475,23 @@ private fun ExpiringItemsList(
                 onQuantityIncrease = { onQuantityIncrease(item.stockItem.id) },
                 onQuantityDecrease = { onQuantityDecrease(item.stockItem.id) }
             )
+        }
+        
+        // Show loading indicator at the bottom when loading more
+        if (isLoadingMore) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+            }
         }
     }
 }
@@ -629,133 +730,29 @@ fun ExpiringItemsViewDropdownOpenedPreview() {
                 onFilterSelected = {}
             )
             
-            // Simulate opened dropdown
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Column {
-                    // Text field (simulating the dropdown field)
-                    OutlinedTextField(
-                        value = "Cruz",
-                        onValueChange = {},
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { 
-                            Text(
-                                text = "Nome da Instituição", 
-                                color = TextGray,
-                                fontSize = 16.sp
-                            ) 
-                        },
-                        leadingIcon = { 
-                            Icon(
-                                Icons.Default.Business, 
-                                contentDescription = null, 
-                                tint = TextGray,
-                                modifier = Modifier.size(20.dp)
-                            ) 
-                        },
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Expandir",
-                                tint = TextGray,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedBorderColor = BorderColor,
-                            focusedBorderColor = LojaSocialPrimary,
-                            cursorColor = LojaSocialPrimary
-                        ),
-                        singleLine = true
+            // Institution dropdown field with sample data
+            InstitutionDropdownField(
+                institutions = listOf(
+                    Institution(
+                        id = "1",
+                        name = "Cruz Vermelha",
+                        lastPickup = com.google.firebase.Timestamp(java.util.Date(System.currentTimeMillis() - 30 * 60 * 1000))
+                    ),
+                    Institution(
+                        id = "2", 
+                        name = "Banco Alimentar",
+                        lastPickup = com.google.firebase.Timestamp(java.util.Date(System.currentTimeMillis() - 2 * 60 * 60 * 1000))
+                    ),
+                    Institution(
+                        id = "3",
+                        name = "Caritas Portugal", 
+                        lastPickup = com.google.firebase.Timestamp(java.util.Date(System.currentTimeMillis() - 3 * 24 * 60 * 60 * 1000))
                     )
-                    
-                    // Opened dropdown menu
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            // Recent institutions header
-                            Text(
-                                text = "Instituições Recentes:",
-                                modifier = Modifier.padding(12.dp),
-                                color = TextGray,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            
-                            // Recent institutions
-                            listOf(
-                                "Cruz Vermelha - Há 30 minutos",
-                                "Banco Alimentar - Há 2 horas",
-                                "Caritas Portugal - Há 3 dias"
-                            ).forEach { institution ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { }
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = institution,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                            
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                color = BorderColor
-                            )
-                            
-                            // All institutions section
-                            Text(
-                                text = "Todas as Instituições:",
-                                modifier = Modifier.padding(12.dp),
-                                color = TextGray,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            
-                            listOf(
-                                "Santa Casa da Misericórdia",
-                                "Unicef Portugal",
-                                "Fundação AMI"
-                            ).forEach { name ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { }
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = name,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                ),
+                selectedInstitution = "Cruz Vermelha",
+                onInstitutionChange = {},
+                isLoading = false
+            )
             
             Spacer(modifier = Modifier.weight(1f))
             ExpiringItemsBottomBar(
