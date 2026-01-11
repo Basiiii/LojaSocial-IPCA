@@ -56,16 +56,12 @@ import java.util.Calendar
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
-import com.lojasocial.app.ui.theme.LojaSocialBackground
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
