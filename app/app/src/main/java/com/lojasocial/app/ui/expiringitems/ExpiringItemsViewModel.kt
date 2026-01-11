@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.lojasocial.app.ui.expiringitems.ExpiringItemsConstants
 import com.lojasocial.app.ui.expiringitems.components.Institution
 import java.util.Calendar
 import java.util.Date
@@ -68,8 +67,7 @@ class ExpiringItemsViewModel @Inject constructor(
     private val _isLoadingMore = MutableStateFlow(false)
     val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
-    private val _lastLoadedExpirationDate = MutableStateFlow<java.util.Date?>(null)
-    val lastLoadedExpirationDate: StateFlow<java.util.Date?> = _lastLoadedExpirationDate.asStateFlow()
+    private val _lastLoadedExpirationDate = MutableStateFlow<Date?>(null)
 
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
@@ -245,10 +243,6 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    fun getQuantity(itemId: String): Int {
-        return _selectedQuantities.value[itemId] ?: 0
-    }
-
     fun clearQuantities() {
         _selectedQuantities.value = emptyMap()
     }
@@ -339,7 +333,7 @@ class ExpiringItemsViewModel @Inject constructor(
         viewModelScope.launch {
             val currentStockItem = _uiState.value.allItems?.find { it.stockItem.id == itemId }
             currentStockItem?.let { stockItem ->
-                val currentStockQuantity = stockItem.stockItem.quantity ?: 0
+                val currentStockQuantity = stockItem.stockItem.quantity
                 val newQuantity = currentStockQuantity - quantity
                 if (newQuantity > 0) {
                     stockItemRepository.updateStockItem(
