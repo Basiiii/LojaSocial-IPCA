@@ -248,10 +248,17 @@ fun RequestDetailsDialog(
                         }
 
                         // 5. Collection Info Card
-                        if (status != RequestStatus.SUBMETIDO && status != RequestStatus.REJEITADO) {
+                        if (status == RequestStatus.REJEITADO) {
+                            // Show rejection reason for rejected requests
+                            CollectionInfoCard(
+                                pickupDate = "",
+                                rejectionReason = request.rejectionReason
+                            )
+                        } else if (status != RequestStatus.SUBMETIDO) {
+                            // Show pickup date for other non-submitted requests
                             CollectionInfoCard(
                                 pickupDate = formattedPickupDate ?: "",
-                                rejectionReason = if (status == RequestStatus.REJEITADO) request.rejectionReason else null
+                                rejectionReason = null
                             )
                         }
                     }
