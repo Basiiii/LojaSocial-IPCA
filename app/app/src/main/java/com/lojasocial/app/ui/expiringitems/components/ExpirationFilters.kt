@@ -1,7 +1,9 @@
 package com.lojasocial.app.ui.expiringitems.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -27,9 +29,11 @@ fun ExpirationFilters(
     onFilterSelected: (String) -> Unit
 ) {
     LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(bottom = 16.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
     ) {
         items(filters) { filter ->
             val isSelected = filter == selectedFilter
