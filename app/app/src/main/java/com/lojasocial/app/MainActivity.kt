@@ -150,11 +150,18 @@ class MainActivity : ComponentActivity() {
                             expirationRepository = expirationRepository,
                             campaignRepository = campaignRepository,
                             requestsRepository = requestsRepository,
-                            profilePictureRepository = profilePictureRepository
+                            profilePictureRepository = profilePictureRepository,
+                            activity = this@MainActivity
                         )
                     }
                 }
             }
         }
+    }
+    
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        Log.d("MainActivity", "onNewIntent called with screen: ${intent?.getStringExtra("screen")}")
     }
 }

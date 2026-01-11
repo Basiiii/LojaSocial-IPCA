@@ -19,7 +19,7 @@ import javax.inject.Inject
  * ViewModel for managing expiring items state and business logic.
  * 
  * This ViewModel is responsible for:
- * - Loading stock items that are expiring within the threshold period (3 days)
+ * - Loading stock items that are expiring within the threshold period (30 days, including already expired)
  * - Fetching product information for each expiring item
  * - Calculating days until expiration for each item
  * - Sorting items by urgency (soonest expiration first)
@@ -49,7 +49,7 @@ class ExpiringItemsViewModel @Inject constructor(
      * Loads expiring items from the repository and enriches them with product information.
      * 
      * This method:
-     * 1. Queries stock items expiring within 3 days
+     * 1. Queries stock items expiring within 30 days (including already expired)
      * 2. Fetches product details for each item using the barcode
      * 3. Calculates days until expiration
      * 4. Sorts items by urgency (soonest first)
@@ -62,8 +62,8 @@ class ExpiringItemsViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 
-                // Get expiring items (within 3 days)
-                val expiringItems = stockItemRepository.getExpiringItems(3)
+                // Get expiring items (within 30 days, including already expired)
+                val expiringItems = stockItemRepository.getExpiringItems(30)
                 Log.d("ExpiringItemsViewModel", "Found ${expiringItems.size} expiring items")
                 
                 // Fetch product details for each item

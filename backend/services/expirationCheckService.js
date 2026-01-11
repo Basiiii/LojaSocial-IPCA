@@ -2,18 +2,24 @@ import { db, messaging, admin } from '../config/firebaseAdmin.js';
 import logger from '../utils/logger.js';
 
 /**
- * Check for items expiring within the specified number of days
+ * Check for items expiring within the specified number of days (including already expired items)
  * @param {number} daysThreshold - Number of days to check ahead (default: 3)
- * @returns {Promise<number>} - Count of expiring items
+ * @returns {Promise<number>} - Count of expiring items (including expired)
  */
 async function checkExpiringItems(daysThreshold = 3) {
   try {
     const now = new Date();
-    const thresholdDate = new Date();
+    
+    // Set threshold date to end of threshold day (23:59:59.999)
+    const thresholdDate = new Date(now);
     thresholdDate.setDate(now.getDate() + daysThreshold);
+    thresholdDate.setHours(23, 59, 59, 999);
+    
+    logger.server(`Checking expiring items: now=${now.toISOString()}, thresholdDate=${thresholdDate.toISOString()} (including expired items)`);
     
     // Query items collection
-    // Filter: quantity > 0 AND expirationDate exists AND expirationDate <= thresholdDate
+    // Filter: quantity > 0 AND expirationDate <= thresholdDate
+    // This includes both expired items and items expiring within the threshold
     const itemsRef = db.collection('items');
     
     const snapshot = await itemsRef
@@ -21,22 +27,30 @@ async function checkExpiringItems(daysThreshold = 3) {
       .where('expirationDate', '<=', admin.firestore.Timestamp.fromDate(thresholdDate))
       .get();
     
-    // Filter out items without expirationDate (shouldn't happen with the query, but safety check)
+    logger.server(`Query returned ${snapshot.size} documents`);
+    
+    // Filter out items without expirationDate
     const expiringItems = [];
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.expirationDate) {
         const expDate = data.expirationDate.toDate();
-        if (expDate <= thresholdDate && expDate >= now) {
+        // Include items that have expired or are expiring up to threshold date
+        const isWithinThreshold = expDate <= thresholdDate;
+        
+        if (isWithinThreshold) {
+          logger.server(`Including item: ${doc.id}, expirationDate=${expDate.toISOString()}`);
           expiringItems.push({
             id: doc.id,
             ...data
           });
+        } else {
+          logger.server(`Excluding item: ${doc.id}, expirationDate=${expDate.toISOString()}, isWithinThreshold=${isWithinThreshold}`);
         }
       }
     });
     
-    logger.server(`Found ${expiringItems.length} items expiring within ${daysThreshold} days`);
+    logger.server(`Found ${expiringItems.length} items (including expired) within ${daysThreshold} days threshold`);
     return expiringItems.length;
   } catch (error) {
     logger.error('Error checking expiring items', error);
@@ -165,7 +179,7 @@ async function sendExpirationNotifications(itemCount) {
 async function checkAndNotifyExpiringItems() {
   try {
     logger.server('Starting expiration check...');
-    const itemCount = await checkExpiringItems(3); // 3 days threshold
+    const itemCount = await checkExpiringItems(30); // 30 days threshold
     const notificationResults = await sendExpirationNotifications(itemCount);
     
     // notificationResults can be undefined if no items or no admin users

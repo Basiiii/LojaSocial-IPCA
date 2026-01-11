@@ -12,6 +12,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.lojasocial.app.repository.application.ApplicationRepository
 import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.campaign.CampaignRepository
@@ -71,8 +74,64 @@ fun NavigationGraph(
     expirationRepository: ExpirationRepository? = null,
     campaignRepository: CampaignRepository? = null,
     requestsRepository: RequestsRepository? = null,
-    profilePictureRepository: ProfilePictureRepository
+    profilePictureRepository: ProfilePictureRepository,
+    activity: androidx.activity.ComponentActivity? = null
 ) {
+    // Handle navigation when app is already running and notification is clicked
+    LaunchedEffect(activity, lastProfile) {
+        if (activity != null && lastProfile != null) {
+            val currentIntent = activity.intent
+            val screenExtra = currentIntent.getStringExtra("screen")
+            
+            if (screenExtra == "expiringItems") {
+                kotlinx.coroutines.delay(300)
+                try {
+                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                    if (currentRoute != Screen.ExpiringItems.route) {
+                        navController.navigate(Screen.ExpiringItems.route) {
+                            popUpTo(0) { inclusive = false }
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("NavigationGraph", "Error navigating to expiring items", e)
+                }
+            }
+        }
+    }
+    
+    // Also check on resume in case intent was updated via onNewIntent
+    DisposableEffect(activity) {
+        val observer = object : LifecycleEventObserver {
+            override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                if (event == Lifecycle.Event.ON_RESUME && lastProfile != null) {
+                    val currentIntent = (source as? androidx.activity.ComponentActivity)?.intent
+                    val screenExtra = currentIntent?.getStringExtra("screen")
+                    
+                    if (screenExtra == "expiringItems") {
+                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                            kotlinx.coroutines.delay(300)
+                            try {
+                                val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                if (currentRoute != Screen.ExpiringItems.route) {
+                                    navController.navigate(Screen.ExpiringItems.route) {
+                                        popUpTo(0) { inclusive = false }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("NavigationGraph", "Error navigating to expiring items on resume", e)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        activity?.lifecycle?.addObserver(observer)
+        
+        onDispose {
+            activity?.lifecycle?.removeObserver(observer)
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = startDestination
