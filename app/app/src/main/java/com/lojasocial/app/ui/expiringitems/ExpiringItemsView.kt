@@ -41,46 +41,9 @@ import kotlinx.coroutines.launch
 import java.util.Date
 
 /**
- * Function to load more expiring items with pagination
- */
-private suspend fun loadMoreExpiringItems(
-    isLoadingMore: Boolean,
-    hasMoreItems: Boolean,
-    lastLoadedExpirationDate: Date?
-) {
-    // This would call a repository method for pagination
-    // For now, we'll simulate by setting hasMoreItems to false
-    // In a real implementation, you would call something like:
-    // val (newItems, hasMore) = repository.getExpiringItemsPaginated(limit = 5, lastExpirationDate = lastLoadedExpirationDate)
-    // hasMoreItems = false
-    // isLoadingMore = false
-}
-
-/**
  * Main view for displaying items that are expiring within the threshold period.
- * 
- * This screen provides administrators with a comprehensive view of stock items
- * that are approaching their expiration dates (within 3 days). It displays:
- * - Product information (name, brand, image)
- * - Stock quantity
- * - Expiration date
- * - Days until expiration with color-coded urgency indicators
- * 
- * The view handles multiple states:
- * - **Loading**: Shows a progress indicator while fetching data
- * - **Error**: Displays error message with retry option
- * - **Empty**: Shows message when no items are expiring
- * - **Success**: Displays list of expiring items sorted by urgency
- * 
- * Items are automatically sorted by expiration date (soonest first) to help
- * administrators prioritize which items need immediate attention.
- * 
- * @param onNavigateBack Callback invoked when the back button is clicked, navigates to Employee Portal
- * @param expirationRepository Optional repository for triggering expiration checks
- * @param viewModel The view model managing the expiring items state and business logic
- * 
- * @see ExpiringItemsViewModel The ViewModel managing the state
- * @see ExpiringItemCard Component for displaying individual expiring items
+ * Provides administrators with a comprehensive view of stock items approaching expiration dates.
+ * Handles loading, error, empty, and success states with items sorted by urgency.
  */
 @Composable
 fun ExpiringItemsView(
@@ -94,13 +57,10 @@ fun ExpiringItemsView(
     val institutionName by viewModel.institutionName.collectAsState()
     val institutions by viewModel.institutions.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
+    val hasMoreItems by viewModel.hasMoreItems.collectAsState()
+    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    
-    // Pagination states
-    var hasMoreItems by remember { mutableStateOf(true) }
-    var isLoadingMore by remember { mutableStateOf(false) }
-    var lastLoadedExpirationDate by remember { mutableStateOf<Date?>(null) }
     
     var showExpirationCheckConfirmation by remember { mutableStateOf(false) }
     var showExpirationCheckLoading by remember { mutableStateOf(false) }
@@ -123,40 +83,25 @@ fun ExpiringItemsView(
                 hasMoreItems && 
                 !isLoadingMore && 
                 !uiState.isLoading) {
-                coroutineScope.launch {
-                    loadMoreExpiringItems(
-                        isLoadingMore,
-                        hasMoreItems,
-                        lastLoadedExpirationDate
-                    )
-                }
+                viewModel.loadMoreExpiringItems()
             }
         }
     }
     
-    // Auto-load more if filtered list is too short (less than 5 items visible)
+    // Auto-load more if filtered list is too short
     LaunchedEffect(uiState, selectedFilter) {
         if (!uiState.isLoading && uiState.error == null) {
             val items = uiState.items
+            val allItems = uiState.allItems ?: emptyList()
             
-            // If filtered list is too short and we have more to load, load more
-            if (items.size < 5 && hasMoreItems && !isLoadingMore) {
-                coroutineScope.launch {
-                    loadMoreExpiringItems(
-                        isLoadingMore,
-                        hasMoreItems,
-                        lastLoadedExpirationDate
-                    )
-                }
+            // Only auto-load if filtered list is short and more items are available
+            if (items.size < 5 && 
+                hasMoreItems && 
+                !isLoadingMore && 
+                allItems.size < 20) { // Prevent infinite loading
+                viewModel.loadMoreExpiringItems()
             }
         }
-    }
-    
-    // Reset pagination when filter changes
-    LaunchedEffect(selectedFilter) {
-        hasMoreItems = true
-        lastLoadedExpirationDate = null
-        isLoadingMore = false
     }
 
     Column(
@@ -255,7 +200,7 @@ fun ExpiringItemsView(
                 viewModel.refresh()
             }
             is UpdateState.Error -> {
-                // Handle error state (could show snackbar or dialog)
+                // Handle error state
                 viewModel.resetUpdateState()
             }
             else -> {}
@@ -439,18 +384,7 @@ fun ExpiringItemsView(
 
 /**
  * List component displaying all expiring items in a scrollable list.
- * 
- * Renders a LazyColumn with all expiring items, each displayed as an ExpiringItemCard.
- * Items are automatically sorted by urgency (days until expiration) with the most
- * urgent items appearing first.
- * 
- * @param modifier Modifier for the list component
- * @param items List of expiring items to display, sorted by urgency
- * @param selectedQuantities Map of selected quantities for each item
- * @param onQuantityIncrease Callback when quantity is increased for an item
- * @param onQuantityDecrease Callback when quantity is decreased for an item
- * @param listState LazyListState for controlling scroll position and pagination
- * @param isLoadingMore Boolean indicating if more items are being loaded
+ * Renders a LazyColumn with expiring items sorted by urgency.
  */
 @Composable
 private fun ExpiringItemsList(
@@ -468,7 +402,10 @@ private fun ExpiringItemsList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(items) { item ->
+        items(
+            items = items,
+            key = { item -> item.stockItem.id }
+        ) { item ->
             ExpiringItemCard(
                 item = item,
                 selectedQuantity = selectedQuantities[item.stockItem.id] ?: 0,
@@ -498,9 +435,6 @@ private fun ExpiringItemsList(
 
 /**
  * Preview composable for the ExpiringItemsView with sample data.
- * 
- * Shows the view in a success state with multiple expiring items to demonstrate
- * the UI layout and styling.
  */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -513,7 +447,7 @@ fun ExpiringItemsViewPreview() {
                     id = "1",
                     barcode = "123456789",
                     quantity = 5,
-                    expirationDate = Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000) // Tomorrow
+                    expirationDate = Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000)
                 ),
                 product = Product(
                     id = "123456789",
@@ -529,7 +463,7 @@ fun ExpiringItemsViewPreview() {
                     id = "2",
                     barcode = "987654321",
                     quantity = 10,
-                    expirationDate = Date(System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000) // 2 days
+                    expirationDate = Date(System.currentTimeMillis() + 2 * 24 * 60 * 60 * 1000)
                 ),
                 product = Product(
                     id = "987654321",
@@ -545,7 +479,7 @@ fun ExpiringItemsViewPreview() {
                     id = "3",
                     barcode = "555555555",
                     quantity = 3,
-                    expirationDate = Date(System.currentTimeMillis()) // Today
+                    expirationDate = Date(System.currentTimeMillis())
                 ),
                 product = Product(
                     id = "555555555",

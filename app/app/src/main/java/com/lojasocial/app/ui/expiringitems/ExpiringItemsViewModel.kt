@@ -34,25 +34,8 @@ sealed class UpdateState {
 
 /**
  * ViewModel for managing expiring items state and business logic.
- * 
- * This ViewModel is responsible for:
- * - Loading stock items that are expiring within the threshold period (3 days)
- * - Fetching product information for each expiring item
- * - Calculating days until expiration for each item
- * - Sorting items by urgency (soonest expiration first)
- * - Managing loading, error, and success states
- * - Updating stock quantities and deleting items when quantity reaches zero
- * - Logging all actions to audit logs
- * 
- * The ViewModel uses StateFlow to expose UI state, making it easy for the View
- * to observe and react to changes reactively.
- * 
- * @param stockItemRepository Repository for accessing stock item data
- * @param productRepository Repository for accessing product information
- * @param auditRepository Repository for logging audit actions
- * @param authRepository Repository for authentication data
+ * Responsible for loading expiring items, managing state, and handling submissions.
  */
-
 @HiltViewModel
 class ExpiringItemsViewModel @Inject constructor(
     private val stockItemRepository: StockItemRepository,
@@ -79,31 +62,144 @@ class ExpiringItemsViewModel @Inject constructor(
     private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState.asStateFlow()
 
+    private val _hasMoreItems = MutableStateFlow(true)
+    val hasMoreItems: StateFlow<Boolean> = _hasMoreItems.asStateFlow()
+
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
+
+    private val _lastLoadedExpirationDate = MutableStateFlow<java.util.Date?>(null)
+    val lastLoadedExpirationDate: StateFlow<java.util.Date?> = _lastLoadedExpirationDate.asStateFlow()
+
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     init {
-        loadExpiringItems()
-        loadInstitutions()
+        try {
+            initializeFlows()
+            loadExpiringItems()
+            loadInstitutions()
+        } catch (e: Exception) {
+            Log.e("ExpiringItemsViewModel", "Error during ViewModel initialization", e)
+            _uiState.value = ExpiringItemsUiState(
+                isLoading = false,
+                error = "Erro na inicialização: ${e.message}"
+            )
+        }
     }
 
-    /**
-     * Updates the selected filter and refreshes the filtered items.
-     */
+    private fun initializeFlows() {
+        _uiState.value = ExpiringItemsUiState(isLoading = true)
+        _selectedFilter.value = ExpiringItemsConstants.DEFAULT_FILTER
+        _selectedQuantities.value = emptyMap()
+        _institutionName.value = ""
+        _institutions.value = emptyList()
+        _updateState.value = UpdateState.Idle
+        _hasMoreItems.value = true
+        _isLoadingMore.value = false
+        _lastLoadedExpirationDate.value = null
+    }
+
     fun setSelectedFilter(filter: String) {
-        _selectedFilter.value = filter
-        applyFilterToItems()
+        try {
+            _selectedFilter.value = filter
+            resetPagination()
+            applyFilterToItems()
+        } catch (e: Exception) {
+            Log.e("ExpiringItemsViewModel", "Error setting selected filter", e)
+        }
     }
 
-    /**
-     * Updates institution name.
-     */
     fun setInstitutionName(name: String) {
-        _institutionName.value = name
+        try {
+            _institutionName.value = name
+        } catch (e: Exception) {
+            Log.e("ExpiringItemsViewModel", "Error setting institution name", e)
+        }
     }
 
-    /**
-     * Loads institutions from Firestore, sorted by lastPickup date.
-     */
+    fun loadMoreExpiringItems() {
+        viewModelScope.launch {
+            try {
+                if (_isLoadingMore.value || !_hasMoreItems.value) return@launch
+
+                _isLoadingMore.value = true
+                val lastDate = _lastLoadedExpirationDate.value
+                val (newStockItems, hasMore) = stockItemRepository.getExpiringItemsPaginated(
+                    daysThreshold = 30,
+                    limit = 5,
+                    lastExpirationDate = lastDate
+                )
+
+                if (newStockItems.isEmpty()) {
+                    _hasMoreItems.value = false
+                    _isLoadingMore.value = false
+                    return@launch
+                }
+
+                val newItemsWithProducts = newStockItems.map { stockItem ->
+                    val product = if (stockItem.barcode.isNotEmpty()) {
+                        productRepository.getProductByBarcodeId(stockItem.barcode)
+                    } else {
+                        null
+                    }
+
+                    val daysUntilExpiration = stockItem.expirationDate?.let { expDate ->
+                        val now = Calendar.getInstance()
+                        val expiration = Calendar.getInstance().apply {
+                            time = expDate
+                        }
+                        val diffInMillis = expiration.timeInMillis - now.timeInMillis
+                        (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
+                    } ?: 0
+
+                    ExpiringItemWithProduct(
+                        stockItem = stockItem,
+                        product = product,
+                        daysUntilExpiration = daysUntilExpiration
+                    )
+                }
+
+                val currentAllItems = _uiState.value.allItems ?: emptyList()
+                val currentIds = currentAllItems.map { it.stockItem.id }.toSet()
+                val uniqueNewItems = newItemsWithProducts.filter { it.stockItem.id !in currentIds }
+
+                if (uniqueNewItems.isEmpty()) {
+                    _hasMoreItems.value = false
+                    _isLoadingMore.value = false
+                    return@launch
+                }
+
+                val updatedAllItems = currentAllItems + uniqueNewItems
+                val sortedItems = updatedAllItems.sortedBy { it.daysUntilExpiration }
+
+                _hasMoreItems.value = hasMore
+                _lastLoadedExpirationDate.value = uniqueNewItems.lastOrNull()?.stockItem?.expirationDate ?: lastDate
+
+                _uiState.value = _uiState.value.copy(
+                    allItems = sortedItems,
+                    items = applyFilterToItemsList(sortedItems, _selectedFilter.value)
+                )
+
+                Log.d("ExpiringItemsViewModel", "Loaded ${uniqueNewItems.size} new unique items. Has more: $hasMore")
+            } catch (e: Exception) {
+                Log.e("ExpiringItemsViewModel", "Error loading more expiring items", e)
+                _hasMoreItems.value = false
+            } finally {
+                _isLoadingMore.value = false
+            }
+        }
+    }
+
+    private fun resetPagination() {
+        try {
+            _hasMoreItems.value = true
+            _lastLoadedExpirationDate.value = null
+            _isLoadingMore.value = false
+        } catch (e: Exception) {
+            Log.e("ExpiringItemsViewModel", "Error resetting pagination", e)
+        }
+    }
+
     private fun loadInstitutions() {
         viewModelScope.launch {
             try {
@@ -133,9 +229,6 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Increases the quantity for a specific item.
-     */
     fun increaseQuantity(itemId: String) {
         val currentQuantities = _selectedQuantities.value.toMutableMap()
         val currentQuantity = currentQuantities[itemId] ?: 0
@@ -143,9 +236,6 @@ class ExpiringItemsViewModel @Inject constructor(
         _selectedQuantities.value = currentQuantities
     }
 
-    /**
-     * Decreases the quantity for a specific item.
-     */
     fun decreaseQuantity(itemId: String) {
         val currentQuantities = _selectedQuantities.value.toMutableMap()
         val currentQuantity = currentQuantities[itemId] ?: 0
@@ -155,45 +245,32 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Gets the selected quantity for a specific item.
-     */
     fun getQuantity(itemId: String): Int {
         return _selectedQuantities.value[itemId] ?: 0
     }
 
-    /**
-     * Clears all selected quantities.
-     */
     fun clearQuantities() {
         _selectedQuantities.value = emptyMap()
     }
 
-    /**
-     * Submits the selected expiring items to Firestore.
-     * 
-     * Creates a document in the 'institution' collection with the selected items
-     * and metadata including the provided institution name and createdAt timestamp.
-     */
     fun submitExpiringItems() {
         viewModelScope.launch {
             try {
                 _updateState.value = UpdateState.Loading
-                
+
                 val selectedItems = _selectedQuantities.value.filter { it.value > 0 }
                 val institutionName = _institutionName.value.trim()
-                
+
                 if (selectedItems.isEmpty()) {
                     _updateState.value = UpdateState.Error("Nenhum item selecionado")
                     return@launch
                 }
-                
+
                 if (institutionName.isEmpty()) {
                     _updateState.value = UpdateState.Error("Por favor, preencha o nome da instituição")
                     return@launch
                 }
 
-                // Create the document data
                 val institutionData = hashMapOf(
                     "name" to institutionName,
                     "createdAt" to Date(),
@@ -210,18 +287,15 @@ class ExpiringItemsViewModel @Inject constructor(
                     }
                 )
 
-                // Save to Firestore
                 firestore.collection("institution")
                     .add(institutionData)
                     .addOnSuccessListener { documentReference ->
                         Log.d("ExpiringItemsViewModel", "DocumentSnapshot written with ID: ${documentReference.id}")
-                        
-                        // Update stock quantities for selected items
+
                         selectedItems.forEach { (itemId, quantity) ->
                             updateStockForItem(itemId, quantity)
                         }
-                        
-                        // Log the submission action to audit logs
+
                         val currentUser = authRepository.getCurrentUser()
                         viewModelScope.launch {
                             auditRepository.logAction(
@@ -245,7 +319,7 @@ class ExpiringItemsViewModel @Inject constructor(
                                 )
                             )
                         }
-                        
+
                         _updateState.value = UpdateState.Success
                         clearQuantities() // Clear quantities after successful submission
                         _institutionName.value = "" // Clear institution name after successful submission
@@ -254,7 +328,6 @@ class ExpiringItemsViewModel @Inject constructor(
                         Log.e("ExpiringItemsViewModel", "Error adding document", e)
                         _updateState.value = UpdateState.Error("Erro ao atualizar itens: ${e.message}")
                     }
-
             } catch (e: Exception) {
                 Log.e("ExpiringItemsViewModel", "Error submitting expiring items", e)
                 _updateState.value = UpdateState.Error("Erro ao atualizar itens: ${e.message}")
@@ -262,12 +335,6 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Updates stock quantity for a specific item after submission.
-     * Deletes item if quantity reaches zero, otherwise updates quantity.
-     * @param itemId The ID of the stock item to update
-     * @param quantity The quantity to subtract from stock
-     */
     private fun updateStockForItem(itemId: String, quantity: Int) {
         viewModelScope.launch {
             val currentStockItem = _uiState.value.allItems?.find { it.stockItem.id == itemId }
@@ -280,8 +347,7 @@ class ExpiringItemsViewModel @Inject constructor(
                         updates = mapOf("quantity" to newQuantity)
                     )
                     Log.d("ExpiringItemsViewModel", "Updated stock for item $itemId: $currentStockQuantity -> $newQuantity")
-                    
-                    // Log stock reduction action to audit logs
+
                     val currentUser = authRepository.getCurrentUser()
                     auditRepository.logAction(
                         action = "reduce_stock",
@@ -296,12 +362,10 @@ class ExpiringItemsViewModel @Inject constructor(
                         )
                     )
                 } else if (newQuantity == 0) {
-                    // Delete item from stock when quantity reaches zero
                     val deleteSuccess = stockItemRepository.deleteStockItem(itemId)
                     if (deleteSuccess) {
                         Log.d("ExpiringItemsViewModel", "Deleted item $itemId from stock (quantity reached zero)")
-                        
-                        // Log item deletion action to audit logs
+
                         val currentUser = authRepository.getCurrentUser()
                         auditRepository.logAction(
                             action = "delete_stock_item",
@@ -324,43 +388,37 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Resets the update state to Idle.
-     */
     fun resetUpdateState() {
         _updateState.value = UpdateState.Idle
     }
 
-    /**
-     * Loads expiring items from the repository and enriches them with product information.
-     * 
-     * This method:
-     * 1. Queries stock items expiring within 30 days (to get both expired and soon-to-expire)
-     * 2. Fetches product details for each item using the barcode
-     * 3. Calculates days until expiration
-     * 4. Sorts items by urgency (soonest first)
-     * 5. Updates the UI state accordingly
-     * 
-     * Errors are caught and displayed to the user via the error state.
-     */
     fun loadExpiringItems() {
         viewModelScope.launch {
             try {
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-                
-                // Get expiring items (within 30 days to include both expired and soon-to-expire)
-                val expiringItems = stockItemRepository.getExpiringItems(30)
-                Log.d("ExpiringItemsViewModel", "Found ${expiringItems.size} expiring items")
-                
-                // Fetch product details for each item
+                Log.d("ExpiringItemsViewModel", "Starting loadExpiringItems...")
+
+                _uiState.value = _uiState.value.copy(
+                    isLoading = true,
+                    error = null,
+                    items = emptyList(),
+                    allItems = null
+                )
+
+                resetPagination()
+
+                val (expiringItems, hasMore) = stockItemRepository.getExpiringItemsPaginated(
+                    daysThreshold = 30,
+                    limit = 5,
+                    lastExpirationDate = null
+                )
+
                 val itemsWithProducts = expiringItems.map { stockItem ->
                     val product = if (stockItem.barcode.isNotEmpty()) {
                         productRepository.getProductByBarcodeId(stockItem.barcode)
                     } else {
                         null
                     }
-                    
-                    // Calculate days until expiration (negative for already expired)
+
                     val daysUntilExpiration = stockItem.expirationDate?.let { expDate ->
                         val now = Calendar.getInstance()
                         val expiration = Calendar.getInstance().apply {
@@ -369,46 +427,41 @@ class ExpiringItemsViewModel @Inject constructor(
                         val diffInMillis = expiration.timeInMillis - now.timeInMillis
                         (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
                     } ?: 0
-                    
+
                     ExpiringItemWithProduct(
                         stockItem = stockItem,
                         product = product,
                         daysUntilExpiration = daysUntilExpiration
                     )
                 }
-                
-                // Sort by expiration date (soonest first)
+
                 val sortedItems = itemsWithProducts.sortedBy { it.daysUntilExpiration }
-                
+
+                _hasMoreItems.value = hasMore
+                _lastLoadedExpirationDate.value = expiringItems.lastOrNull()?.expirationDate
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     allItems = sortedItems,
                     items = applyFilterToItemsList(sortedItems, _selectedFilter.value),
                     error = null
                 )
+
+                Log.d("ExpiringItemsViewModel", "Successfully loaded ${sortedItems.size} expiring items with pagination")
             } catch (e: Exception) {
-                Log.e("ExpiringItemsViewModel", "Error loading expiring items", e)
+                Log.e("ExpiringItemsViewModel", "Error loading expiring items with pagination", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Erro ao carregar itens: ${e.message}"
+                    error = "Erro ao carregar itens: ${e.message ?: "Erro desconhecido"}"
                 )
             }
         }
     }
 
-    /**
-     * Refreshes the expiring items list.
-     * 
-     * This method reloads all expiring items from the repository, useful for
-     * manual refresh actions or after retrying from an error state.
-     */
     fun refresh() {
         loadExpiringItems()
     }
 
-    /**
-     * Applies the current filter to the loaded items.
-     */
     private fun applyFilterToItems() {
         val currentAllItems = _uiState.value.allItems
         if (currentAllItems != null) {
@@ -417,11 +470,8 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Filters items based on the selected filter.
-     */
     private fun applyFilterToItemsList(
-        items: List<ExpiringItemWithProduct>, 
+        items: List<ExpiringItemWithProduct>,
         filter: String
     ): List<ExpiringItemWithProduct> {
         return when (filter) {

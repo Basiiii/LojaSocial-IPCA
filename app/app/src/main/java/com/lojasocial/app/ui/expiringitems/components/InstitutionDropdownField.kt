@@ -20,7 +20,16 @@ import androidx.compose.ui.unit.sp
 import com.lojasocial.app.ui.theme.BorderColor
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.TextGray
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
+/**
+ * Formats a Firebase timestamp to a human-readable relative time string.
+ * 
+ * @param timestamp The Firebase timestamp to format
+ * @return A string describing how long ago the timestamp was (e.g., "Há poucos minutos", "Há 2 horas")
+ */
 @Composable
 fun formatTimestamp(timestamp: com.google.firebase.Timestamp): String {
     val date = timestamp.toDate()
@@ -35,12 +44,34 @@ fun formatTimestamp(timestamp: com.google.firebase.Timestamp): String {
     }
 }
 
+/**
+ * Data class representing an institution with pickup history.
+ * 
+ * @param id Unique identifier for the institution
+ * @param name Display name of the institution
+ * @param lastPickup Timestamp of the last pickup from this institution
+ */
 data class Institution(
     val id: String = "",
     val name: String = "",
     val lastPickup: com.google.firebase.Timestamp? = null
 )
 
+/**
+ * Dropdown field component for selecting institutions with search and recent items functionality.
+ * 
+ * This component provides an autocomplete-style dropdown that:
+ * - Shows recent institutions (up to 3) when the field is empty
+ * - Filters institutions as the user types
+ * - Displays the last pickup time for each institution
+ * - Automatically closes when an institution is selected
+ * - Prevents the dropdown from reopening immediately after selection
+ * 
+ * @param institutions List of all available institutions
+ * @param selectedInstitution Currently selected institution name
+ * @param onInstitutionChange Callback when institution selection changes
+ * @param isLoading Whether to show a loading state
+ */
 @Composable
 fun InstitutionDropdownField(
     institutions: List<Institution>,
@@ -50,9 +81,12 @@ fun InstitutionDropdownField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var textValue by remember { mutableStateOf(selectedInstitution) }
+    var isUserSelecting by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedInstitution) {
-        textValue = selectedInstitution
+        if (!isUserSelecting) {
+            textValue = selectedInstitution
+        }
     }
 
     // Filter institutions based on current text input
@@ -76,7 +110,10 @@ fun InstitutionDropdownField(
     // Auto-expand dropdown when typing and there are matches
     LaunchedEffect(textValue, filteredInstitutions) {
         if (textValue.isNotBlank() && filteredInstitutions.isNotEmpty()) {
-            expanded = true
+            // Only expand if not already closed by selection
+            if (!expanded && !isUserSelecting) {
+                expanded = true
+            }
         } else if (textValue.isBlank()) {
             expanded = false
         }
@@ -162,9 +199,15 @@ fun InstitutionDropdownField(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        isUserSelecting = true
                                         textValue = institution.name
                                         onInstitutionChange(institution.name)
                                         expanded = false
+                                        // Reset the flag after a short delay
+                                        GlobalScope.launch {
+                                            delay(100)
+                                            isUserSelecting = false
+                                        }
                                     }
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -202,9 +245,15 @@ fun InstitutionDropdownField(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        isUserSelecting = true
                                         textValue = institution.name
                                         onInstitutionChange(institution.name)
                                         expanded = false
+                                        // Reset the flag after a short delay
+                                        GlobalScope.launch {
+                                            delay(100)
+                                            isUserSelecting = false
+                                        }
                                     }
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -233,6 +282,12 @@ fun InstitutionDropdownField(
     }
 }
 
+/**
+ * Preview composable for the InstitutionDropdownField with sample data.
+ * 
+ * Shows the dropdown field with a mix of institutions that have and don't have
+ * pickup history to demonstrate the filtering and display functionality.
+ */
 @Preview(showBackground = true)
 @Composable
 fun InstitutionDropdownFieldPreview() {
@@ -261,6 +316,12 @@ fun InstitutionDropdownFieldPreview() {
     }
 }
 
+/**
+ * Preview composable showing the dropdown menu in an opened state.
+ * 
+ * This preview demonstrates how the dropdown menu looks when expanded,
+ * showing the list of recent institutions with their pickup times.
+ */
 @Preview(showBackground = true, name = "Dropdown Aberto")
 @Composable
 fun InstitutionDropdownFieldOpenedPreview() {
