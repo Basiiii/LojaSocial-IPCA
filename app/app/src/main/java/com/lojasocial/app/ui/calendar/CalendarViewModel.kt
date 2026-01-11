@@ -12,6 +12,7 @@ import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.repository.request.UserProfileData
 import com.lojasocial.app.repository.user.UserRepository
 import com.lojasocial.app.repository.user.ProfilePictureRepository
+import com.lojasocial.app.repository.product.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,7 +34,8 @@ class CalendarViewModel @Inject constructor(
     private val campaignRepository: CampaignRepository,
     private val requestsRepository: RequestsRepository,
     private val authRepository: AuthRepository,
-    private val profilePictureRepository: ProfilePictureRepository
+    private val profilePictureRepository: ProfilePictureRepository,
+    val productRepository: ProductRepository
 ) : ViewModel() {
     
     private val _selectedDate = MutableStateFlow<Date?>(null)

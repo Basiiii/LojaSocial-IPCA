@@ -32,6 +32,7 @@ import com.lojasocial.app.domain.request.PickupRequest
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.repository.request.UserProfileData
 import com.lojasocial.app.repository.user.ProfilePictureRepository
+import com.lojasocial.app.repository.product.ProductRepository
 import com.lojasocial.app.ui.requests.components.RequestDetailsDialog
 import com.lojasocial.app.ui.theme.*
 import com.lojasocial.app.utils.FileUtils
@@ -50,6 +51,7 @@ fun CalendarView(
     isBeneficiaryPortal: Boolean = false,
     profilePictureRepository: ProfilePictureRepository? = null
 ) {
+    val productRepository = viewModel.productRepository
     val selectedDate by viewModel.selectedDate.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
     val pickupRequests by viewModel.pickupRequests.collectAsState()
@@ -183,6 +185,7 @@ fun CalendarView(
                 viewModel.cancelDelivery(request.id, beneficiaryAbsent)
             },
             profilePictureRepository = profilePictureRepository,
+            productRepository = productRepository,
             isBeneficiaryView = isBeneficiaryPortal,
             onAcceptEmployeeDate = {
                 // Not used in calendar context
