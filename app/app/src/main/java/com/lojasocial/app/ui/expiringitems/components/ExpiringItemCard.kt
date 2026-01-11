@@ -56,10 +56,13 @@ fun ExpiringItemCard(item: ExpiringItemWithProduct) {
     val expirationDateText = item.stockItem.expirationDate?.let { dateFormat.format(it) } ?: "Sem data"
     
     val urgencyColor = when {
+        item.daysUntilExpiration < 0 -> ScanRed // Expired items
         item.daysUntilExpiration == 0 -> ScanRed
         item.daysUntilExpiration == 1 -> Color(0xFFFF9800) // Orange
         else -> BrandOrange
     }
+    
+    val isExpired = item.daysUntilExpiration < 0
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -111,10 +114,15 @@ fun ExpiringItemCard(item: ExpiringItemWithProduct) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ExpirationBadge(
-                        daysUntilExpiration = item.daysUntilExpiration,
-                        urgencyColor = urgencyColor
-                    )
+                    if (isExpired) {
+                        // Show "Expirado" badge for expired items
+                        ExpiredBadge()
+                    } else {
+                        ExpirationBadge(
+                            daysUntilExpiration = item.daysUntilExpiration,
+                            urgencyColor = urgencyColor
+                        )
+                    }
 
                     Text(
                         text = "•",
@@ -172,6 +180,29 @@ private fun ExpirationBadge(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = urgencyColor
+        )
+    }
+}
+
+/**
+ * Badge component for expired items.
+ * 
+ * Displays a red badge with "Expirado" text to clearly indicate that the item has already expired.
+ * 
+ * @see ExpirationBadge For items that haven't expired yet
+ */
+@Composable
+private fun ExpiredBadge() {
+    Surface(
+        color = ScanRed.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(4.dp)
+    ) {
+        Text(
+            text = "Expirado",
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = ScanRed
         )
     }
 }

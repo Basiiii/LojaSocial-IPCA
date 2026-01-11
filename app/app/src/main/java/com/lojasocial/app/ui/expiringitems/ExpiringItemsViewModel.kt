@@ -74,14 +74,14 @@ class ExpiringItemsViewModel @Inject constructor(
                         null
                     }
                     
-                    // Calculate days until expiration
+                    // Calculate days until expiration (negative means expired)
                     val daysUntilExpiration = stockItem.expirationDate?.let { expDate ->
                         val now = Calendar.getInstance()
                         val expiration = Calendar.getInstance().apply {
                             time = expDate
                         }
                         val diffInMillis = expiration.timeInMillis - now.timeInMillis
-                        (diffInMillis / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(0)
+                        (diffInMillis / (1000 * 60 * 60 * 24)).toInt() // Allow negative for expired items
                     } ?: 0
                     
                     ExpiringItemWithProduct(
