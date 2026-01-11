@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.firebase.database)
     implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
     implementation(libs.androidx.material3)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

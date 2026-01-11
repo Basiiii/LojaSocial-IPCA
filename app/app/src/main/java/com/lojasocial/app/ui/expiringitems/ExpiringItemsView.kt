@@ -44,6 +44,10 @@ import java.util.Date
  * Main view for displaying items that are expiring within the threshold period.
  * Provides administrators with a comprehensive view of stock items approaching expiration dates.
  * Handles loading, error, empty, and success states with items sorted by urgency.
+ * 
+ * @param onNavigateBack callback to navigate back
+ * @param expirationRepository optional repository for expiration checks
+ * @param viewModel view model for expiring items
  */
 @Composable
 fun ExpiringItemsView(
@@ -196,8 +200,6 @@ fun ExpiringItemsView(
         when (updateState) {
             is UpdateState.Success -> {
                 showSubmissionSuccessDialog = true
-                // Refresh the list to remove processed items
-                viewModel.refresh()
             }
             is UpdateState.Error -> {
                 // Handle error state
@@ -385,6 +387,14 @@ fun ExpiringItemsView(
 /**
  * List component displaying all expiring items in a scrollable list.
  * Renders a LazyColumn with expiring items sorted by urgency.
+ * 
+ * @param modifier modifier for the list
+ * @param items list of expiring items
+ * @param selectedQuantities map of selected quantities
+ * @param onQuantityIncrease callback to increase quantity
+ * @param onQuantityDecrease callback to decrease quantity
+ * @param listState state of the list
+ * @param isLoadingMore whether more items are being loaded
  */
 @Composable
 private fun ExpiringItemsList(

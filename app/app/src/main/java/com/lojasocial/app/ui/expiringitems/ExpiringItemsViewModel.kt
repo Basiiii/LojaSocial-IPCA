@@ -16,24 +16,39 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import com.lojasocial.app.ui.expiringitems.components.Institution
+import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import java.util.Date
 import javax.inject.Inject
 
 /**
- * Update state for expiring items operation.
+ * Enum representing the state of the expiring items update operation.
  */
 sealed class UpdateState {
+    /**
+     * Initial state, no operation in progress.
+     */
     object Idle : UpdateState()
+    /**
+     * Operation is in progress.
+     */
     object Loading : UpdateState()
+    /**
+     * Operation completed successfully.
+     */
     object Success : UpdateState()
+    /**
+     * Operation failed with an error message.
+     */
     data class Error(val message: String) : UpdateState()
 }
 
 /**
- * ViewModel for managing expiring items state and business logic.
- * Responsible for loading expiring items, managing state, and handling submissions.
+ * ViewModel responsible for managing the state and business logic of expiring items.
+ * Handles loading expiring items, managing state, and handling submissions.
  */
 @HiltViewModel
 class ExpiringItemsViewModel @Inject constructor(
@@ -281,47 +296,49 @@ class ExpiringItemsViewModel @Inject constructor(
                     }
                 )
 
-                firestore.collection("institution")
+                val documentReference = firestore.collection("institution")
                     .add(institutionData)
-                    .addOnSuccessListener { documentReference ->
-                        Log.d("ExpiringItemsViewModel", "DocumentSnapshot written with ID: ${documentReference.id}")
+                    .await()
+                
+                Log.d("ExpiringItemsViewModel", "DocumentSnapshot written with ID: ${documentReference.id}")
 
-                        selectedItems.forEach { (itemId, quantity) ->
-                            updateStockForItem(itemId, quantity)
-                        }
+                val updateResults = selectedItems.map { (itemId, quantity) ->
+                    async { updateStockForItem(itemId, quantity) }
+                }.awaitAll()
 
-                        val currentUser = authRepository.getCurrentUser()
-                        viewModelScope.launch {
-                            auditRepository.logAction(
-                                action = "submit_expiring_items",
-                                userId = currentUser?.uid,
-                                details = mapOf(
-                                    "institutionName" to institutionName,
-                                    "totalItems" to selectedItems.size,
-                                    "totalQuantity" to selectedItems.values.sum(),
-                                    "items" to selectedItems.map { (itemId, quantity) ->
-                                        val item = _uiState.value.allItems?.find { it.stockItem.id == itemId }
-                                        mapOf(
-                                            "itemId" to itemId,
-                                            "productName" to (item?.product?.name ?: "Produto desconhecido"),
-                                            "quantity" to quantity,
-                                            "barcode" to (item?.stockItem?.barcode ?: ""),
-                                            "expirationDate" to (item?.stockItem?.expirationDate?.toString()),
-                                            "daysUntilExpiration" to (item?.daysUntilExpiration ?: 0)
-                                        )
-                                    }
-                                )
+                val allUpdatesSuccessful = updateResults.all { it }
+                if (!allUpdatesSuccessful) {
+                    Log.w("ExpiringItemsViewModel", "Some stock updates failed")
+                }
+
+                updateLocalItemsAfterSubmission(selectedItems)
+
+                val currentUser = authRepository.getCurrentUser()
+                auditRepository.logAction(
+                    action = "submit_expiring_items",
+                    userId = currentUser?.uid,
+                    details = mapOf(
+                        "institutionName" to institutionName,
+                        "totalItems" to selectedItems.size,
+                        "totalQuantity" to selectedItems.values.sum(),
+                        "items" to selectedItems.map { (itemId, quantity) ->
+                            val item = _uiState.value.allItems?.find { it.stockItem.id == itemId }
+                            mapOf(
+                                "itemId" to itemId,
+                                "productName" to (item?.product?.name ?: "Produto desconhecido"),
+                                "quantity" to quantity,
+                                "barcode" to (item?.stockItem?.barcode ?: ""),
+                                "expirationDate" to (item?.stockItem?.expirationDate?.toString()),
+                                "daysUntilExpiration" to (item?.daysUntilExpiration ?: 0)
                             )
                         }
+                    )
+                )
 
-                        _updateState.value = UpdateState.Success
-                        clearQuantities() // Clear quantities after successful submission
-                        _institutionName.value = "" // Clear institution name after successful submission
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("ExpiringItemsViewModel", "Error adding document", e)
-                        _updateState.value = UpdateState.Error("Erro ao atualizar itens: ${e.message}")
-                    }
+                _updateState.value = UpdateState.Success
+                clearQuantities() // Clear quantities after successful submission
+                _institutionName.value = "" // Clear institution name after successful submission
+
             } catch (e: Exception) {
                 Log.e("ExpiringItemsViewModel", "Error submitting expiring items", e)
                 _updateState.value = UpdateState.Error("Erro ao atualizar itens: ${e.message}")
@@ -329,32 +346,75 @@ class ExpiringItemsViewModel @Inject constructor(
         }
     }
 
-    private fun updateStockForItem(itemId: String, quantity: Int) {
-        viewModelScope.launch {
+    private fun updateLocalItemsAfterSubmission(selectedItems: Map<String, Int>) {
+        val currentAllItems = _uiState.value.allItems?.toMutableList() ?: return
+        
+                // Update or remove items based on the submission
+        val updatedItems = currentAllItems.mapNotNull { item ->
+            val itemId = item.stockItem.id
+            val selectedQuantity = selectedItems[itemId] ?: 0
+            
+            if (selectedQuantity > 0) {
+                val currentQuantity = item.stockItem.quantity
+                val newQuantity = currentQuantity - selectedQuantity
+                
+                if (newQuantity > 0) {
+                // Update the item with new quantity
+                    item.copy(
+                        stockItem = item.stockItem.copy(quantity = newQuantity)
+                    )
+                } else {
+                // Remove the item if quantity reached zero
+                    null
+                }
+            } else {
+                // Keep items that were not selected
+                item
+            }
+        }
+        
+        // Update the UI state with the modified list
+        val sortedUpdatedItems = updatedItems.sortedBy { it.daysUntilExpiration }
+        _uiState.value = _uiState.value.copy(
+            allItems = sortedUpdatedItems,
+            items = applyFilterToItemsList(sortedUpdatedItems, _selectedFilter.value)
+        )
+        
+        Log.d("ExpiringItemsViewModel", "Updated local items: removed ${currentAllItems.size - updatedItems.size} items, updated quantities for selected items")
+    }
+
+    private suspend fun updateStockForItem(itemId: String, quantity: Int): Boolean {
+        return try {
             val currentStockItem = _uiState.value.allItems?.find { it.stockItem.id == itemId }
             currentStockItem?.let { stockItem ->
                 val currentStockQuantity = stockItem.stockItem.quantity
                 val newQuantity = currentStockQuantity - quantity
                 if (newQuantity > 0) {
-                    stockItemRepository.updateStockItem(
+                    val success = stockItemRepository.updateStockItem(
                         stockItemId = itemId,
                         updates = mapOf("quantity" to newQuantity)
                     )
-                    Log.d("ExpiringItemsViewModel", "Updated stock for item $itemId: $currentStockQuantity -> $newQuantity")
+                    if (success) {
+                        Log.d("ExpiringItemsViewModel", "Updated stock for item $itemId: $currentStockQuantity -> $newQuantity")
 
-                    val currentUser = authRepository.getCurrentUser()
-                    auditRepository.logAction(
-                        action = "reduce_stock",
-                        userId = currentUser?.uid,
-                        details = mapOf(
-                            "itemId" to itemId,
-                            "productName" to (currentStockItem.product?.name ?: "Produto desconhecido"),
-                            "barcode" to currentStockItem.stockItem.barcode,
-                            "previousQuantity" to currentStockQuantity,
-                            "reducedQuantity" to quantity,
-                            "newQuantity" to newQuantity
+                        val currentUser = authRepository.getCurrentUser()
+                        auditRepository.logAction(
+                            action = "reduce_stock",
+                            userId = currentUser?.uid,
+                            details = mapOf(
+                                "itemId" to itemId,
+                                "productName" to (currentStockItem.product?.name ?: "Produto desconhecido"),
+                                "barcode" to currentStockItem.stockItem.barcode,
+                                "previousQuantity" to currentStockQuantity,
+                                "reducedQuantity" to quantity,
+                                "newQuantity" to newQuantity
+                            )
                         )
-                    )
+                        true
+                    } else {
+                        Log.e("ExpiringItemsViewModel", "Failed to update stock for item $itemId")
+                        false
+                    }
                 } else if (newQuantity == 0) {
                     val deleteSuccess = stockItemRepository.deleteStockItem(itemId)
                     if (deleteSuccess) {
@@ -372,13 +432,19 @@ class ExpiringItemsViewModel @Inject constructor(
                                 "reason" to "quantity_reached_zero"
                             )
                         )
+                        true
                     } else {
                         Log.e("ExpiringItemsViewModel", "Failed to delete item $itemId from stock")
+                        false
                     }
                 } else {
                     Log.w("ExpiringItemsViewModel", "Insufficient stock for item $itemId: $currentStockQuantity < $quantity")
+                    false
                 }
-            }
+            } ?: false
+        } catch (e: Exception) {
+            Log.e("ExpiringItemsViewModel", "Error updating stock for item $itemId", e)
+            false
         }
     }
 
