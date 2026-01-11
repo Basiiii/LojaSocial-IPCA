@@ -33,6 +33,15 @@ import com.lojasocial.app.ui.requests.components.RequestDetailsDialog
 import com.lojasocial.app.ui.theme.BorderColor
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.ui.theme.TextGray
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import com.lojasocial.app.utils.FileUtils
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.first
@@ -184,7 +193,8 @@ fun UrgentRequestView(
                         onCreateUserClick = {
                             showCreateUserForm = true
                         },
-                        onBackClick = { showBeneficiarySelection = false }
+                        onBackClick = { showBeneficiarySelection = false },
+                        profilePictureRepository = profilePictureRepository
                     )
                 }
                 else -> {
@@ -342,7 +352,8 @@ fun BeneficiarySelectionScreen(
     selectedBeneficiary: UserProfile?,
     onSelectBeneficiary: (UserProfile) -> Unit,
     onCreateUserClick: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    profilePictureRepository: ProfilePictureRepository? = null
 ) {
     Column(
         modifier = Modifier
@@ -392,7 +403,8 @@ fun BeneficiarySelectionScreen(
                 BeneficiaryItem(
                     beneficiary = beneficiary,
                     isSelected = beneficiary.uid == selectedBeneficiary?.uid,
-                    onClick = { onSelectBeneficiary(beneficiary) }
+                    onClick = { onSelectBeneficiary(beneficiary) },
+                    profilePictureRepository = profilePictureRepository
                 )
             }
         }
@@ -403,14 +415,41 @@ fun BeneficiarySelectionScreen(
 fun BeneficiaryItem(
     beneficiary: UserProfile,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    profilePictureRepository: ProfilePictureRepository? = null
 ) {
+    var profilePictureBase64 by remember { mutableStateOf<String?>(null) }
+    var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    
+    // Fetch profile picture
+    LaunchedEffect(beneficiary.uid, profilePictureRepository) {
+        if (profilePictureRepository != null) {
+            try {
+                profilePictureRepository.getProfilePicture(beneficiary.uid)
+                    .firstOrNull()
+                    ?.let { base64 ->
+                        profilePictureBase64 = base64
+                        // Decode Base64 to ImageBitmap
+                        if (!base64.isNullOrBlank()) {
+                            val bytes = FileUtils.convertBase64ToFile(base64).getOrNull()
+                            bytes?.let {
+                                val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+                                imageBitmap = bitmap?.asImageBitmap()
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                // Handle error silently, fallback to initials
+            }
+        }
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) LojaSocialPrimary.copy(alpha = 0.2f) else Color.White
+            containerColor = Color.White
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -421,21 +460,31 @@ fun BeneficiaryItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Avatar (Profile picture or initials)
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(
-                        if (isSelected) LojaSocialPrimary else Color(0xFFE5E7EB),
-                        RoundedCornerShape(24.dp)
-                    ),
+                    .clip(CircleShape)
+                    .background(Color(0xFFE5E7EB)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = if (isSelected) Color.White else Color.Gray,
-                    modifier = Modifier.size(24.dp)
-                )
+                if (imageBitmap != null) {
+                    Image(
+                        bitmap = imageBitmap!!,
+                        contentDescription = "Profile picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Text(
+                        text = beneficiary.name.take(2).uppercase().ifEmpty { "U" },
+                        color = Color(0xFF6B7280),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
