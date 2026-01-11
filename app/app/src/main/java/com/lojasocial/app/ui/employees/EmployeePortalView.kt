@@ -48,6 +48,7 @@ fun EmployeePortalView(
     onNavigateToActivityList: () -> Unit = {},
     onNavigateToCampaigns: () -> Unit = {},
     onNavigateToPickupRequests: () -> Unit = {},
+    onNavigateToWeeklyPickups: () -> Unit = {},
     onNavigateToAuditLogs: () -> Unit = {},
     onNavigateToBeneficiaries: () -> Unit = {},
     onNavigateToStockList: () -> Unit = {},
@@ -58,6 +59,7 @@ fun EmployeePortalView(
     var showAddStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
+    var weeklyPickupsCount by remember { mutableStateOf(0) }
     val selectedTab = currentTab
     
     // Get current user ID to exclude own applications
@@ -66,11 +68,38 @@ fun EmployeePortalView(
     // Fetch pending applications count (excluding current user's applications)
     var pendingApplicationsCount by remember { mutableStateOf(0) }
     
-    // Fetch pending requests count
+    // Fetch pending requests count and weekly pickups count
     LaunchedEffect(requestsRepository) {
         requestsRepository?.getAllRequests()?.collect { requests ->
             // Count requests with status 0 (SUBMETIDO)
             pendingRequestsCount = requests.count { it.status == 0 }
+            
+            // Calculate weekly pickups (status 1 or 2 with scheduledPickupDate in current week)
+            val calendar = java.util.Calendar.getInstance()
+            val today = calendar.time
+            
+            // Get start of current week (Monday)
+            calendar.set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY)
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            calendar.set(java.util.Calendar.MINUTE, 0)
+            calendar.set(java.util.Calendar.SECOND, 0)
+            calendar.set(java.util.Calendar.MILLISECOND, 0)
+            val startOfWeek = calendar.time
+            
+            // Get end of current week (Sunday)
+            calendar.add(java.util.Calendar.DAY_OF_WEEK, 6)
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+            calendar.set(java.util.Calendar.MINUTE, 59)
+            calendar.set(java.util.Calendar.SECOND, 59)
+            calendar.set(java.util.Calendar.MILLISECOND, 999)
+            val endOfWeek = calendar.time
+            
+            weeklyPickupsCount = requests.count { request ->
+                request.status == 1 && 
+                request.scheduledPickupDate != null &&
+                request.scheduledPickupDate!! >= startOfWeek &&
+                request.scheduledPickupDate!! <= endOfWeek
+            }
         }
     }
     
@@ -98,7 +127,13 @@ fun EmployeePortalView(
                         name = userName?.takeIf { it.isNotBlank() } ?: "Utilizador"
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    StatsSection(pendingApplicationsCount = pendingApplicationsCount)
+                    StatsSection(
+                        pendingApplicationsCount = pendingApplicationsCount,
+                        pendingRequestsCount = pendingRequestsCount ?: 0,
+                        weeklyPickupsCount = weeklyPickupsCount,
+                        onPendingRequestsClick = onNavigateToPickupRequests,
+                        onWeeklyPickupsClick = onNavigateToWeeklyPickups
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },

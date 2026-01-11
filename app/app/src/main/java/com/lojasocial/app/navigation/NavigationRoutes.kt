@@ -37,6 +37,7 @@ sealed class Screen(val route: String) {
     object RequestItems : Screen("requestItems")
     object PickupRequests : Screen("pickupRequests")
     object UrgentRequest : Screen("urgentRequest")
+    object WeeklyPickups : Screen("weeklyPickups")
     
     // Application Flow
     object ApplicationFlow : Screen("applicationFlow") {

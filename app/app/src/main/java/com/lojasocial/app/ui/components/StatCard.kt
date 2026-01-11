@@ -2,8 +2,10 @@ package com.lojasocial.app.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -22,6 +24,7 @@ import com.lojasocial.app.ui.theme.TextDark
 import com.lojasocial.app.ui.theme.TextGray
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun StatCard(
@@ -30,42 +33,63 @@ fun StatCard(
     label: String,
     icon: ImageVector,
     iconBg: Color,
-    iconTint: Color
+    iconTint: Color,
+    onClick: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier
+            .height(80.dp) // Very compact fixed height
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Color(0xFFF3F4F6))
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icon in a Circle
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    icon,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
+
             Spacer(modifier = Modifier.width(12.dp))
-            androidx.compose.foundation.layout.Column {
+
+            // Text Info
+            Column(
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = count,
-                    fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
-                    color = TextDark
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark,
+                    lineHeight = 20.sp
                 )
-                Text(text = label, fontSize = 12.sp, color = TextGray)
+                Text(
+                    text = label,
+                    fontSize = 11.sp,
+                    color = TextGray,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 12.sp
+                )
             }
         }
     }

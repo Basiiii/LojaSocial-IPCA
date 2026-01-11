@@ -540,6 +540,14 @@ fun NavigationGraph(
             )
         }
 
+        // Weekly Pickups
+        composable(Screen.WeeklyPickups.route) {
+            com.lojasocial.app.ui.weeklypickups.WeeklyPickupsView(
+                profilePictureRepository = profilePictureRepository,
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+
         // Campaigns List
         composable(Screen.CampaignsList.route) {
             campaignRepository?.let { repository ->
@@ -735,6 +743,9 @@ private fun EmployeePortalTabContent(
         },
         onNavigateToPickupRequests = {
             navController.navigate(Screen.PickupRequests.route)
+        },
+        onNavigateToWeeklyPickups = {
+            navController.navigate(Screen.WeeklyPickups.route)
         },
         onNavigateToAuditLogs = {
             navController.navigate(Screen.AuditLogs.route)
