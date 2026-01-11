@@ -162,7 +162,8 @@ fun NonBeneficiaryPortalView(
             "calendar" -> {
                 CalendarView(
                     paddingValues = paddingValues,
-                    isBeneficiaryPortal = false
+                    isBeneficiaryPortal = false,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
         }

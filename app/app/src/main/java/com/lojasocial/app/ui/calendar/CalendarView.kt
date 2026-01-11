@@ -1,5 +1,7 @@
 package com.lojasocial.app.ui.calendar
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,8 +30,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.lojasocial.app.domain.campaign.Campaign
 import com.lojasocial.app.domain.request.PickupRequest
 import com.lojasocial.app.domain.request.Request
+import com.lojasocial.app.repository.request.UserProfileData
+import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.ui.requests.components.RequestDetailsDialog
 import com.lojasocial.app.ui.theme.*
+import com.lojasocial.app.utils.FileUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -38,7 +47,8 @@ import java.util.*
 fun CalendarView(
     viewModel: CalendarViewModel = hiltViewModel(),
     paddingValues: PaddingValues = PaddingValues(0.dp),
-    isBeneficiaryPortal: Boolean = false
+    isBeneficiaryPortal: Boolean = false,
+    profilePictureRepository: ProfilePictureRepository? = null
 ) {
     val selectedDate by viewModel.selectedDate.collectAsState()
     val currentMonth by viewModel.currentMonth.collectAsState()
@@ -51,6 +61,8 @@ fun CalendarView(
     val userProfile by viewModel.userProfile.collectAsState()
     val isLoadingRequest by viewModel.isLoadingRequest.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
+    val beneficiaryProfiles by viewModel.beneficiaryProfiles.collectAsState()
+    val profilePictures by viewModel.profilePictures.collectAsState()
     
     // Update ViewModel with portal context
     LaunchedEffect(isBeneficiaryPortal) {
@@ -112,6 +124,8 @@ fun CalendarView(
                     requests = pickupRequests,
                     acceptedRequests = dateAcceptedRequests,
                     isLoading = isLoading,
+                    beneficiaryProfiles = beneficiaryProfiles,
+                    profilePictures = profilePictures,
                     onRequestClick = { requestId ->
                         viewModel.selectRequest(requestId)
                     }
@@ -168,7 +182,7 @@ fun CalendarView(
             onCancelDelivery = { beneficiaryAbsent ->
                 viewModel.cancelDelivery(request.id, beneficiaryAbsent)
             },
-            profilePictureRepository = null,
+            profilePictureRepository = profilePictureRepository,
             isBeneficiaryView = isBeneficiaryPortal,
             onAcceptEmployeeDate = {
                 // Not used in calendar context
@@ -404,6 +418,9 @@ private fun DayCell(
         val hasAcceptedRequests = dateAcceptedRequests.isNotEmpty()
         val hasBoth = hasCampaigns && hasAcceptedRequests
         
+        // Check if any accepted requests are concluded (status == 2)
+        val hasConcludedRequests = dateAcceptedRequests.any { it.status == 2 }
+        
         Box(
             modifier = modifier
                 .aspectRatio(1f)
@@ -419,6 +436,7 @@ private fun DayCell(
                         Modifier.background(
                             when {
                                 hasCampaigns -> Color(0xFFFFE5B4) // Light orange/amber for campaign days
+                                hasConcludedRequests -> Color(0xFFD1FAE5) // Light green for concluded deliveries
                                 hasAcceptedRequests -> Color(0xFFE0F2FE) // Light blue for accepted request days
                                 isToday -> LojaSocialPrimary.copy(alpha = 0.1f)
                                 else -> LojaSocialSurface
@@ -443,12 +461,17 @@ private fun DayCell(
                             .fillMaxHeight()
                             .background(Color(0xFFFFE5B4))
                     )
-                    // Right half - Accepted request color
+                    // Right half - Accepted request color (green if concluded, blue otherwise)
+                    val rightHalfColor = if (dateAcceptedRequests.any { it.status == 2 }) {
+                        Color(0xFFD1FAE5) // Light green for concluded
+                    } else {
+                        Color(0xFFE0F2FE) // Light blue for pending
+                    }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .background(Color(0xFFE0F2FE))
+                            .background(rightHalfColor)
                     )
                 }
             }
@@ -465,6 +488,7 @@ private fun DayCell(
                         isSelected -> LojaSocialOnPrimary
                         hasBoth -> TextDark // Use default text color when both exist (background provides visual distinction)
                         hasCampaigns -> Color(0xFFD97706) // Orange text for campaign days
+                        hasConcludedRequests -> Color(0xFF059669) // Green text for concluded deliveries
                         hasAcceptedRequests -> Color(0xFF0284C7) // Blue text for accepted request days
                         isToday -> LojaSocialPrimary
                         else -> TextDark
@@ -494,11 +518,16 @@ private fun DayCell(
                         )
                     }
                     if (hasAcceptedRequests) {
+                        val iconColor = when {
+                            isSelected -> LojaSocialOnPrimary
+                            hasConcludedRequests -> Color(0xFF059669) // Green for concluded
+                            else -> Color(0xFF0284C7) // Blue for pending
+                        }
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Pedido Aceite",
                             modifier = Modifier.size(8.dp),
-                            tint = if (isSelected) LojaSocialOnPrimary else Color(0xFF0284C7)
+                            tint = iconColor
                         )
                     }
                 }
@@ -516,6 +545,8 @@ private fun PickupRequestsSection(
     requests: List<PickupRequest>,
     acceptedRequests: List<Request>,
     isLoading: Boolean,
+    beneficiaryProfiles: Map<String, UserProfileData>,
+    profilePictures: Map<String, String?>,
     onRequestClick: (String) -> Unit
 ) {
     val dateFormatter = SimpleDateFormat("dd 'de' MMMM 'de' yyyy", Locale("pt", "PT"))
@@ -568,6 +599,8 @@ private fun PickupRequestsSection(
                 acceptedRequests.forEach { request ->
                     AcceptedRequestItem(
                         request = request,
+                        beneficiaryProfile = beneficiaryProfiles[request.id],
+                        profilePictureBase64 = profilePictures[request.id],
                         onClick = { onRequestClick(request.id) }
                     )
                 }
@@ -675,10 +708,57 @@ private fun CampaignItem(
 @Composable
 private fun AcceptedRequestItem(
     request: Request,
+    beneficiaryProfile: UserProfileData?,
+    profilePictureBase64: String?,
     onClick: () -> Unit
 ) {
     val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "PT"))
     val pickupDateStr = request.scheduledPickupDate?.let { dateFormatter.format(it) } ?: ""
+    
+    // Determine if request is concluded (status == 2)
+    val isConcluded = request.status == 2
+    val backgroundColor = if (isConcluded) {
+        Color(0xFFD1FAE5) // Light green for concluded
+    } else {
+        Color(0xFFE0F2FE) // Light blue for pending
+    }
+    val iconBgColor = if (isConcluded) {
+        Color(0xFF059669).copy(alpha = 0.2f) // Green tint
+    } else {
+        Color(0xFF0284C7).copy(alpha = 0.2f) // Blue tint
+    }
+    val iconTint = if (isConcluded) {
+        Color(0xFF059669) // Green
+    } else {
+        Color(0xFF0284C7) // Blue
+    }
+    
+    // Get beneficiary name
+    val beneficiaryName = beneficiaryProfile?.name?.takeIf { it.isNotEmpty() } ?: "Utilizador"
+    
+    // Decode profile picture
+    var imageBitmap by remember(profilePictureBase64) { 
+        mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) 
+    }
+    
+    LaunchedEffect(profilePictureBase64) {
+        profilePictureBase64?.let { base64 ->
+            if (base64.isNotBlank()) {
+                imageBitmap = withContext(Dispatchers.IO) {
+                    try {
+                        val bytes = FileUtils.convertBase64ToFile(base64).getOrNull()
+                        bytes?.let {
+                            BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            }
+        } ?: run {
+            imageBitmap = null
+        }
+    }
     
     Card(
         modifier = Modifier
@@ -686,7 +766,7 @@ private fun AcceptedRequestItem(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFE0F2FE) // Light blue background
+            containerColor = backgroundColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -700,22 +780,34 @@ private fun AcceptedRequestItem(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF0284C7).copy(alpha = 0.2f)),
+                    .background(iconBgColor),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = Color(0xFF0284C7),
-                    modifier = Modifier.size(30.dp)
-                )
+                if (imageBitmap != null) {
+                    Image(
+                        bitmap = imageBitmap!!,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Show initials if no profile picture
+                    Text(
+                        text = beneficiaryName.take(2).uppercase(),
+                        color = iconTint,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.width(12.dp))
             
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Pedido Aceite",
+                    text = beneficiaryName,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextDark
