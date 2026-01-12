@@ -1,17 +1,26 @@
 package com.lojasocial.app.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
+import androidx.navigation.navArgument
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -75,26 +84,84 @@ fun NavigationGraph(
     campaignRepository: CampaignRepository? = null,
     requestsRepository: RequestsRepository? = null,
     profilePictureRepository: ProfilePictureRepository,
-    activity: androidx.activity.ComponentActivity? = null
+    activity: androidx.activity.ComponentActivity? = null,
+    notificationRequestId: String? = null,
+    notificationApplicationId: String? = null
 ) {
     // Handle navigation when app is already running and notification is clicked
-    LaunchedEffect(activity, lastProfile) {
+    LaunchedEffect(activity, lastProfile, notificationRequestId, notificationApplicationId) {
         if (activity != null && lastProfile != null) {
             val currentIntent = activity.intent
             val screenExtra = currentIntent.getStringExtra("screen")
+            val requestId = currentIntent.getStringExtra("requestId") ?: notificationRequestId
+            val applicationId = currentIntent.getStringExtra("applicationId") ?: notificationApplicationId
             
-            if (screenExtra == "expiringItems") {
-                kotlinx.coroutines.delay(300)
-                try {
-                    val currentRoute = navController.currentBackStackEntry?.destination?.route
-                    if (currentRoute != Screen.ExpiringItems.route) {
-                        navController.navigate(Screen.ExpiringItems.route) {
-                            popUpTo(0) { inclusive = false }
+            android.util.Log.d("NavigationGraph", "LaunchedEffect - screen: $screenExtra, applicationId: $applicationId, requestId: $requestId")
+            
+            // Wait a bit longer to ensure NavHost is ready
+            kotlinx.coroutines.delay(500)
+            
+            // Check if NavHost is ready
+            if (navController.currentBackStackEntry == null) {
+                android.util.Log.w("NavigationGraph", "NavHost not ready yet, waiting...")
+                kotlinx.coroutines.delay(500)
+            }
+            
+            try {
+                when (screenExtra) {
+                    "expiringItems" -> {
+                        val currentRoute = navController.currentBackStackEntry?.destination?.route
+                        if (currentRoute != Screen.ExpiringItems.route) {
+                            navController.navigate(Screen.ExpiringItems.route) {
+                                popUpTo(0) { inclusive = false }
+                            }
                         }
                     }
-                } catch (e: Exception) {
-                    android.util.Log.e("NavigationGraph", "Error navigating to expiring items", e)
+                    "applicationDetail" -> {
+                        if (applicationId != null && applicationId.isNotBlank()) {
+                            val route = Screen.ApplicationDetail.createRoute(applicationId)
+                            val currentRoute = navController.currentBackStackEntry?.destination?.route
+                            android.util.Log.d("NavigationGraph", "Navigating to applicationDetail: $route, currentRoute: $currentRoute")
+                            
+                            try {
+                                if (currentRoute != route) {
+                                    navController.navigate(route) {
+                                        // Pop to root but keep it in the stack
+                                        popUpTo(0) { inclusive = false }
+                                        // Prevent multiple instances
+                                        launchSingleTop = true
+                                    }
+                                } else {
+                                    android.util.Log.d("NavigationGraph", "Already on applicationDetail route, skipping navigation")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("NavigationGraph", "Error navigating to applicationDetail", e)
+                            }
+                        } else {
+                            android.util.Log.w("NavigationGraph", "applicationDetail screen requested but applicationId is null or blank")
+                        }
+                    }
+                    "requestDetails" -> {
+                        if (requestId != null) {
+                            // Navigate to pickup requests - the view will need to auto-select the request
+                            navController.navigate(Screen.PickupRequests.route) {
+                                popUpTo(0) { inclusive = false }
+                            }
+                            // Store requestId to be picked up by PickupRequestsView
+                            // We'll use a shared preference or pass it through navigation
+                        }
+                    }
+                    "beneficiaryPortal" -> {
+                        val currentRoute = navController.currentBackStackEntry?.destination?.route
+                        if (currentRoute?.startsWith(Screen.BeneficiaryPortal.route) != true) {
+                            navController.navigate(Screen.BeneficiaryPortal.route) {
+                                popUpTo(0) { inclusive = false }
+                            }
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("NavigationGraph", "Error navigating from notification", e)
             }
         }
     }
@@ -106,20 +173,73 @@ fun NavigationGraph(
                 if (event == Lifecycle.Event.ON_RESUME && lastProfile != null) {
                     val currentIntent = (source as? androidx.activity.ComponentActivity)?.intent
                     val screenExtra = currentIntent?.getStringExtra("screen")
+                    val requestId = currentIntent?.getStringExtra("requestId")
+                    val applicationId = currentIntent?.getStringExtra("applicationId")
                     
-                    if (screenExtra == "expiringItems") {
-                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-                            kotlinx.coroutines.delay(300)
-                            try {
-                                val currentRoute = navController.currentBackStackEntry?.destination?.route
-                                if (currentRoute != Screen.ExpiringItems.route) {
-                                    navController.navigate(Screen.ExpiringItems.route) {
-                                        popUpTo(0) { inclusive = false }
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                        android.util.Log.d("NavigationGraph", "DisposableEffect ON_RESUME - screen: $screenExtra, applicationId: $applicationId, requestId: $requestId")
+                        
+                        kotlinx.coroutines.delay(500)
+                        
+                        // Check if NavHost is ready
+                        if (navController.currentBackStackEntry == null) {
+                            android.util.Log.w("NavigationGraph", "DisposableEffect - NavHost not ready yet, waiting...")
+                            kotlinx.coroutines.delay(500)
+                        }
+                        
+                        try {
+                            when (screenExtra) {
+                                "expiringItems" -> {
+                                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                    if (currentRoute != Screen.ExpiringItems.route) {
+                                        navController.navigate(Screen.ExpiringItems.route) {
+                                            popUpTo(0) { inclusive = false }
+                                        }
                                     }
                                 }
-                            } catch (e: Exception) {
-                                android.util.Log.e("NavigationGraph", "Error navigating to expiring items on resume", e)
+                                "applicationDetail" -> {
+                                    if (applicationId != null && applicationId.isNotBlank()) {
+                                        val route = Screen.ApplicationDetail.createRoute(applicationId)
+                                        val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                        android.util.Log.d("NavigationGraph", "DisposableEffect - Navigating to applicationDetail: $route, currentRoute: $currentRoute")
+                                        
+                                        try {
+                                            if (currentRoute != route) {
+                                                navController.navigate(route) {
+                                                    popUpTo(0) { inclusive = false }
+                                                    launchSingleTop = true
+                                                }
+                                            } else {
+                                                android.util.Log.d("NavigationGraph", "DisposableEffect - Already on applicationDetail route, skipping navigation")
+                                            }
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("NavigationGraph", "DisposableEffect - Error navigating to applicationDetail", e)
+                                        }
+                                    } else {
+                                        android.util.Log.w("NavigationGraph", "DisposableEffect - applicationDetail screen requested but applicationId is null or blank")
+                                    }
+                                }
+                                "requestDetails" -> {
+                                    if (requestId != null) {
+                                        val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                        if (currentRoute != Screen.PickupRequests.route) {
+                                            navController.navigate(Screen.PickupRequests.route) {
+                                                popUpTo(0) { inclusive = false }
+                                            }
+                                        }
+                                    }
+                                }
+                                "beneficiaryPortal" -> {
+                                    val currentRoute = navController.currentBackStackEntry?.destination?.route
+                                    if (currentRoute?.startsWith(Screen.BeneficiaryPortal.route) != true) {
+                                        navController.navigate(Screen.BeneficiaryPortal.route) {
+                                            popUpTo(0) { inclusive = false }
+                                        }
+                                    }
+                                }
                             }
+                        } catch (e: Exception) {
+                            android.util.Log.e("NavigationGraph", "Error navigating from notification on resume", e)
                         }
                     }
                 }
@@ -461,16 +581,61 @@ fun NavigationGraph(
         }
 
         // Application Detail
-        composable(Screen.ApplicationDetail().route) { backStackEntry ->
-            val applicationId = backStackEntry.arguments?.getString("applicationId") ?: ""
-            // Check if we came from AllApplicationsList (employee view)
-            val isEmployeeView = navController.previousBackStackEntry?.destination?.route == Screen.AllApplicationsList.route
-            ApplicationDetailView(
-                applicationId = applicationId,
-                applicationRepository = applicationRepository,
-                onNavigateBack = { navController.navigateUp() },
-                isEmployeeView = isEmployeeView
+        composable(
+            route = Screen.ApplicationDetail().route,
+            arguments = listOf(
+                navArgument("applicationId") {
+                    type = NavType.StringType
+                }
             )
+        ) { backStackEntry ->
+            // Extract applicationId from route arguments - this should work with navArgument
+            val applicationId = backStackEntry.arguments?.getString("applicationId") ?: ""
+            val route = backStackEntry.destination.route ?: ""
+            
+            android.util.Log.d("NavigationGraph", "ApplicationDetail composable - route: $route, applicationId: $applicationId")
+            
+            // Validate applicationId is not empty
+            if (applicationId.isBlank()) {
+                android.util.Log.e("NavigationGraph", "ApplicationDetail: applicationId is blank! Route: $route")
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            "ID da candidatura não fornecido",
+                            color = androidx.compose.ui.graphics.Color.Red,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TextButton(
+                            onClick = { navController.navigateUp() }
+                        ) {
+                            Text("Voltar")
+                        }
+                    }
+                }
+            } else {
+                // Check if we came from AllApplicationsList (employee view)
+                // Also check if user is admin - they can view any application
+                val isEmployeeViewFromRoute = navController.previousBackStackEntry?.destination?.route == Screen.AllApplicationsList.route
+                val isEmployeeViewFromProfile = lastProfile?.isAdmin == true
+                val isEmployeeView = isEmployeeViewFromRoute || isEmployeeViewFromProfile
+                
+                android.util.Log.d("NavigationGraph", "ApplicationDetail - applicationId: $applicationId, isEmployeeView: $isEmployeeView, isAdmin: ${lastProfile?.isAdmin}")
+                
+                // ApplicationDetailView has its own error handling, so we can safely call it
+                ApplicationDetailView(
+                    applicationId = applicationId,
+                    applicationRepository = applicationRepository,
+                    onNavigateBack = { navController.navigateUp() },
+                    isEmployeeView = isEmployeeView
+                )
+            }
         }
 
         // Expiring Items
@@ -590,12 +755,29 @@ fun NavigationGraph(
         composable(Screen.PickupRequests.route) {
             // Check if we're coming from beneficiary portal by checking previous destination
             val isFromBeneficiaryPortal = navController.previousBackStackEntry?.destination?.route?.startsWith(Screen.BeneficiaryPortal.route) == true
+            
+            // Get requestId from notification if available
+            val requestIdFromNotification = remember { 
+                activity?.intent?.getStringExtra("requestId") ?: notificationRequestId
+            }
+            
             com.lojasocial.app.ui.requests.PickupRequestsView(
-                onNavigateBack = { navController.navigateUp() },
+                onNavigateBack = {
+                    // Navigate back to the appropriate portal based on user profile
+                    val portalRoute = when {
+                        lastProfile?.isBeneficiary == true -> Screen.BeneficiaryPortal.route
+                        lastProfile?.isAdmin == true -> Screen.EmployeePortal.route
+                        else -> Screen.NonBeneficiaryPortal.route
+                    }
+                    navController.navigate(portalRoute) {
+                        popUpTo(portalRoute) { inclusive = false }
+                    }
+                },
                 userRepository = userRepository,
                 requestsRepository = requestsRepository,
                 profilePictureRepository = profilePictureRepository,
-                filterByCurrentUser = isFromBeneficiaryPortal
+                filterByCurrentUser = isFromBeneficiaryPortal,
+                initialRequestId = requestIdFromNotification
             )
         }
 

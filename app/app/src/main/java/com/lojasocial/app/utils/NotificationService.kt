@@ -109,8 +109,34 @@ class NotificationService : FirebaseMessagingService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             // Add data to intent for deep linking
-            putExtra("screen", data["screen"] ?: "expiringItems")
-            putExtra("itemCount", data["itemCount"] ?: "0")
+            val screen = data["screen"] ?: "expiringItems"
+            putExtra("screen", screen)
+            putExtra("type", data["type"] ?: "")
+            
+            Log.d(TAG, "Creating intent with screen: $screen, data: $data")
+            
+            // Add requestId or applicationId based on notification type
+            when (screen) {
+                "applicationDetail" -> {
+                    val appId = data["applicationId"]
+                    Log.d(TAG, "ApplicationDetail notification - applicationId: $appId")
+                    appId?.let { 
+                        putExtra("applicationId", it)
+                        Log.d(TAG, "Added applicationId to intent: $it")
+                    } ?: Log.w(TAG, "No applicationId found in notification data")
+                }
+                "requestDetails" -> {
+                    val reqId = data["requestId"]
+                    Log.d(TAG, "RequestDetails notification - requestId: $reqId")
+                    reqId?.let { 
+                        putExtra("requestId", it)
+                        Log.d(TAG, "Added requestId to intent: $it")
+                    } ?: Log.w(TAG, "No requestId found in notification data")
+                }
+                "expiringItems" -> {
+                    data["itemCount"]?.let { putExtra("itemCount", it) }
+                }
+            }
         }
 
         // Create pending intent that will be triggered when notification is tapped

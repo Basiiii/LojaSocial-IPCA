@@ -11,6 +11,7 @@ import com.lojasocial.app.domain.request.RequestItemDetail
 import com.lojasocial.app.repository.audit.AuditRepository
 import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.product.ProductRepository
+import com.lojasocial.app.repository.notification.NotificationRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -30,7 +31,8 @@ class RequestsRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val productRepository: ProductRepository,
     private val auditRepository: AuditRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val notificationRepository: NotificationRepository
 ) : RequestsRepository {
 
     /**
@@ -711,6 +713,10 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun acceptRequest(requestId: String, scheduledPickupDate: Date): Result<Unit> {
         return try {
+            // Get request to find beneficiary userId
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            val beneficiaryUserId = requestDoc.getString("userId")
+            
             val timestamp = Timestamp(scheduledPickupDate)
             firestore.collection("requests").document(requestId)
                 .update(
@@ -720,6 +726,17 @@ class RequestsRepositoryImpl @Inject constructor(
                     )
                 )
                 .await()
+            
+            // Send notification to beneficiary about request acceptance
+            if (beneficiaryUserId != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyRequestAccepted(requestId, beneficiaryUserId)
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending request accepted notification", e)
+                    }
+                }
+            }
             
             // Log audit action
             val currentUser = authRepository.getCurrentUser()
@@ -787,6 +804,9 @@ class RequestsRepositoryImpl @Inject constructor(
                 }.await()
             }
             
+            // Get beneficiary userId before updating
+            val beneficiaryUserId = requestData["userId"] as? String
+            
             // Update request status
             val updates = mutableMapOf<String, Any>(
                 "status" to 4 // REJEITADO
@@ -797,6 +817,17 @@ class RequestsRepositoryImpl @Inject constructor(
             firestore.collection("requests").document(requestId)
                 .update(updates)
                 .await()
+            
+            // Send notification to beneficiary about request rejection
+            if (beneficiaryUserId != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyRequestRejected(requestId, beneficiaryUserId)
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending request rejected notification", e)
+                    }
+                }
+            }
             
             // Log audit action
             val currentUser = authRepository.getCurrentUser()
@@ -820,10 +851,29 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun proposeNewDate(requestId: String, proposedDate: Date): Result<Unit> {
         return try {
+            // Get request to find beneficiary userId
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            val beneficiaryUserId = requestDoc.getString("userId")
+            
             val timestamp = Timestamp(proposedDate)
             firestore.collection("requests").document(requestId)
                 .update("scheduledPickupDate", timestamp)
                 .await()
+            
+            // Send notification to beneficiary about new date proposed
+            if (beneficiaryUserId != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyDateProposedOrAccepted(
+                            requestId = requestId,
+                            recipientUserId = beneficiaryUserId,
+                            isAccepted = false
+                        )
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending date proposed notification", e)
+                    }
+                }
+            }
             
             // Log audit action
             val currentUser = authRepository.getCurrentUser()
@@ -846,6 +896,19 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun proposeNewDeliveryDate(requestId: String, proposedDate: Date): Result<Unit> {
         return try {
+            // Get request to find employee (admin) users - we need to notify all admins
+            // For now, we'll get the current user and check if they're an employee
+            // The notification service will handle getting all admin users
+            val currentUser = authRepository.getCurrentUser()
+            val isEmployee = currentUser?.uid?.let { uid ->
+                try {
+                    val userDoc = firestore.collection("users").document(uid).get().await()
+                    userDoc.getBoolean("isAdmin") ?: false
+                } catch (e: Exception) {
+                    false
+                }
+            } ?: false
+            
             val timestamp = Timestamp(proposedDate)
             // Update proposedDeliveryDate and clear scheduledPickupDate to reset negotiation
             firestore.collection("requests").document(requestId)
@@ -857,8 +920,54 @@ class RequestsRepositoryImpl @Inject constructor(
                 )
                 .await()
             
+            // Send notification to employees about new date proposed by beneficiary
+            if (!isEmployee) {
+                // If current user is not an employee, they're a beneficiary proposing a date
+                // We need to notify all employees
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        // Get all admin users and send notification to each
+                        val adminUsers = firestore.collection("users")
+                            .whereEqualTo("isAdmin", true)
+                            .get()
+                            .await()
+                        
+                        adminUsers.documents.forEach { adminDoc ->
+                            try {
+                                notificationRepository.notifyDateProposedOrAccepted(
+                                    requestId = requestId,
+                                    recipientUserId = adminDoc.id,
+                                    isAccepted = false
+                                )
+                            } catch (e: Exception) {
+                                Log.e("RequestsRepository", "Error sending notification to admin ${adminDoc.id}", e)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending date proposed notification to employees", e)
+                    }
+                }
+            } else {
+                // Employee proposing a date - notify the beneficiary
+                val requestDoc = firestore.collection("requests").document(requestId).get().await()
+                val beneficiaryUserId = requestDoc.getString("userId")
+                
+                if (beneficiaryUserId != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = beneficiaryUserId,
+                                isAccepted = false
+                            )
+                        } catch (e: Exception) {
+                            Log.e("RequestsRepository", "Error sending date proposed notification to beneficiary", e)
+                        }
+                    }
+                }
+            }
+            
             // Log audit action
-            val currentUser = authRepository.getCurrentUser()
             CoroutineScope(Dispatchers.IO).launch {
                 auditRepository.logAction(
                     action = "propose_new_delivery_date",
@@ -878,7 +987,7 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun acceptEmployeeProposedDate(requestId: String): Result<Unit> {
         return try {
-            // Get the request to retrieve scheduledPickupDate
+            // Get the request to retrieve scheduledPickupDate and find employee who proposed
             val requestDoc = firestore.collection("requests").document(requestId).get().await()
             if (!requestDoc.exists()) {
                 return Result.failure(Exception("Request not found"))
@@ -889,17 +998,46 @@ class RequestsRepositoryImpl @Inject constructor(
                 return Result.failure(Exception("No scheduled pickup date found"))
             }
             
+            // Get the employee who last updated this (we'll use current user if they're an employee)
+            // For simplicity, we'll notify the current user if they're an employee
+            val currentUser = authRepository.getCurrentUser()
+            val currentUserId = currentUser?.uid
+            
             // Update status to PENDENTE_LEVANTAMENTO
             firestore.collection("requests").document(requestId)
                 .update("status", 1) // PENDENTE_LEVANTAMENTO
                 .await()
             
+            // Send notification to all employees about date acceptance by beneficiary
+            // (Since we don't track which employee proposed, we notify all)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val adminUsers = firestore.collection("users")
+                        .whereEqualTo("isAdmin", true)
+                        .get()
+                        .await()
+                    
+                    adminUsers.documents.forEach { adminDoc ->
+                        try {
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = adminDoc.id,
+                                isAccepted = true
+                            )
+                        } catch (e: Exception) {
+                            Log.e("RequestsRepository", "Error sending date accepted notification to admin ${adminDoc.id}", e)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error sending date accepted notification to employees", e)
+                }
+            }
+            
             // Log audit action
-            val currentUser = authRepository.getCurrentUser()
             CoroutineScope(Dispatchers.IO).launch {
                 auditRepository.logAction(
                     action = "accept_employee_proposed_date",
-                    userId = currentUser?.uid,
+                    userId = currentUserId,
                     details = mapOf(
                         "requestId" to requestId,
                         "scheduledPickupDate" to scheduledPickupDate.toDate().toString()
@@ -1174,6 +1312,7 @@ class RequestsRepositoryImpl @Inject constructor(
             }
             
             val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val beneficiaryUserId = requestDoc.getString("userId")
             
             // Validate that request is in PENDENTE_LEVANTAMENTO status
             val currentStatus = (requestData["status"] as? Long)?.toInt() ?: (requestData["status"] as? Int) ?: 0
@@ -1191,10 +1330,49 @@ class RequestsRepositoryImpl @Inject constructor(
                 // Employee rescheduling: set scheduledPickupDate (employee proposal) and clear proposedDeliveryDate
                 updateData["scheduledPickupDate"] = timestamp
                 updateData["proposedDeliveryDate"] = FieldValue.delete()
+                
+                // Send notification to beneficiary
+                if (beneficiaryUserId != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = beneficiaryUserId,
+                                isAccepted = false
+                            )
+                        } catch (e: Exception) {
+                            Log.e("RequestsRepository", "Error sending reschedule notification to beneficiary", e)
+                        }
+                    }
+                }
             } else {
                 // Beneficiary rescheduling: set proposedDeliveryDate (beneficiary proposal) and clear scheduledPickupDate
                 updateData["proposedDeliveryDate"] = timestamp
                 updateData["scheduledPickupDate"] = FieldValue.delete()
+                
+                // Send notification to all employees
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val adminUsers = firestore.collection("users")
+                            .whereEqualTo("isAdmin", true)
+                            .get()
+                            .await()
+                        
+                        adminUsers.documents.forEach { adminDoc ->
+                            try {
+                                notificationRepository.notifyDateProposedOrAccepted(
+                                    requestId = requestId,
+                                    recipientUserId = adminDoc.id,
+                                    isAccepted = false
+                                )
+                            } catch (e: Exception) {
+                                Log.e("RequestsRepository", "Error sending reschedule notification to admin ${adminDoc.id}", e)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending reschedule notification to employees", e)
+                    }
+                }
             }
             
             firestore.collection("requests").document(requestId)
@@ -1396,9 +1574,18 @@ class RequestsRepositoryImpl @Inject constructor(
                     requestsData["proposedDeliveryDate"] = Timestamp(date)
                 }
                 
-                firestore.collection("requests")
-                    .add(requestsData)
-                    .await()
+                val requestRef = firestore.collection("requests")
+                val requestDocRef = requestRef.add(requestsData).await()
+                val requestId = requestDocRef.id
+                
+                // Send notification to employees about new request (fire and forget)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyNewRequest(requestId)
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending new request notification", e)
+                    }
+                }
                 
                 Result.success(Unit)
             } catch (e: Exception) {
