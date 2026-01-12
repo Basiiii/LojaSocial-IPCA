@@ -12,7 +12,9 @@ const VALID_ACTIONS = [
   'accept_request',
   'decline_request',
   'accept_application',
-  'decline_application'
+  'decline_application',
+  'create_urgent_request',
+  'urgent_request_item'
 ];
 
 // POST /api/audit/log - Log a single action
@@ -45,7 +47,22 @@ router.post('/log', async (req, res) => {
     // Store in Firestore
     await db.collection('audit_logs').add(auditLog);
 
-    logger.server(`Audit log created: ${action}`, { userId, hasDetails: !!details });
+    // Enhanced logging for urgent requests
+    if (action === 'create_urgent_request') {
+      const requestId = details?.requestId || 'unknown';
+      const beneficiaryUserId = details?.beneficiaryUserId || 'unknown';
+      const itemsCount = details?.itemsCount || 0;
+      logger.server(`[URGENT REQUEST] Created by user ${userId} for beneficiary ${beneficiaryUserId} - RequestId: ${requestId}, Items: ${itemsCount}`);
+    } else if (action === 'urgent_request_item') {
+      const itemId = details?.itemId || 'unknown';
+      const barcode = details?.barcode || 'unknown';
+      const quantity = details?.quantity || 0;
+      const productName = details?.productName || 'unknown';
+      const requestId = details?.requestId || 'unknown';
+      logger.server(`[URGENT REQUEST ITEM] Removed: ${productName} (${barcode}) - Quantity: ${quantity}, ItemId: ${itemId}, RequestId: ${requestId}`);
+    } else {
+      logger.server(`Audit log created: ${action} by user ${userId || 'unknown'}`);
+    }
     
     res.status(201).json({ 
       success: true,

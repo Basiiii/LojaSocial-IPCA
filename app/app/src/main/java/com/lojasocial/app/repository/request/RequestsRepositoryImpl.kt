@@ -1705,9 +1705,17 @@ class RequestsRepositoryImpl @Inject constructor(
             val requestRef = firestore.collection("requests").document()
             val requestId = requestRef.id
             
+            // Data class to hold item details for logging
+            data class ItemDetails(
+                val itemId: String,
+                val quantity: Int,
+                val barcode: String?,
+                val productName: String?
+            )
+            
             // Use transaction to decrease quantities and create request
-            firestore.runTransaction { transaction ->
-                // PHASE 1: Read all item documents and validate
+            val itemDetailsList = firestore.runTransaction { transaction ->
+                // PHASE 1: Read all item documents and validate, collecting details
                 val itemData = verifiedItems.mapNotNull { (itemDocId, quantityToDeduct) ->
                     val itemRef = firestore.collection("items").document(itemDocId)
                     val itemDoc = transaction.get(itemRef)
@@ -1726,14 +1734,23 @@ class RequestsRepositoryImpl @Inject constructor(
                         val newQuantity = maxOf(0, currentQuantity - quantityToDeduct)
                         val newReserved = maxOf(0, currentReserved - quantityToDeduct)
                         
-                        Triple(itemRef, newQuantity, newReserved)
+                        // Collect item details for logging
+                        val barcode = data["barcode"] as? String
+                        val productName = data["name"] as? String
+                        
+                        // Return both update data and item details
+                        Pair(
+                            Triple(itemRef, newQuantity, newReserved),
+                            ItemDetails(itemDocId, quantityToDeduct, barcode, productName)
+                        )
                     } else {
                         null
                     }
                 }
                 
                 // PHASE 2: Update all items
-                itemData.forEach { (itemRef, newQuantity, newReserved) ->
+                itemData.forEach { (updateData, _) ->
+                    val (itemRef, newQuantity, newReserved) = updateData
                     transaction.update(itemRef, mapOf(
                         "quantity" to newQuantity,
                         "reservedQuantity" to newReserved
@@ -1758,11 +1775,14 @@ class RequestsRepositoryImpl @Inject constructor(
                 )
                 
                 transaction.set(requestRef, requestsData)
-                requestId // Return the document ID
+                
+                // Return item details list for logging
+                itemData.map { it.second }
             }.await()
             
-            // Log audit action
+            // Log audit actions
             CoroutineScope(Dispatchers.IO).launch {
+                // Log the urgent request creation
                 auditRepository.logAction(
                     action = "create_urgent_request",
                     userId = currentUser.uid,
@@ -1772,6 +1792,22 @@ class RequestsRepositoryImpl @Inject constructor(
                         "requestId" to requestId
                     )
                 )
+                
+                // Log each item removed with details using existing logAction structure
+                itemDetailsList.forEach { itemDetails ->
+                    auditRepository.logAction(
+                        action = "urgent_request_item",
+                        userId = currentUser.uid,
+                        details = mapOf(
+                            "itemId" to itemDetails.itemId,
+                            "quantity" to itemDetails.quantity,
+                            "barcode" to (itemDetails.barcode ?: ""),
+                            "productName" to (itemDetails.productName ?: ""),
+                            "requestId" to requestId,
+                            "beneficiaryUserId" to userId
+                        )
+                    )
+                }
             }
             
             Result.success(requestId)
