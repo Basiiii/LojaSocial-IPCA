@@ -10,7 +10,8 @@ data class RequestItem(
     val name: String = "",
     val category: String = "Geral",
     val quantity: Int = 0,
-    val expiryDate: Timestamp? = null
+    val expiryDate: Timestamp? = null,
+    val barcode: String = ""
 ) {
     val stock: Int get() = quantity
 }
