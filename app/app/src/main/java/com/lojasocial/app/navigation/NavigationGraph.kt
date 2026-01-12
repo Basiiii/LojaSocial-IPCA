@@ -797,24 +797,28 @@ fun NavigationGraph(
             LaunchedEffect(requestIdFromNotification, currentUserId) {
                 if (requestIdFromNotification != null && currentUserId != null && requestsRepository != null) {
                     try {
-                        // Try to get the request to check if it belongs to current user
-                        val requests = requestsRepository.getRequests().firstOrNull()
-                        val request = requests?.find { it.id == requestIdFromNotification }
-                        requestUserId = request?.userId
-                        isOwnRequest = request?.userId == currentUserId
-                        android.util.Log.d("NavigationGraph", "PickupRequests - requestId: $requestIdFromNotification, currentUserId: $currentUserId, requestUserId: $requestUserId, isOwnRequest: $isOwnRequest")
+                        // Get the request directly by ID to check ownership
+                        val result = requestsRepository.getRequestById(requestIdFromNotification)
+                        if (result.isSuccess) {
+                            val request = result.getOrNull()
+                            requestUserId = request?.userId
+                            isOwnRequest = request?.userId == currentUserId
+                            android.util.Log.d("NavigationGraph", "PickupRequests - requestId: $requestIdFromNotification, currentUserId: $currentUserId, requestUserId: $requestUserId, isOwnRequest: $isOwnRequest")
+                        } else {
+                            android.util.Log.w("NavigationGraph", "Could not get request by ID: ${result.exceptionOrNull()?.message}")
+                        }
                     } catch (e: Exception) {
-                        android.util.Log.d("NavigationGraph", "Could not check request ownership", e)
+                        android.util.Log.e("NavigationGraph", "Error checking request ownership", e)
                     }
                 }
             }
             
             // Determine if we should filter by current user:
             // - If coming from beneficiary portal, filter by current user
-            // - If notification about own request and user is both admin and beneficiary, show as beneficiary view
+            // - If notification about own request, always show as beneficiary view (even if user is also admin)
             val shouldFilterByCurrentUser = when {
                 isFromBeneficiaryPortal -> true
-                isOwnRequest && lastProfile?.isBeneficiary == true -> true // Own request notification, show as beneficiary
+                isOwnRequest -> true // Own request notification, always show as beneficiary view
                 else -> false
             }
             

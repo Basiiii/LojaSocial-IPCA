@@ -896,18 +896,22 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun proposeNewDeliveryDate(requestId: String, proposedDate: Date): Result<Unit> {
         return try {
-            // Get request to find employee (admin) users - we need to notify all admins
-            // For now, we'll get the current user and check if they're an employee
-            // The notification service will handle getting all admin users
             val currentUser = authRepository.getCurrentUser()
-            val isEmployee = currentUser?.uid?.let { uid ->
-                try {
-                    val userDoc = firestore.collection("users").document(uid).get().await()
-                    userDoc.getBoolean("isAdmin") ?: false
-                } catch (e: Exception) {
-                    false
-                }
-            } ?: false
+            val currentUserId = currentUser?.uid
+            
+            // Get the request to check if it belongs to the current user
+            // This determines if they're acting as a beneficiary (own request) or employee (someone else's request)
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val beneficiaryUserId = requestData["userId"] as? String
+            
+            // Check if current user is the owner of this request
+            // If yes, they're acting as beneficiary; if no, they're acting as employee
+            val isOwnRequest = beneficiaryUserId == currentUserId
             
             val timestamp = Timestamp(proposedDate)
             // Update proposedDeliveryDate and clear scheduledPickupDate to reset negotiation
@@ -920,22 +924,21 @@ class RequestsRepositoryImpl @Inject constructor(
                 )
                 .await()
             
-            // Send notification to employees about new date proposed by beneficiary
-            if (!isEmployee) {
-                // If current user is not an employee, they're a beneficiary proposing a date
-                // Notify all employees using the dedicated endpoint
+            // Send notification based on who is proposing:
+            // - If it's their own request (beneficiary proposing), notify all employees
+            // - If it's someone else's request (employee proposing), notify the beneficiary
+            if (isOwnRequest) {
+                // Beneficiary proposing a date for their own request - notify all employees
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         notificationRepository.notifyBeneficiaryDateProposal(requestId)
+                        Log.d("RequestsRepository", "Sent beneficiary date proposal notification to all employees")
                     } catch (e: Exception) {
                         Log.e("RequestsRepository", "Error sending beneficiary date proposal notification to employees", e)
                     }
                 }
             } else {
-                // Employee proposing a date - notify the beneficiary
-                val requestDoc = firestore.collection("requests").document(requestId).get().await()
-                val beneficiaryUserId = requestDoc.getString("userId")
-                
+                // Employee proposing a date for someone else's request - notify the beneficiary
                 if (beneficiaryUserId != null) {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
@@ -944,6 +947,7 @@ class RequestsRepositoryImpl @Inject constructor(
                                 recipientUserId = beneficiaryUserId,
                                 isAccepted = false
                             )
+                            Log.d("RequestsRepository", "Sent date proposal notification to beneficiary: $beneficiaryUserId")
                         } catch (e: Exception) {
                             Log.e("RequestsRepository", "Error sending date proposed notification to beneficiary", e)
                         }
