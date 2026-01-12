@@ -8,13 +8,20 @@ import logger from '../utils/logger.js';
  */
 async function getUserFcmToken(userId) {
   try {
+    logger.server(`Getting FCM token for user: ${userId}`);
     const userDoc = await db.collection('users').doc(userId).get();
     if (!userDoc.exists) {
-      logger.server(`User ${userId} not found`);
+      logger.server(`User ${userId} not found in Firestore`);
       return null;
     }
     const data = userDoc.data();
-    return data.fcmToken || null;
+    const fcmToken = data.fcmToken || null;
+    if (fcmToken) {
+      logger.server(`FCM token found for user ${userId}: ${fcmToken.substring(0, 20)}...`);
+    } else {
+      logger.server(`No FCM token stored for user ${userId}`);
+    }
+    return fcmToken;
   } catch (error) {
     logger.error(`Error getting FCM token for user ${userId}`, error);
     return null;
@@ -68,19 +75,24 @@ async function sendNotificationToUser(fcmToken, title, body, data = {}) {
       return { success: false, error: 'No FCM token' };
     }
 
+    // FCM requires all data values to be strings
+    const dataPayload = {
+      ...Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [key, String(value)])
+      ),
+      type: String(data.type || 'general'),
+    };
+
     const message = {
       notification: {
         title,
         body,
       },
-      data: {
-        ...data,
-        type: data.type || 'general',
-      },
+      data: dataPayload,
       android: {
         priority: 'high',
         notification: {
-          channelId: 'default',
+          channelId: 'stock_warnings',
           sound: 'default',
         }
       },
@@ -175,16 +187,22 @@ async function notifyNewApplication(applicationId) {
  */
 async function notifyDateProposedOrAccepted(requestId, recipientUserId, isAccepted = false) {
   try {
+    logger.server(`notifyDateProposedOrAccepted called: requestId=${requestId}, recipientUserId=${recipientUserId}, isAccepted=${isAccepted}`);
+    
     const fcmToken = await getUserFcmToken(recipientUserId);
     if (!fcmToken) {
       logger.server(`No FCM token found for user ${recipientUserId}`);
-      return { success: false };
+      return { success: false, error: `No FCM token found for user ${recipientUserId}` };
     }
+
+    logger.server(`FCM token found for user ${recipientUserId}: ${fcmToken.substring(0, 20)}...`);
 
     const title = isAccepted ? 'Nova Data Aceite' : 'Nova Data Proposta';
     const body = isAccepted 
       ? 'Uma nova data de levantamento foi aceite'
       : 'Uma nova data de levantamento foi proposta';
+
+    logger.server(`Sending notification: title="${title}", body="${body}"`);
 
     const result = await sendNotificationToUser(
       fcmToken,
@@ -197,6 +215,7 @@ async function notifyDateProposedOrAccepted(requestId, recipientUserId, isAccept
       }
     );
 
+    logger.server(`Notification result: success=${result.success}, error=${result.error || 'none'}`);
     return result;
   } catch (error) {
     logger.error('Error sending date proposed/accepted notification', error);

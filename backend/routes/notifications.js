@@ -52,11 +52,17 @@ router.post('/date-proposed-or-accepted', async (req, res) => {
 
   try {
     const { requestId, recipientUserId, isAccepted } = req.body;
+    logger.server(`Received date-proposed-or-accepted request: requestId=${requestId}, recipientUserId=${recipientUserId}, isAccepted=${isAccepted}`);
+    
     if (!requestId || !recipientUserId) {
+      logger.server(`Missing required fields: requestId=${requestId}, recipientUserId=${recipientUserId}`);
       return res.status(400).json({ error: 'requestId and recipientUserId are required' });
     }
 
     const result = await notifyDateProposedOrAccepted(requestId, recipientUserId, isAccepted || false);
+    
+    logger.server(`Date-proposed-or-accepted result: success=${result.success}, error=${result.error || 'none'}`);
+    
     res.json({
       success: result.success,
       message: result.success ? 'Notification sent' : 'Failed to send notification',

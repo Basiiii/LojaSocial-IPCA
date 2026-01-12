@@ -156,6 +156,8 @@ class NotificationService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_HIGH) // High priority for important alerts
             .setContentIntent(pendingIntent) // Action when notification is tapped
             .setAutoCancel(true) // Automatically dismiss when tapped
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -165,11 +167,25 @@ class NotificationService : FirebaseMessagingService() {
             Log.w(TAG, "Notifications are disabled for this app")
             return
         }
+        
+        // Check if the notification channel exists and is enabled (Android O+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = notificationManager.getNotificationChannel(CHANNEL_ID)
+            if (channel == null) {
+                Log.w(TAG, "Notification channel $CHANNEL_ID does not exist, creating it now")
+                createNotificationChannel()
+            } else if (channel.importance == NotificationManager.IMPORTANCE_NONE) {
+                Log.w(TAG, "Notification channel $CHANNEL_ID is disabled (importance: NONE)")
+                return
+            } else {
+                Log.d(TAG, "Notification channel $CHANNEL_ID exists with importance: ${channel.importance}")
+            }
+        }
 
         // Use timestamp as notification ID to ensure uniqueness
         val notificationId = System.currentTimeMillis().toInt()
         notificationManager.notify(notificationId, notification)
-        Log.d(TAG, "Notification displayed with ID: $notificationId")
+        Log.d(TAG, "Notification displayed with ID: $notificationId, title: $title, body: $body")
     }
 
     /**
@@ -192,10 +208,14 @@ class NotificationService : FirebaseMessagingService() {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notificações sobre itens próximos do prazo de validade"
+                enableLights(true)
+                enableVibration(true)
+                setShowBadge(true)
             }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
+            Log.d(TAG, "Notification channel $CHANNEL_ID created with IMPORTANCE_HIGH")
         }
     }
 
