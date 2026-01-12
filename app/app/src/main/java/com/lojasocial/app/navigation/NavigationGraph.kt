@@ -755,6 +755,7 @@ fun NavigationGraph(
         composable(Screen.PickupRequests.route) {
             // Check if we're coming from beneficiary portal by checking previous destination
             val isFromBeneficiaryPortal = navController.previousBackStackEntry?.destination?.route?.startsWith(Screen.BeneficiaryPortal.route) == true
+            val isFromEmployeePortal = navController.previousBackStackEntry?.destination?.route?.startsWith(Screen.EmployeePortal.route) == true
             
             // Get requestId from notification if available
             val requestIdFromNotification = remember { 
@@ -763,8 +764,10 @@ fun NavigationGraph(
             
             com.lojasocial.app.ui.requests.PickupRequestsView(
                 onNavigateBack = {
-                    // Navigate back to the appropriate portal based on user profile
+                    // Navigate back to the portal we came from, or default based on profile
                     val portalRoute = when {
+                        isFromBeneficiaryPortal -> Screen.BeneficiaryPortal.route
+                        isFromEmployeePortal -> Screen.EmployeePortal.route
                         lastProfile?.isBeneficiary == true -> Screen.BeneficiaryPortal.route
                         lastProfile?.isAdmin == true -> Screen.EmployeePortal.route
                         else -> Screen.NonBeneficiaryPortal.route
