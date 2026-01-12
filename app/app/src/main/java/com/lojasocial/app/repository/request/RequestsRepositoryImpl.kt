@@ -713,27 +713,48 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun acceptRequest(requestId: String, scheduledPickupDate: Date): Result<Unit> {
         return try {
-            // Get request to find beneficiary userId
+            // Get request to find beneficiary userId and check if there's a proposedDeliveryDate
             val requestDoc = firestore.collection("requests").document(requestId).get().await()
-            val beneficiaryUserId = requestDoc.getString("userId")
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val beneficiaryUserId = requestData["userId"] as? String
+            
+            // Check if beneficiary had proposed a date (this means employee is accepting beneficiary's proposal)
+            val hasProposedDeliveryDate = requestData["proposedDeliveryDate"] != null
             
             val timestamp = Timestamp(scheduledPickupDate)
+            val updateData = mutableMapOf<String, Any>(
+                "status" to 1, // PENDENTE_LEVANTAMENTO
+                "scheduledPickupDate" to timestamp
+            )
+            
+            // If beneficiary had proposed a date, clear it since we're accepting it
+            if (hasProposedDeliveryDate) {
+                updateData["proposedDeliveryDate"] = FieldValue.delete()
+            }
+            
             firestore.collection("requests").document(requestId)
-                .update(
-                    mapOf(
-                        "status" to 1, // PENDENTE_LEVANTAMENTO
-                        "scheduledPickupDate" to timestamp
-                    )
-                )
+                .update(updateData)
                 .await()
             
-            // Send notification to beneficiary about request acceptance
+            // Send notification to beneficiary
             if (beneficiaryUserId != null) {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        notificationRepository.notifyRequestAccepted(requestId, beneficiaryUserId)
+                        if (hasProposedDeliveryDate) {
+                            // Employee accepted beneficiary's proposed date - send date accepted notification
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = beneficiaryUserId,
+                                isAccepted = true
+                            )
+                            Log.d("RequestsRepository", "Sent date accepted notification to beneficiary (employee accepted their proposed date)")
+                        } else {
+                            // Employee accepted request with new date - send request accepted notification
+                            notificationRepository.notifyRequestAccepted(requestId, beneficiaryUserId)
+                            Log.d("RequestsRepository", "Sent request accepted notification to beneficiary")
+                        }
                     } catch (e: Exception) {
-                        Log.e("RequestsRepository", "Error sending request accepted notification", e)
+                        Log.e("RequestsRepository", "Error sending notification to beneficiary", e)
                     }
                 }
             }
