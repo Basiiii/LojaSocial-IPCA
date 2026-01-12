@@ -220,4 +220,28 @@ class NotificationRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    /**
+     * Sends notification to all employees when beneficiary proposes a new date.
+     */
+    suspend fun notifyBeneficiaryDateProposal(requestId: String): Result<Unit> {
+        return try {
+            val response = apiService.notifyBeneficiaryDateProposal(
+                com.lojasocial.app.api.BeneficiaryDateProposalNotificationRequest(
+                    requestId = requestId
+                )
+            )
+            if (response.isSuccessful && response.body()?.success == true) {
+                Log.d(TAG, "Beneficiary date proposal notification sent successfully to all employees")
+                Result.success(Unit)
+            } else {
+                val error = response.body()?.error ?: "Unknown error"
+                Log.e(TAG, "Failed to send beneficiary date proposal notification: $error")
+                Result.failure(Exception(error))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending beneficiary date proposal notification", e)
+            Result.failure(e)
+        }
+    }
 }

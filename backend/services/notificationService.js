@@ -205,6 +205,38 @@ async function notifyDateProposedOrAccepted(requestId, recipientUserId, isAccept
 }
 
 /**
+ * Send notification to all employees when beneficiary proposes a new date
+ * @param {string} requestId - Request ID
+ * @returns {Promise<{success: boolean}>}
+ */
+async function notifyBeneficiaryDateProposal(requestId) {
+  try {
+    const adminUsers = await getAdminUsersWithTokens();
+    if (adminUsers.length === 0) {
+      logger.server('No admin users with FCM tokens found for beneficiary date proposal notification');
+      return { success: false };
+    }
+
+    const tokens = adminUsers.map(u => u.fcmToken);
+    const result = await sendNotificationToUsers(
+      tokens,
+      'Nova Data Proposta',
+      'O beneficiário propôs uma nova data de levantamento',
+      {
+        type: 'date_proposed_or_accepted',
+        screen: 'requestDetails',
+        requestId: requestId
+      }
+    );
+
+    return { success: result.successCount > 0 };
+  } catch (error) {
+    logger.error('Error sending beneficiary date proposal notification', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Send notification for new request
  * @param {string} requestId - Request ID
  * @returns {Promise<{success: boolean}>}
@@ -400,6 +432,7 @@ export {
   sendNotificationToUsers,
   notifyNewApplication,
   notifyDateProposedOrAccepted,
+  notifyBeneficiaryDateProposal,
   notifyNewRequest,
   notifyPickupReminder,
   notifyRequestAccepted,

@@ -4,6 +4,7 @@ import { validateAuth } from '../middleware/auth.js';
 import {
   notifyNewApplication,
   notifyDateProposedOrAccepted,
+  notifyBeneficiaryDateProposal,
   notifyNewRequest,
   notifyPickupReminder,
   notifyRequestAccepted,
@@ -63,6 +64,34 @@ router.post('/date-proposed-or-accepted', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error in date proposed/accepted notification', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// POST /api/notifications/beneficiary-date-proposal
+router.post('/beneficiary-date-proposal', async (req, res) => {
+  if (!validateAuth(req)) {
+    logger.error('Unauthorized notification request');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const { requestId } = req.body;
+    if (!requestId) {
+      return res.status(400).json({ error: 'requestId is required' });
+    }
+
+    const result = await notifyBeneficiaryDateProposal(requestId);
+    res.json({
+      success: result.success,
+      message: result.success ? 'Notification sent' : 'Failed to send notification',
+      error: result.error
+    });
+  } catch (error) {
+    logger.error('Error in beneficiary date proposal notification', error);
     res.status(500).json({ 
       success: false, 
       error: error.message 

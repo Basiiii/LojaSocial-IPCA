@@ -48,6 +48,7 @@ import com.lojasocial.app.ui.viewmodel.ApplicationViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -620,13 +621,39 @@ fun NavigationGraph(
                     }
                 }
             } else {
-                // Check if we came from AllApplicationsList (employee view)
-                // Also check if user is admin - they can view any application
-                val isEmployeeViewFromRoute = navController.previousBackStackEntry?.destination?.route == Screen.AllApplicationsList.route
-                val isEmployeeViewFromProfile = lastProfile?.isAdmin == true
-                val isEmployeeView = isEmployeeViewFromRoute || isEmployeeViewFromProfile
+                // Get current user ID to check if this is their own application
+                val currentUserId = authRepository.getCurrentUser()?.uid
+                var applicationUserId by remember { mutableStateOf<String?>(null) }
                 
-                android.util.Log.d("NavigationGraph", "ApplicationDetail - applicationId: $applicationId, isEmployeeView: $isEmployeeView, isAdmin: ${lastProfile?.isAdmin}")
+                // Check if this application belongs to the current user
+                LaunchedEffect(applicationId, currentUserId) {
+                    if (applicationId.isNotBlank() && currentUserId != null) {
+                        try {
+                            val result = applicationRepository.getApplicationById(applicationId)
+                            if (result.isSuccess) {
+                                applicationUserId = result.getOrNull()?.userId
+                            }
+                        } catch (e: Exception) {
+                            // If getApplicationById fails (e.g., not their application), try employee view
+                            android.util.Log.d("NavigationGraph", "Could not get application as user, will try employee view")
+                        }
+                    }
+                }
+                
+                // Determine view mode:
+                // - If application belongs to current user, show as beneficiary view (even if admin)
+                // - If came from AllApplicationsList, show as employee view
+                // - If user is admin and it's not their application, show as employee view
+                val isEmployeeViewFromRoute = navController.previousBackStackEntry?.destination?.route == Screen.AllApplicationsList.route
+                val isOwnApplication = applicationUserId == currentUserId
+                val isEmployeeView = when {
+                    isOwnApplication -> false // Always show own applications as beneficiary view
+                    isEmployeeViewFromRoute -> true
+                    lastProfile?.isAdmin == true -> true
+                    else -> false
+                }
+                
+                android.util.Log.d("NavigationGraph", "ApplicationDetail - applicationId: $applicationId, currentUserId: $currentUserId, applicationUserId: $applicationUserId, isOwnApplication: $isOwnApplication, isEmployeeView: $isEmployeeView")
                 
                 // ApplicationDetailView has its own error handling, so we can safely call it
                 ApplicationDetailView(
@@ -762,6 +789,37 @@ fun NavigationGraph(
                 activity?.intent?.getStringExtra("requestId") ?: notificationRequestId
             }
             
+            // Check if the request belongs to the current user (for notifications)
+            val currentUserId = authRepository.getCurrentUser()?.uid
+            var requestUserId by remember { mutableStateOf<String?>(null) }
+            var isOwnRequest by remember { mutableStateOf(false) }
+            
+            LaunchedEffect(requestIdFromNotification, currentUserId) {
+                if (requestIdFromNotification != null && currentUserId != null && requestsRepository != null) {
+                    try {
+                        // Try to get the request to check if it belongs to current user
+                        val requests = requestsRepository.getRequests().firstOrNull()
+                        val request = requests?.find { it.id == requestIdFromNotification }
+                        requestUserId = request?.userId
+                        isOwnRequest = request?.userId == currentUserId
+                        android.util.Log.d("NavigationGraph", "PickupRequests - requestId: $requestIdFromNotification, currentUserId: $currentUserId, requestUserId: $requestUserId, isOwnRequest: $isOwnRequest")
+                    } catch (e: Exception) {
+                        android.util.Log.d("NavigationGraph", "Could not check request ownership", e)
+                    }
+                }
+            }
+            
+            // Determine if we should filter by current user:
+            // - If coming from beneficiary portal, filter by current user
+            // - If notification about own request and user is both admin and beneficiary, show as beneficiary view
+            val shouldFilterByCurrentUser = when {
+                isFromBeneficiaryPortal -> true
+                isOwnRequest && lastProfile?.isBeneficiary == true -> true // Own request notification, show as beneficiary
+                else -> false
+            }
+            
+            android.util.Log.d("NavigationGraph", "PickupRequests - shouldFilterByCurrentUser: $shouldFilterByCurrentUser, isFromBeneficiaryPortal: $isFromBeneficiaryPortal, isOwnRequest: $isOwnRequest")
+            
             com.lojasocial.app.ui.requests.PickupRequestsView(
                 onNavigateBack = {
                     // Navigate back to the portal we came from, or default based on profile
@@ -779,7 +837,7 @@ fun NavigationGraph(
                 userRepository = userRepository,
                 requestsRepository = requestsRepository,
                 profilePictureRepository = profilePictureRepository,
-                filterByCurrentUser = isFromBeneficiaryPortal,
+                filterByCurrentUser = shouldFilterByCurrentUser,
                 initialRequestId = requestIdFromNotification
             )
         }

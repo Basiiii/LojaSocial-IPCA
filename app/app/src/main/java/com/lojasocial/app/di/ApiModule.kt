@@ -44,12 +44,16 @@ object ApiModule {
             Log.d("ApiModule", "Method: ${originalRequest.method}")
             Log.d("ApiModule", "Headers: ${originalRequest.headers}")
             
+            val authToken = "Bearer lojasocial2025"
+            
             val newRequest = originalRequest.newBuilder()
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
+                .addHeader("Authorization", authToken)
                 .build()
                 
             Log.d("ApiModule", "Making request to: ${newRequest.url}")
+            Log.d("ApiModule", "Authorization header added: ${authToken.take(20)}...")
             chain.proceed(newRequest)
         }
     }

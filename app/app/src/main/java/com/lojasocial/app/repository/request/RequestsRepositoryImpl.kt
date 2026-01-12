@@ -923,28 +923,12 @@ class RequestsRepositoryImpl @Inject constructor(
             // Send notification to employees about new date proposed by beneficiary
             if (!isEmployee) {
                 // If current user is not an employee, they're a beneficiary proposing a date
-                // We need to notify all employees
+                // Notify all employees using the dedicated endpoint
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        // Get all admin users and send notification to each
-                        val adminUsers = firestore.collection("users")
-                            .whereEqualTo("isAdmin", true)
-                            .get()
-                            .await()
-                        
-                        adminUsers.documents.forEach { adminDoc ->
-                            try {
-                                notificationRepository.notifyDateProposedOrAccepted(
-                                    requestId = requestId,
-                                    recipientUserId = adminDoc.id,
-                                    isAccepted = false
-                                )
-                            } catch (e: Exception) {
-                                Log.e("RequestsRepository", "Error sending notification to admin ${adminDoc.id}", e)
-                            }
-                        }
+                        notificationRepository.notifyBeneficiaryDateProposal(requestId)
                     } catch (e: Exception) {
-                        Log.e("RequestsRepository", "Error sending date proposed notification to employees", e)
+                        Log.e("RequestsRepository", "Error sending beneficiary date proposal notification to employees", e)
                     }
                 }
             } else {
@@ -1350,27 +1334,12 @@ class RequestsRepositoryImpl @Inject constructor(
                 updateData["proposedDeliveryDate"] = timestamp
                 updateData["scheduledPickupDate"] = FieldValue.delete()
                 
-                // Send notification to all employees
+                // Send notification to all employees using the dedicated endpoint
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val adminUsers = firestore.collection("users")
-                            .whereEqualTo("isAdmin", true)
-                            .get()
-                            .await()
-                        
-                        adminUsers.documents.forEach { adminDoc ->
-                            try {
-                                notificationRepository.notifyDateProposedOrAccepted(
-                                    requestId = requestId,
-                                    recipientUserId = adminDoc.id,
-                                    isAccepted = false
-                                )
-                            } catch (e: Exception) {
-                                Log.e("RequestsRepository", "Error sending reschedule notification to admin ${adminDoc.id}", e)
-                            }
-                        }
+                        notificationRepository.notifyBeneficiaryDateProposal(requestId)
                     } catch (e: Exception) {
-                        Log.e("RequestsRepository", "Error sending reschedule notification to employees", e)
+                        Log.e("RequestsRepository", "Error sending beneficiary reschedule notification to employees", e)
                     }
                 }
             }

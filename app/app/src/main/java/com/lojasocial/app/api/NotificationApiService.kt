@@ -46,6 +46,10 @@ data class RequestRejectedNotificationRequest(
     val beneficiaryUserId: String
 )
 
+data class BeneficiaryDateProposalNotificationRequest(
+    val requestId: String
+)
+
 /**
  * Response data class for notification API.
  */
@@ -114,4 +118,10 @@ interface NotificationApiService {
      */
     @POST("api/notifications/request-rejected")
     suspend fun notifyRequestRejected(@Body request: RequestRejectedNotificationRequest): Response<NotificationResponse>
+
+    /**
+     * Sends notification to all employees when beneficiary proposes a new date.
+     */
+    @POST("api/notifications/beneficiary-date-proposal")
+    suspend fun notifyBeneficiaryDateProposal(@Body request: BeneficiaryDateProposalNotificationRequest): Response<NotificationResponse>
 }
