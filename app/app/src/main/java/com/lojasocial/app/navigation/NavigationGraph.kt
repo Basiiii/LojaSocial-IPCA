@@ -374,6 +374,20 @@ fun NavigationGraph(
                     applicationRepository = applicationRepository
                 )
             }
+            composable(Screen.EmployeePortal.Gestao.route) { backStackEntry ->
+                EmployeePortalTabContent(
+                    tab = NavigationHelper.getTabFromRoute(backStackEntry.destination.route ?: ""),
+                    profile = lastProfile,
+                    navController = navController,
+                    authRepository = authRepository,
+                    userRepository = userRepository,
+                    profilePictureRepository = profilePictureRepository,
+                    expirationRepository = expirationRepository,
+                    campaignRepository = campaignRepository,
+                    requestsRepository = requestsRepository,
+                    applicationRepository = applicationRepository
+                )
+            }
         }
 
         // Beneficiary Portal with nested tab navigation
@@ -1072,6 +1086,7 @@ private fun EmployeePortalTabContent(
                 "profile" -> Screen.EmployeePortal.Profile.route
                 "support" -> Screen.EmployeePortal.Support.route
                 "calendar" -> Screen.EmployeePortal.Calendar.route
+                "gestao" -> Screen.EmployeePortal.Gestao.route
                 else -> Screen.EmployeePortal.Home.route
             }
             navController.navigate(route) {

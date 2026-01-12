@@ -159,7 +159,8 @@ fun BeneficiaryPortalView(
             showBottomBar = !(currentTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
             onPortalSelectionClick = onPortalSelectionClick,
-            onActivityClick = onNavigateToActivityList
+            onActivityClick = onNavigateToActivityList,
+            isEmployee = false
         ) { paddingValues ->
             content(paddingValues)
         }

@@ -184,7 +184,8 @@ fun NonBeneficiaryPortalView(
             showTopBar = !(selectedTab == "support" && isChatOpen),
             showBottomBar = !(selectedTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
-            onPortalSelectionClick = onPortalSelectionClick
+            onPortalSelectionClick = onPortalSelectionClick,
+            isEmployee = false
         ) { paddingValues ->
             content(paddingValues)
         }

@@ -17,6 +17,7 @@ fun AppLayout(
     showPortalSelection: Boolean = false,
     onPortalSelectionClick: (() -> Unit)? = null,
     onActivityClick: (() -> Unit)? = null,
+    isEmployee: Boolean = false,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
@@ -34,7 +35,8 @@ fun AppLayout(
             if (showBottomBar) {
                 BottomNavigationBar(
                     selectedTab = selectedTab,
-                    onTabSelected = onTabSelected
+                    onTabSelected = onTabSelected,
+                    isEmployee = isEmployee
                 )
             }
         },
