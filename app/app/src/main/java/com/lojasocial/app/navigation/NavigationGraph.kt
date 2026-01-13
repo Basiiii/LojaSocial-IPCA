@@ -926,36 +926,46 @@ fun NavigationGraph(
         composable(Screen.CampaignProducts().route) { backStackEntry ->
             val campaignId = backStackEntry.arguments?.getString("campaignId") ?: ""
             campaignRepository?.let { repository ->
-                // Fetch campaign to pass to view
-                var campaign by remember { mutableStateOf<com.lojasocial.app.domain.campaign.Campaign?>(null) }
-                var isLoading by remember { mutableStateOf(true) }
-                
-                LaunchedEffect(campaignId) {
-                    campaign = repository.getCampaignById(campaignId)
-                    isLoading = false
-                }
-                
-                when {
-                    isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
+                // Validate campaign ID before fetching
+                if (campaignId.isBlank()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("ID da campanha inválido")
+                    }
+                } else {
+                    // Fetch campaign to pass to view
+                    var campaign by remember { mutableStateOf<com.lojasocial.app.domain.campaign.Campaign?>(null) }
+                    var isLoading by remember { mutableStateOf(true) }
+                    
+                    LaunchedEffect(campaignId) {
+                        campaign = repository.getCampaignById(campaignId)
+                        isLoading = false
+                    }
+                    
+                    when {
+                        isLoading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
                         }
-                    }
-                    campaign != null -> {
-                        com.lojasocial.app.ui.campaigns.CampaignProductsView(
-                            campaign = campaign!!,
-                            onNavigateBack = { navController.navigateUp() }
-                        )
-                    }
-                    else -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("Campanha não encontrada")
+                        campaign != null && campaign!!.id.isNotBlank() -> {
+                            com.lojasocial.app.ui.campaigns.CampaignProductsView(
+                                campaign = campaign!!,
+                                onNavigateBack = { navController.navigateUp() }
+                            )
+                        }
+                        else -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Campanha não encontrada")
+                            }
                         }
                     }
                 }

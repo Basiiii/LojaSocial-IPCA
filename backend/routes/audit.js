@@ -311,7 +311,8 @@ router.get('/campaign/:campaignId/products', async (req, res) => {
                   name: productData.name || '',
                   brand: productData.brand || '',
                   category: productData.category || 1,
-                  imageUrl: productData.imageUrl || ''
+                  imageUrl: productData.imageUrl || '',
+                  serializedImage: productData.serializedImage || null
                 };
               }
             } catch (error) {
