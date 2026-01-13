@@ -236,4 +236,42 @@ class StockItemRepository @Inject constructor(
             emptyList()
         }
     }
+
+    /**
+     * Delete a stock item by ID
+     * @param stockItemId The ID of the stock item to delete
+     * @return true if deletion was successful, false otherwise
+     */
+    suspend fun deleteStockItem(stockItemId: String): Boolean {
+        return try {
+            Log.d("StockItemRepository", "Attempting to delete stock item: $stockItemId")
+            
+            // Verify item exists before deletion
+            val docSnapshot = itemsCollection.document(stockItemId).get().await()
+            Log.d("StockItemRepository", "Document exists: ${docSnapshot.exists()}")
+            
+            if (!docSnapshot.exists()) {
+                Log.w("StockItemRepository", "Stock item not found: $stockItemId")
+                return false
+            }
+            
+            // Delete the item
+            itemsCollection.document(stockItemId).delete().await()
+            
+            // Verify deletion
+            val verifySnapshot = itemsCollection.document(stockItemId).get().await()
+            Log.d("StockItemRepository", "Document still exists after deletion: ${verifySnapshot.exists()}")
+            
+            if (!verifySnapshot.exists()) {
+                Log.d("StockItemRepository", "Successfully deleted stock item: $stockItemId")
+                true
+            } else {
+                Log.e("StockItemRepository", "Failed to delete stock item: $stockItemId - document still exists")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("StockItemRepository", "Error deleting stock item: $stockItemId", e)
+            false
+        }
+    }
 }
