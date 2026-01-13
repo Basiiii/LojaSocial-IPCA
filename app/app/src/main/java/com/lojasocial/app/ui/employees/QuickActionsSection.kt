@@ -17,6 +17,7 @@ import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
 import com.lojasocial.app.ui.theme.BrandOrange
 import com.lojasocial.app.ui.theme.BrandPurple
+import com.lojasocial.app.ui.theme.BrandSlateGray
 import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.TextDark
 
@@ -90,23 +91,23 @@ fun QuickActionsSection(
         Spacer(modifier = Modifier.height(16.dp))
 
         ActionCard(
-            title = "Reduz do Stock",
-            description = "Reduz um artigo do stock, fazendo scan do código barras",
-            buttonText = "Reduzir Stock",
-            backgroundColor = ScanRed,
-            icon = Icons.Default.Delete,
-            onClick = onNavigateToDeleteStock
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ActionCard(
             title = "Entregas Urgentes",
             description = "Cria uma entrega urgente e concluída imediatamente",
             buttonText = "Criar Entrega",
             backgroundColor = Color(0xFFDC2626),
             icon = Icons.Default.LocalShipping,
             onClick = onNavigateToUrgentRequest
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ActionCard(
+            title = "Reduz do Stock",
+            description = "Reduz um artigo do stock, fazendo scan do código barras",
+            buttonText = "Reduzir Stock",
+            backgroundColor = BrandSlateGray,
+            icon = Icons.Default.Delete,
+            onClick = onNavigateToDeleteStock
         )
     }
 }
