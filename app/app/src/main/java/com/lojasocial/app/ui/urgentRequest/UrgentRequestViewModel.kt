@@ -69,7 +69,19 @@ class UrgentRequestViewModel @Inject constructor(
                 val newProducts = itemsRepository.getProducts(lastVisibleId = lastVisibleId)
 
                 if (newProducts.isNotEmpty()) {
-                    lastVisibleId = newProducts.last().docId
+                    // Extract pagination ID from docId if it contains "|" separator
+                    // Format: "productId|lastItemDocId" or just "productId"
+                    val lastDocId = newProducts.last().docId
+                    lastVisibleId = if (lastDocId.contains("|")) {
+                        lastDocId.split("|")[1] // Extract the actual item document ID
+                    } else {
+                        null // If no pagination info, we've reached the end or pagination is broken
+                    }
+                    
+                    // Clean up docId to remove pagination info for display
+                    val cleanedProducts = newProducts.map { product ->
+                        product.copy(docId = product.docId.split("|")[0])
+                    }
 
                     val currentProducts = if (isLoadMore && _uiState.value is UrgentRequestUiState.Success) {
                         (_uiState.value as UrgentRequestUiState.Success).products
@@ -77,7 +89,43 @@ class UrgentRequestViewModel @Inject constructor(
                         emptyList()
                     }
 
-                    _uiState.value = UrgentRequestUiState.Success(currentProducts + newProducts)
+                    // Merge products with the same barcode (not docId, since docId might vary)
+                    val mergedProducts = if (currentProducts.isNotEmpty()) {
+                        val productMap = currentProducts.associateBy { it.barcode.ifEmpty { it.docId } }.toMutableMap()
+                        
+                        cleanedProducts.forEach { newProduct ->
+                            val barcodeKey = newProduct.barcode.ifEmpty { newProduct.docId }
+                            val existingProduct = productMap[barcodeKey]
+                            if (existingProduct != null) {
+                                // Merge: sum quantities and use the nearest expiry date
+                                val mergedQuantity = existingProduct.quantity + newProduct.quantity
+                                val mergedExpiryDate = when {
+                                    existingProduct.expiryDate == null -> newProduct.expiryDate
+                                    newProduct.expiryDate == null -> existingProduct.expiryDate
+                                    else -> {
+                                        // Use the nearest expiry date
+                                        val existingDate = existingProduct.expiryDate.toDate()
+                                        val newDate = newProduct.expiryDate.toDate()
+                                        if (existingDate.before(newDate)) existingProduct.expiryDate else newProduct.expiryDate
+                                    }
+                                }
+                                
+                                productMap[barcodeKey] = existingProduct.copy(
+                                    quantity = mergedQuantity,
+                                    expiryDate = mergedExpiryDate
+                                )
+                            } else {
+                                // New product, add it
+                                productMap[barcodeKey] = newProduct
+                            }
+                        }
+                        
+                        productMap.values.toList()
+                    } else {
+                        cleanedProducts
+                    }
+
+                    _uiState.value = UrgentRequestUiState.Success(mergedProducts)
                 } else if (!isLoadMore) {
                     _uiState.value = UrgentRequestUiState.Success(emptyList())
                 } else {
@@ -117,7 +165,8 @@ class UrgentRequestViewModel @Inject constructor(
             is UrgentRequestUiState.Success -> state.products
             else -> emptyList()
         }
-        return products.find { it.docId == productDocId }?.stock ?: 0
+        // Try to find by docId first, then by barcode (for merged products)
+        return products.find { it.docId == productDocId || it.barcode == productDocId }?.stock ?: 0
     }
 
     fun onRemoveProduct(productDocId: String) {
