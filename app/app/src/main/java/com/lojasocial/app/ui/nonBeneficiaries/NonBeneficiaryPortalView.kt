@@ -162,7 +162,8 @@ fun NonBeneficiaryPortalView(
             "calendar" -> {
                 CalendarView(
                     paddingValues = paddingValues,
-                    isBeneficiaryPortal = false
+                    isBeneficiaryPortal = false,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
         }
@@ -183,7 +184,8 @@ fun NonBeneficiaryPortalView(
             showTopBar = !(selectedTab == "support" && isChatOpen),
             showBottomBar = !(selectedTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
-            onPortalSelectionClick = onPortalSelectionClick
+            onPortalSelectionClick = onPortalSelectionClick,
+            isEmployee = false
         ) { paddingValues ->
             content(paddingValues)
         }
@@ -373,6 +375,9 @@ fun NonBeneficiaryPreview() {
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
             override suspend fun getAllBeneficiaries() = flow {
+                emit(emptyList<UserProfile>())
+            }
+            override suspend fun getAllUsers() = flow {
                 emit(emptyList<UserProfile>())
             }
         }

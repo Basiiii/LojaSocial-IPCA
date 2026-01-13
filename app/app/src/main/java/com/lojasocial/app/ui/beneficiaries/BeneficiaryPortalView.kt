@@ -136,7 +136,8 @@ fun BeneficiaryPortalView(
             "calendar" -> {
                 CalendarView(
                     paddingValues = paddingValues,
-                    isBeneficiaryPortal = true
+                    isBeneficiaryPortal = true,
+                    profilePictureRepository = profilePictureRepository
                 )
             }
         }
@@ -158,7 +159,8 @@ fun BeneficiaryPortalView(
             showBottomBar = !(currentTab == "support" && isChatOpen),
             showPortalSelection = showPortalSelection,
             onPortalSelectionClick = onPortalSelectionClick,
-            onActivityClick = onNavigateToActivityList
+            onActivityClick = onNavigateToActivityList,
+            isEmployee = false
         ) { paddingValues ->
             content(paddingValues)
         }
@@ -208,6 +210,9 @@ fun BeneficiaryPreview() {
             override suspend fun createProfile(profile: UserProfile) = TODO()
             override suspend fun saveFcmToken(token: String) = Result.success(Unit)
             override suspend fun getAllBeneficiaries() = flow {
+                emit(emptyList<UserProfile>())
+            }
+            override suspend fun getAllUsers() = flow {
                 emit(emptyList<UserProfile>())
             }
         }

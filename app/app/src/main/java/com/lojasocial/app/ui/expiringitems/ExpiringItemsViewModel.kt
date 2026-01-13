@@ -47,8 +47,17 @@ sealed class UpdateState {
 }
 
 /**
- * ViewModel responsible for managing the state and business logic of expiring items.
- * Handles loading expiring items, managing state, and handling submissions.
+ * ViewModel for managing expiring items state and business logic.
+ * * This ViewModel is responsible for:
+ * - Loading stock items that are expiring within the threshold period (30 days, including already expired)
+ * - Fetching product information for each expiring item
+ * - Calculating days until expiration for each item
+ * - Sorting items by urgency (soonest expiration first)
+ * - Managing loading, error, and success states
+ * * The ViewModel uses StateFlow to expose UI state, making it easy for the View
+ * to observe and react to changes reactively.
+ * * @param stockItemRepository Repository for accessing stock item data
+ * @param productRepository Repository for accessing product information
  */
 @HiltViewModel
 class ExpiringItemsViewModel @Inject constructor(
@@ -349,7 +358,7 @@ class ExpiringItemsViewModel @Inject constructor(
     private fun updateLocalItemsAfterSubmission(selectedItems: Map<String, Int>) {
         val currentAllItems = _uiState.value.allItems?.toMutableList() ?: return
         
-                // Update or remove items based on the submission
+        // Update or remove items based on the submission
         val updatedItems = currentAllItems.mapNotNull { item ->
             val itemId = item.stockItem.id
             val selectedQuantity = selectedItems[itemId] ?: 0
@@ -359,12 +368,12 @@ class ExpiringItemsViewModel @Inject constructor(
                 val newQuantity = currentQuantity - selectedQuantity
                 
                 if (newQuantity > 0) {
-                // Update the item with new quantity
+                    // Update the item with new quantity
                     item.copy(
                         stockItem = item.stockItem.copy(quantity = newQuantity)
                     )
                 } else {
-                // Remove the item if quantity reached zero
+                    // Remove the item if quantity reached zero
                     null
                 }
             } else {
@@ -478,14 +487,15 @@ class ExpiringItemsViewModel @Inject constructor(
                     } else {
                         null
                     }
-
+                    
+                    // Calculate days until expiration (negative means expired)
                     val daysUntilExpiration = stockItem.expirationDate?.let { expDate ->
                         val now = Calendar.getInstance()
                         val expiration = Calendar.getInstance().apply {
                             time = expDate
                         }
                         val diffInMillis = expiration.timeInMillis - now.timeInMillis
-                        (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
+                        (diffInMillis / (1000 * 60 * 60 * 24)).toInt() // Allow negative for expired items
                     } ?: 0
 
                     ExpiringItemWithProduct(

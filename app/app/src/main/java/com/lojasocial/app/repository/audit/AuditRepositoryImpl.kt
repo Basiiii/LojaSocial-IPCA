@@ -108,14 +108,36 @@ class AuditRepositoryImpl @Inject constructor(
     
     override suspend fun getCampaignProducts(campaignId: String): Result<List<CampaignProductReceipt>> {
         return try {
-            Log.d(TAG, "Fetching campaign products for campaignId: $campaignId")
+            // Validate campaign ID before making API call
+            if (campaignId.isBlank()) {
+                Log.e(TAG, "Campaign ID is empty or blank")
+                return Result.failure(Exception("ID da campanha inválido"))
+            }
+            
+            // Validate campaign ID format
+            val trimmedCampaignId = campaignId.trim()
+            if (trimmedCampaignId.contains(" ") || trimmedCampaignId.contains("\n") || trimmedCampaignId.contains("\r")) {
+                Log.e(TAG, "Campaign ID contains invalid characters: '$trimmedCampaignId'")
+                return Result.failure(Exception("ID da campanha contém caracteres inválidos"))
+            }
+            
+            Log.d(TAG, "Fetching campaign products for campaignId: '$trimmedCampaignId' (length: ${trimmedCampaignId.length})")
             
             val response = auditApiService.getCampaignProducts(
-                authorization = BEARER_TOKEN,
-                campaignId = campaignId
+                campaignId = trimmedCampaignId
             )
 
             Log.d(TAG, "API response code: ${response.code()}, isSuccessful: ${response.isSuccessful}")
+            
+            if (!response.isSuccessful) {
+                val errorBody = try {
+                    response.errorBody()?.string() ?: "No error body"
+                } catch (e: Exception) {
+                    "Error reading error body: ${e.message}"
+                }
+                Log.e(TAG, "API request failed. URL would be: api/audit/campaign/$trimmedCampaignId/products")
+                Log.e(TAG, "Error body: $errorBody")
+            }
 
             if (response.isSuccessful) {
                 val apiResponse = response.body()
@@ -148,7 +170,8 @@ class AuditRepositoryImpl @Inject constructor(
                                 name = apiProduct.name,
                                 brand = apiProduct.brand,
                                 category = apiProduct.category,
-                                imageUrl = apiProduct.imageUrl
+                                imageUrl = apiProduct.imageUrl,
+                                serializedImage = apiProduct.serializedImage
                             )
                         }
                         

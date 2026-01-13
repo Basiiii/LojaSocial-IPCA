@@ -5,6 +5,7 @@ import com.lojasocial.app.BuildConfig
 import com.lojasocial.app.api.AuditApiService
 import com.lojasocial.app.api.ExpirationApiService
 import com.lojasocial.app.api.ImageApiService
+import com.lojasocial.app.api.NotificationApiService
 import com.lojasocial.app.api.ProductApiService
 import com.lojasocial.app.utils.AppConstants
 import dagger.Module
@@ -43,12 +44,16 @@ object ApiModule {
             Log.d("ApiModule", "Method: ${originalRequest.method}")
             Log.d("ApiModule", "Headers: ${originalRequest.headers}")
             
+            val authToken = "Bearer lojasocial2025"
+            
             val newRequest = originalRequest.newBuilder()
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .header("Authorization", authToken)
                 .build()
                 
             Log.d("ApiModule", "Making request to: ${newRequest.url}")
+            Log.d("ApiModule", "Authorization header set: ${authToken.take(20)}...")
             chain.proceed(newRequest)
         }
     }
@@ -117,5 +122,16 @@ object ApiModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         return imageRetrofit.create(ImageApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationApiService(okHttpClient: OkHttpClient): NotificationApiService {
+        val notificationRetrofit = Retrofit.Builder()
+            .baseUrl(AppConstants.API_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        return notificationRetrofit.create(NotificationApiService::class.java)
     }
 }

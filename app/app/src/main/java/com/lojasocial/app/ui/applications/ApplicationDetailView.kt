@@ -56,22 +56,53 @@ fun ApplicationDetailView(
 
     LaunchedEffect(applicationId, isEmployeeView, refreshTrigger) {
         try {
+            // Validate applicationId is not empty
+            if (applicationId.isBlank()) {
+                error = "ID da candidatura não fornecido"
+                isLoading = false
+                android.util.Log.e("ApplicationDetailView", "ApplicationId is blank")
+                return@LaunchedEffect
+            }
+            
             isLoading = true
             error = null
-            val result = if (isEmployeeView) {
+            android.util.Log.d("ApplicationDetailView", "Loading application: $applicationId, isEmployeeView: $isEmployeeView")
+            
+            var result = if (isEmployeeView) {
                 applicationRepository.getApplicationByIdForEmployee(applicationId)
             } else {
                 applicationRepository.getApplicationById(applicationId)
             }
+            
+            // If user view fails with unauthorized, try employee view as fallback
+            // This handles cases where user might be viewing from notification
+            if (!result.isSuccess && !isEmployeeView) {
+                val exceptionMessage = result.exceptionOrNull()?.message ?: ""
+                android.util.Log.d("ApplicationDetailView", "Initial load failed: $exceptionMessage")
+                if (exceptionMessage.contains("Unauthorized") || exceptionMessage.contains("does not belong")) {
+                    android.util.Log.d("ApplicationDetailView", "User view failed, trying employee view as fallback")
+                    result = applicationRepository.getApplicationByIdForEmployee(applicationId)
+                }
+            }
+            
             if (result.isSuccess) {
                 application = result.getOrNull()
                 isLoading = false
+                if (application == null) {
+                    error = "Candidatura não encontrada"
+                    android.util.Log.w("ApplicationDetailView", "Application loaded but is null")
+                } else {
+                    android.util.Log.d("ApplicationDetailView", "Application loaded successfully: ${application?.id}, status: ${application?.status}")
+                }
             } else {
-                error = result.exceptionOrNull()?.message ?: "Erro ao carregar candidatura"
+                val exception = result.exceptionOrNull()
+                error = exception?.message ?: "Erro ao carregar candidatura"
+                android.util.Log.e("ApplicationDetailView", "Error loading application: $error", exception)
                 isLoading = false
             }
         } catch (e: Exception) {
             error = e.message ?: "Erro desconhecido"
+            android.util.Log.e("ApplicationDetailView", "Exception loading application", e)
             isLoading = false
         }
     }
@@ -124,7 +155,8 @@ fun ApplicationDetailView(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Error,
@@ -135,8 +167,61 @@ fun ApplicationDetailView(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = error ?: "Erro desconhecido",
-                            color = Color.Red
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodyLarge
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { refreshTrigger++ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = LojaSocialPrimary
+                            )
+                        ) {
+                            Text("Tentar Novamente")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = onNavigateBack) {
+                            Text("Voltar")
+                        }
+                    }
+                }
+            }
+            application == null && !isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Candidatura não encontrada",
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { refreshTrigger++ },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = LojaSocialPrimary
+                            )
+                        ) {
+                            Text("Tentar Novamente")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = onNavigateBack) {
+                            Text("Voltar")
+                        }
                     }
                 }
             }

@@ -51,7 +51,8 @@ data class CampaignProductApiModel(
     val name: String = "",
     val brand: String = "",
     val category: Int = 1,
-    val imageUrl: String = ""
+    val imageUrl: String = "",
+    val serializedImage: String? = null 
 )
 
 /**

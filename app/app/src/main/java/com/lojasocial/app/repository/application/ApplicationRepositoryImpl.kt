@@ -12,6 +12,7 @@ import com.lojasocial.app.domain.application.ApplicationStatus
 import com.lojasocial.app.domain.application.PersonalInfo
 import com.lojasocial.app.repository.audit.AuditRepository
 import com.lojasocial.app.repository.auth.AuthRepository
+import com.lojasocial.app.repository.notification.NotificationRepository
 import com.lojasocial.app.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +51,8 @@ class ApplicationRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
     private val auditRepository: AuditRepository,
-    private val authRepository: com.lojasocial.app.repository.auth.AuthRepository
+    private val authRepository: com.lojasocial.app.repository.auth.AuthRepository,
+    private val notificationRepository: NotificationRepository
 ) : ApplicationRepository {
 
     /** Android context for file operations */
@@ -139,6 +141,15 @@ class ApplicationRepositoryImpl @Inject constructor(
                 .document(applicationWithId.id)
                 .set(applicationData)
                 .await()
+
+            // Send notification to employees about new application
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    notificationRepository.notifyNewApplication(applicationWithId.id)
+                } catch (e: Exception) {
+                    android.util.Log.e("ApplicationRepository", "Error sending new application notification", e)
+                }
+            }
 
             Result.success(applicationWithId.id)
         } catch (e: Exception) {
@@ -745,6 +756,24 @@ class ApplicationRepositoryImpl @Inject constructor(
                     .document(userId)
                     .update("isBeneficiary", true)
                     .await()
+                
+                // Send notification to applicant about application acceptance
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyApplicationAccepted(applicationId, userId)
+                    } catch (e: Exception) {
+                        android.util.Log.e("ApplicationRepository", "Error sending application accepted notification", e)
+                    }
+                }
+            } else if (status == ApplicationStatus.REJECTED) {
+                // Send notification to applicant about application rejection
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyApplicationRejected(applicationId, userId)
+                    } catch (e: Exception) {
+                        android.util.Log.e("ApplicationRepository", "Error sending application rejected notification", e)
+                    }
+                }
             }
             
             // Log audit action

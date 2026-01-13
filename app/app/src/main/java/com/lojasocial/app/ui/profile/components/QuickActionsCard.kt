@@ -97,59 +97,6 @@ fun QuickActionsCard(
                 iconColor = Color(0xFF10B981),
                 onClick = onApplicationsClick
             )
-            
-            // Show expiring items option only for admins/employees in Employee Portal
-            if (userProfile?.isAdmin == true && !isBeneficiaryPortal) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.Warning,
-                    title = "Itens Próximos do Prazo",
-                    subtitle = "Ver itens a expirar em breve",
-                    iconColor = BrandOrange,
-                    onClick = onExpiringItemsClick
-                )
-                
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.Campaign,
-                    title = "Campanhas",
-                    subtitle = "Gerir campanhas",
-                    iconColor = Color(0xFF06B6D4),
-                    onClick = onCampaignsClick
-                )
-                
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.History,
-                    title = "Registos de Auditoria",
-                    subtitle = "Ver registos de ações",
-                    iconColor = Color(0xFF6366F1),
-                    onClick = onAuditLogsClick
-                )
-                
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.People,
-                    title = "Beneficiários",
-                    subtitle = "Ver todos os beneficiários",
-                    iconColor = Color(0xFF10B981),
-                    onClick = onBeneficiariesClick
-                )
-                
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Color(0xFFF8F8F8))
-                
-                ProfileOption(
-                    icon = Icons.Default.Inventory2,
-                    title = "Stock",
-                    subtitle = "Ver produtos em stock",
-                    iconColor = Color(0xFF059669),
-                    onClick = onStockListClick
-                )
-            }
         }
     }
 }

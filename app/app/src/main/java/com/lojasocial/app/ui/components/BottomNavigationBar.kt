@@ -3,7 +3,9 @@ package com.lojasocial.app.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -13,7 +15,8 @@ import com.lojasocial.app.ui.theme.LojaSocialPrimary
 @Composable
 fun BottomNavigationBar(
     selectedTab: String,
-    onTabSelected: (String) -> Unit
+    onTabSelected: (String) -> Unit,
+    isEmployee: Boolean = false
 ) {
     NavigationBar(
         containerColor = Color(0xFFFFFFFF),
@@ -41,6 +44,19 @@ fun BottomNavigationBar(
                 indicatorColor = Color(0xFFDCFCE7)
             )
         )
+        if (isEmployee) {
+            NavigationBarItem(
+                icon = { Icon(Icons.Filled.Settings, contentDescription = "Gestão") },
+                label = { Text("Gestão") },
+                selected = selectedTab == "gestao",
+                onClick = { onTabSelected("gestao") },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = LojaSocialPrimary,
+                    selectedTextColor = LojaSocialPrimary,
+                    indicatorColor = Color(0xFFDCFCE7)
+                )
+            )
+        }
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.DateRange, contentDescription = "Calendário") },
             label = { Text("Calendário") },

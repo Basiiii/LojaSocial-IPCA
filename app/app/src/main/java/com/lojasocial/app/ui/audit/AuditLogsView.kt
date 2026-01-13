@@ -363,6 +363,8 @@ fun formatActionName(action: String, details: Map<String, Any>? = null): String 
         "decline_request" -> "Rejeitar Pedido"
         "accept_application" -> "Aceitar Candidatura"
         "decline_application" -> "Rejeitar Candidatura"
+        "create_urgent_request" -> "Criar Entrega Urgente"
+        "urgent_request_item" -> "Item Removido (Entrega Urgente)"
         else -> action.replace("_", " ").replaceFirstChar { it.uppercaseChar() }
     }
 }
@@ -376,6 +378,9 @@ fun formatDetailKey(key: String): String {
         "barcode_number" -> "Código de Barras"
         "productName" -> "Nome do Produto"
         "userId" -> "ID do Utilizador"
+        "requestId" -> "ID do Pedido"
+        "beneficiaryUserId" -> "ID do Beneficiário"
+        "itemsCount" -> "Número de Itens"
         else -> key.replace("_", " ").replaceFirstChar { it.uppercaseChar() }
     }
 }

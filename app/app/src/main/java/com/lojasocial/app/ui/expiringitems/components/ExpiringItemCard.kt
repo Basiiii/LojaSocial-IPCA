@@ -33,33 +33,28 @@ import java.util.*
 
 /**
  * Card component displaying an expiring item with comprehensive product information.
- * 
- * This component presents a single expiring stock item in a visually appealing card format.
+ * * This component presents a single expiring stock item in a visually appealing card format.
  * It displays all relevant information administrators need to make decisions about
  * expiring inventory:
- * 
- * - **Product Image**: Visual representation of product (with fallback to default image)
+ * * - **Product Image**: Visual representation of product (with fallback to default image)
  * - **Product Name**: Full name of product
  * - **Brand**: Product brand name (if available)
  * - **Expiration Badge**: Color-coded urgency indicator showing days until expiration
- *   - Red: Expires today (0 days)
- *   - Orange: Expires tomorrow (1 day)
- *   - Orange: Expires in 2-3 days
+ * - Red: Expires today (0 days)
+ * - Orange: Expires tomorrow (1 day)
+ * - Orange: Expires in 2-3 days
  * - **Quantity**: Current stock quantity
  * - **Expiration Date**: Formatted expiration date (DD/MM/YYYY)
  * - **Quantity Selection**: Interactive controls to select quantities for action
- * 
- * The urgency color provides immediate visual feedback about how critical expiration is,
+ * * The urgency color provides immediate visual feedback about how critical expiration is,
  * helping administrators prioritize which items need attention first.
- * 
- * @param item The expiring item with product information to display. Contains stock item data,
- *             product details, and calculated days until expiration.
+ * * @param item The expiring item with product information to display. Contains stock item data,
+ * product details, and calculated days until expiration.
  * @param selectedQuantity Currently selected quantity for this item
  * @param onQuantityIncrease Callback when quantity is increased
  * @param onQuantityDecrease Callback when quantity is decreased
  * @param maxQuantity Maximum quantity that can be selected (defaults to available stock)
- * 
- * @see ExpiringItemWithProduct The domain model for expiring items
+ * * @see ExpiringItemWithProduct The domain model for expiring items
  * @see ExpirationBadge The badge component showing expiration urgency
  */
 @Composable
@@ -74,10 +69,13 @@ fun ExpiringItemCard(
     val expirationDateText = item.stockItem.expirationDate?.let { dateFormat.format(it) } ?: "Sem data"
     
     val urgencyColor = when {
+        item.daysUntilExpiration < 0 -> ScanRed // Expired items
         item.daysUntilExpiration == 0 -> ScanRed
         item.daysUntilExpiration == 1 -> Color(0xFFFF9800) // Orange
         else -> BrandOrange
     }
+    
+    val isExpired = item.daysUntilExpiration < 0
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -126,16 +124,23 @@ fun ExpiringItemCard(
                         )
                     }
 
+                    // Mantivemos o Spacer da tua branch (Current) para manter o layout,
+                    // mas integramos a lógica de "isExpired" da main na Row abaixo.
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        ExpirationBadge(
-                            daysUntilExpiration = item.daysUntilExpiration,
-                            urgencyColor = urgencyColor
-                        )
+                        // Lógica da main integrada: mostra badge de expirado ou badge normal
+                        if (isExpired) {
+                            ExpiredBadge()
+                        } else {
+                            ExpirationBadge(
+                                daysUntilExpiration = item.daysUntilExpiration,
+                                urgencyColor = urgencyColor
+                            )
+                        }
 
                         Text(
                             text = "•",
@@ -204,17 +209,14 @@ fun ExpiringItemCard(
 
 /**
  * Badge component showing the expiration urgency status.
- * 
- * Displays a color-coded badge indicating how many days remain until the item expires.
+ * * Displays a color-coded badge indicating how many days remain until the item expires.
  * The text changes based on urgency:
  * - "Expira hoje!" for items expiring today (0 days)
  * - "Expira amanhã" for items expiring tomorrow (1 day)
  * - "{n} dias" for items expiring in 2+ days
- * 
- * The badge uses a semi-transparent background of the urgency color for visual emphasis
+ * * The badge uses a semi-transparent background of the urgency color for visual emphasis
  * while maintaining readability.
- * 
- * @param daysUntilExpiration Number of days until expiration (0 = today, 1 = tomorrow, etc.)
+ * * @param daysUntilExpiration Number of days until expiration (0 = today, 1 = tomorrow, etc.)
  * @param urgencyColor Color to use for the badge based on urgency level
  */
 @Composable
@@ -242,11 +244,9 @@ private fun ExpirationBadge(
 
 /**
  * Quantity selection button component.
- * 
- * Provides a circular button for increasing or decreasing item quantities with
+ * * Provides a circular button for increasing or decreasing item quantities with
  * consistent styling and proper disabled states.
- * 
- * @param icon The icon to display (Add or Remove)
+ * * @param icon The icon to display (Add or Remove)
  * @param onClick Callback when button is clicked
  * @param enabled Whether the button is enabled
  * @param isRemoveButton Whether this is a remove button (affects disabled styling)
@@ -276,7 +276,28 @@ private fun QuantityButton(
 }
 
 /**
- * Preview composable for ExpiringItemCard component with item expiring today.
+ * Badge component for expired items.
+ * * Displays a red badge with "Expirado" text to clearly indicate that the item has already expired.
+ * * @see ExpirationBadge For items that haven't expired yet
+ */
+@Composable
+private fun ExpiredBadge() {
+    Surface(
+        color = ScanRed.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(4.dp)
+    ) {
+        Text(
+            text = "Expirado",
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = ScanRed
+        )
+    }
+}
+
+/**
+ * Preview composable for the ExpiringItemCard component with item expiring today.
  */
 @Preview(showBackground = true)
 @Composable

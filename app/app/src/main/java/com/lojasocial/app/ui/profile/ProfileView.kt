@@ -249,6 +249,9 @@ fun ProfileViewPreview() {
         override suspend fun getAllBeneficiaries() = flow {
             emit(emptyList<UserProfile>())
         }
+        override suspend fun getAllUsers() = flow {
+            emit(emptyList<UserProfile>())
+        }
     }
     
     val mockProfilePictureRepository = object : ProfilePictureRepository {

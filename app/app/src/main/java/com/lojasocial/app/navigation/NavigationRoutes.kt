@@ -15,6 +15,7 @@ sealed class Screen(val route: String) {
     object EmployeePortal : Screen("employeePortal") {
         object Home : Screen("employeePortal/home")
         object Profile : Screen("employeePortal/profile")
+        object Gestao : Screen("employeePortal/gestao")
         object Support : Screen("employeePortal/support")
         object Calendar : Screen("employeePortal/calendar")
     }
@@ -36,6 +37,8 @@ sealed class Screen(val route: String) {
     // Feature Screens
     object RequestItems : Screen("requestItems")
     object PickupRequests : Screen("pickupRequests")
+    object UrgentRequest : Screen("urgentRequest")
+    object WeeklyPickups : Screen("weeklyPickups")
     
     // Application Flow
     object ApplicationFlow : Screen("applicationFlow") {

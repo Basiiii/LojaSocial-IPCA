@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,7 @@ fun QuickActionsSection(
     onSupportClick: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToPickupRequests: () -> Unit = {},
+    onNavigateToUrgentRequest: () -> Unit = {},
     pendingRequestsCount: Int? = null,
     pendingApplicationsCount: Int = 0
 ) {
@@ -81,6 +83,17 @@ fun QuickActionsSection(
             badgeLabel = if (pendingApplicationsCount > 0) "Novas" else null,
             isRedBadge = true,
             onClick = onNavigateToApplications
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ActionCard(
+            title = "Entregas Urgentes",
+            description = "Cria uma entrega urgente e concluída imediatamente",
+            buttonText = "Criar Entrega",
+            backgroundColor = Color(0xFFDC2626),
+            icon = Icons.Default.LocalShipping,
+            onClick = onNavigateToUrgentRequest
         )
     }
 }

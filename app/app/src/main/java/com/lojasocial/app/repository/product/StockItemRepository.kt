@@ -73,9 +73,9 @@ class StockItemRepository @Inject constructor(
     }
 
     /**
-     * Get items expiring within the specified number of days
+     * Get items expiring within the specified number of days (including already expired items)
      * @param daysThreshold Number of days to check ahead (default: 3)
-     * @return List of StockItems expiring within the threshold
+     * @return List of StockItems that have expired or are expiring within the threshold
      */
     suspend fun getExpiringItems(daysThreshold: Int = 3): List<StockItem> {
         return try {
@@ -83,38 +83,55 @@ class StockItemRepository @Inject constructor(
             val calendar = java.util.Calendar.getInstance()
             calendar.time = now
             calendar.add(java.util.Calendar.DAY_OF_MONTH, daysThreshold)
+            // Set time to end of threshold day (23:59:59.999)
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+            calendar.set(java.util.Calendar.MINUTE, 59)
+            calendar.set(java.util.Calendar.SECOND, 59)
+            calendar.set(java.util.Calendar.MILLISECOND, 999)
             val thresholdDate = calendar.time
 
+            android.util.Log.d("StockItemRepository", "Getting expiring items: now=$now, thresholdDate=$thresholdDate (including expired items)")
+
             // Query items with quantity > 0 and expirationDate <= thresholdDate
+            // This includes both expired items and items expiring within the threshold
             val snapshot = itemsCollection
                 .whereGreaterThan("quantity", 0)
                 .whereLessThanOrEqualTo("expirationDate", thresholdDate)
                 .get()
                 .await()
 
+            android.util.Log.d("StockItemRepository", "Query returned ${snapshot.documents.size} documents")
+
             snapshot.documents.mapNotNull { doc ->
                 val item = doc.toObject(StockItem::class.java)?.copy(id = doc.id)
-                // Additional filter: ensure expirationDate exists and is in the future
+                // Filter: ensure expirationDate exists and is within threshold (includes expired items)
                 if (item != null && item.expirationDate != null) {
                     val expDate = item.expirationDate
-                    if (expDate.after(now) && expDate.before(thresholdDate) || expDate == thresholdDate) {
+                    // Include items that have expired or are expiring up to threshold date
+                    val isWithinThreshold = expDate.before(thresholdDate) || expDate.time <= thresholdDate.time
+                    
+                    if (isWithinThreshold) {
+                        android.util.Log.d("StockItemRepository", "Including item: ${item.id}, expirationDate=$expDate")
                         item
                     } else {
+                        android.util.Log.d("StockItemRepository", "Excluding item: ${item.id}, expirationDate=$expDate, isWithinThreshold=$isWithinThreshold")
                         null
                     }
                 } else {
                     null
                 }
+            }.also { filteredItems ->
+                android.util.Log.d("StockItemRepository", "Final filtered items count: ${filteredItems.size}")
             }
         } catch (e: Exception) {
+            android.util.Log.e("StockItemRepository", "Error getting expiring items", e)
             emptyList()
         }
     }
 
     /**
      * Get items expiring within the specified number of days with pagination support
-     * 
-     * @param daysThreshold Number of days to check ahead (default: 3)
+     * * @param daysThreshold Number of days to check ahead (default: 3)
      * @param limit Maximum number of items to return
      * @param lastExpirationDate Optional last expiration date from previous batch for pagination
      * @return Pair of List of StockItems expiring within the threshold and Boolean indicating if more items exist
