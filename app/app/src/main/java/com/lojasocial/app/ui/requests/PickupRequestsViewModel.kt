@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.repository.request.RequestsRepository
-import com.lojasocial.app.utils.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,8 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PickupRequestsViewModel @Inject constructor(
-    private val repository: RequestsRepository,
-    private val notificationHelper: NotificationHelper
+    private val repository: RequestsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PickupRequestsUiState>(PickupRequestsUiState.Loading)
@@ -183,18 +181,8 @@ class PickupRequestsViewModel @Inject constructor(
                     // Close dialog immediately
                     clearSelectedRequest()
                     
-                    // Refresh list and send notification in background (non-blocking)
+                    // Refresh list (notification is already sent by repository)
                     launch {
-                        // Get request to send notification
-                        val requestResult = repository.getRequestById(requestId)
-                        requestResult.fold(
-                            onSuccess = { request ->
-                                // Send notification to user
-                                sendAcceptanceNotification(request.userId, scheduledPickupDate)
-                            },
-                            onFailure = { }
-                        )
-                        // Refresh list after notification (reset pagination)
                         fetchRequests()
                         fetchPendingRequestsCount() // Refresh count
                     }
@@ -368,23 +356,6 @@ class PickupRequestsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun sendAcceptanceNotification(userId: String, pickupDate: Date) {
-        val tokenResult = repository.getUserFcmToken(userId)
-        tokenResult.fold(
-            onSuccess = { token ->
-                token?.let {
-                    val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("pt", "PT"))
-                    val formattedDate = dateFormat.format(pickupDate)
-                    notificationHelper.sendNotification(
-                        token = it,
-                        title = "Pedido Aceite",
-                        body = "O teu pedido foi aceite. Data de levantamento: $formattedDate"
-                    )
-                }
-            },
-            onFailure = { }
-        )
-    }
 }
 
 sealed class PickupRequestsUiState {
