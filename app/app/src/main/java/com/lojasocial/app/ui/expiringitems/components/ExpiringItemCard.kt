@@ -124,15 +124,12 @@ fun ExpiringItemCard(
                         )
                     }
 
-                    // Mantivemos o Spacer da tua branch (Current) para manter o layout,
-                    // mas integramos a lógica de "isExpired" da main na Row abaixo.
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Lógica da main integrada: mostra badge de expirado ou badge normal
                         if (isExpired) {
                             ExpiredBadge()
                         } else {
