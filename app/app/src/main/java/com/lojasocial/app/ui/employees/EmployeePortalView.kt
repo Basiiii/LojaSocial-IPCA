@@ -40,6 +40,7 @@ import com.lojasocial.app.ui.components.StatsSection
 import com.lojasocial.app.ui.profile.ProfileView
 import com.lojasocial.app.ui.profile.components.ProfileOption
 import com.lojasocial.app.ui.stock.AddStockScreen
+import com.lojasocial.app.ui.stock.DeleteStockScreen
 import com.lojasocial.app.ui.support.SupportView
 // Import specific colors if they are not available globally, otherwise define locally
 // import com.lojasocial.app.ui.theme.BrandBlue, etc.
@@ -74,11 +75,13 @@ fun EmployeePortalView(
     onNavigateToAuditLogs: () -> Unit = {},
     onNavigateToBeneficiaries: () -> Unit = {},
     onNavigateToStockList: () -> Unit = {},
+    onNavigateToDeleteStock: () -> Unit = {}, // New callback for deleting stock
     onNavigateToUrgentRequest: () -> Unit = {},
     currentTab: String = "home",
     onTabChange: ((String) -> Unit)? = null
 ) {
     var showAddStockScreen by remember { mutableStateOf(false) }
+    var showDeleteStockScreen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableStateOf<Int?>(null) }
     var weeklyPickupsCount by remember { mutableStateOf(0) }
@@ -160,6 +163,7 @@ fun EmployeePortalView(
                     // Existing Buttons Section
                     QuickActionsSection(
                         onNavigateToScanStock = { showAddStockScreen = true },
+                        onNavigateToDeleteStock = onNavigateToDeleteStock,
                         onSupportClick = { onTabChange?.invoke("support") },
                         onNavigateToApplications = onNavigateToApplications,
                         onNavigateToPickupRequests = onNavigateToPickupRequests,
@@ -326,6 +330,10 @@ fun EmployeePortalView(
     if (showAddStockScreen) {
         AddStockScreen(
             onNavigateBack = { showAddStockScreen = false }
+        )
+    } else if (showDeleteStockScreen) {
+        DeleteStockScreen(
+            onNavigateBack = { showDeleteStockScreen = false }
         )
     } else {
         if (useAppLayout) {

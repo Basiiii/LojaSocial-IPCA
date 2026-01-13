@@ -17,11 +17,14 @@ import com.lojasocial.app.ui.theme.BrandBlue
 import com.lojasocial.app.ui.theme.BrandGreen
 import com.lojasocial.app.ui.theme.BrandOrange
 import com.lojasocial.app.ui.theme.BrandPurple
+import com.lojasocial.app.ui.theme.BrandSlateGray
+import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.TextDark
 
 @Composable
 fun QuickActionsSection(
     onNavigateToScanStock: () -> Unit = {},
+    onNavigateToDeleteStock: () -> Unit = {},
     onSupportClick: () -> Unit = {},
     onNavigateToApplications: () -> Unit = {},
     onNavigateToPickupRequests: () -> Unit = {},
@@ -95,13 +98,26 @@ fun QuickActionsSection(
             icon = Icons.Default.LocalShipping,
             onClick = onNavigateToUrgentRequest
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ActionCard(
+            title = "Reduz do Stock",
+            description = "Reduz um artigo do stock, fazendo scan do código barras",
+            buttonText = "Reduzir Stock",
+            backgroundColor = BrandSlateGray,
+            icon = Icons.Default.Delete,
+            onClick = onNavigateToDeleteStock
+        )
     }
 }
 
-@Preview(showBackground = true, heightDp = 800)
+@Preview(showBackground = true, heightDp = 1000)
 @Composable
 fun QuickActionsSectionPreview() {
     QuickActionsSection(
-        onSupportClick = {}
+        onSupportClick = {},
+        onNavigateToDeleteStock = {},
+        onNavigateToUrgentRequest = {}
     )
 }
