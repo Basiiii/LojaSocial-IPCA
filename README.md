@@ -22,9 +22,9 @@ Loja Social IPCA is a native Android application built with Kotlin and Jetpack C
 - **Profile Management**: Update personal information and preferences
 
 ### 🌐 Community Website (Separate Project)
-- **Public Information**: View available stock and donation opportunities
-- **Campaign Updates**: Stay informed about ongoing initiatives  
-- **Support Resources**: Access FAQs and contact information
+- **Real-time Stock Information**: View available products by category (Food, Personal Hygiene, Cleaning)
+- **App Features Overview**: Learn about mobile app capabilities and interface
+- **Support Resources**: Access information about the Loja Social services
 - *Note: Community features are available via our Next.js website, not this mobile app*
 
 ## Technology Stack
