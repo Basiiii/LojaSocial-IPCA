@@ -51,7 +51,7 @@ import com.lojasocial.app.ui.theme.ScanRed
 import com.lojasocial.app.ui.theme.LojaSocialPrimary
 import com.lojasocial.app.utils.AppConstants
 import com.lojasocial.app.viewmodel.DeleteStockViewModel
-import com.lojasocial.app.viewmodel.DeleteStockUiState
+import com.lojasocial.app.ui.state.DeleteStockUiState
 import com.lojasocial.app.domain.product.ProductCategory
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
