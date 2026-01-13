@@ -12,6 +12,7 @@ import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.campaign.CampaignRepository
 import com.lojasocial.app.repository.product.ProductRepository
 import com.lojasocial.app.repository.product.StockItemRepository
+import com.lojasocial.app.ui.state.DeleteStockUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -540,11 +541,3 @@ class DeleteStockViewModel @Inject constructor(
         }
     }
 }
-
-// UI State data class
-data class DeleteStockUiState(
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val successMessage: String? = null,
-    val quantityToReduce: String = "1"
-)
