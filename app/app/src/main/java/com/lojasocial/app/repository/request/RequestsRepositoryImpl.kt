@@ -11,6 +11,7 @@ import com.lojasocial.app.domain.request.RequestItemDetail
 import com.lojasocial.app.repository.audit.AuditRepository
 import com.lojasocial.app.repository.auth.AuthRepository
 import com.lojasocial.app.repository.product.ProductRepository
+import com.lojasocial.app.repository.notification.NotificationRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -30,7 +31,8 @@ class RequestsRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
     private val productRepository: ProductRepository,
     private val auditRepository: AuditRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val notificationRepository: NotificationRepository
 ) : RequestsRepository {
 
     /**
@@ -711,15 +713,51 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun acceptRequest(requestId: String, scheduledPickupDate: Date): Result<Unit> {
         return try {
+            // Get request to find beneficiary userId and check if there's a proposedDeliveryDate
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val beneficiaryUserId = requestData["userId"] as? String
+            
+            // Check if beneficiary had proposed a date (this means employee is accepting beneficiary's proposal)
+            val hasProposedDeliveryDate = requestData["proposedDeliveryDate"] != null
+            
             val timestamp = Timestamp(scheduledPickupDate)
+            val updateData = mutableMapOf<String, Any>(
+                "status" to 1, // PENDENTE_LEVANTAMENTO
+                "scheduledPickupDate" to timestamp
+            )
+            
+            // If beneficiary had proposed a date, clear it since we're accepting it
+            if (hasProposedDeliveryDate) {
+                updateData["proposedDeliveryDate"] = FieldValue.delete()
+            }
+            
             firestore.collection("requests").document(requestId)
-                .update(
-                    mapOf(
-                        "status" to 1, // PENDENTE_LEVANTAMENTO
-                        "scheduledPickupDate" to timestamp
-                    )
-                )
+                .update(updateData)
                 .await()
+            
+            // Send notification to beneficiary
+            if (beneficiaryUserId != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        if (hasProposedDeliveryDate) {
+                            // Employee accepted beneficiary's proposed date - send date accepted notification
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = beneficiaryUserId,
+                                isAccepted = true
+                            )
+                            Log.d("RequestsRepository", "Sent date accepted notification to beneficiary (employee accepted their proposed date)")
+                        } else {
+                            // Employee accepted request with new date - send request accepted notification
+                            notificationRepository.notifyRequestAccepted(requestId, beneficiaryUserId)
+                            Log.d("RequestsRepository", "Sent request accepted notification to beneficiary")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending notification to beneficiary", e)
+                    }
+                }
+            }
             
             // Log audit action
             val currentUser = authRepository.getCurrentUser()
@@ -787,6 +825,9 @@ class RequestsRepositoryImpl @Inject constructor(
                 }.await()
             }
             
+            // Get beneficiary userId before updating
+            val beneficiaryUserId = requestData["userId"] as? String
+            
             // Update request status
             val updates = mutableMapOf<String, Any>(
                 "status" to 4 // REJEITADO
@@ -797,6 +838,17 @@ class RequestsRepositoryImpl @Inject constructor(
             firestore.collection("requests").document(requestId)
                 .update(updates)
                 .await()
+            
+            // Send notification to beneficiary about request rejection
+            if (beneficiaryUserId != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyRequestRejected(requestId, beneficiaryUserId)
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending request rejected notification", e)
+                    }
+                }
+            }
             
             // Log audit action
             val currentUser = authRepository.getCurrentUser()
@@ -820,10 +872,29 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun proposeNewDate(requestId: String, proposedDate: Date): Result<Unit> {
         return try {
+            // Get request to find beneficiary userId
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            val beneficiaryUserId = requestDoc.getString("userId")
+            
             val timestamp = Timestamp(proposedDate)
             firestore.collection("requests").document(requestId)
                 .update("scheduledPickupDate", timestamp)
                 .await()
+            
+            // Send notification to beneficiary about new date proposed
+            if (beneficiaryUserId != null) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyDateProposedOrAccepted(
+                            requestId = requestId,
+                            recipientUserId = beneficiaryUserId,
+                            isAccepted = false
+                        )
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending date proposed notification", e)
+                    }
+                }
+            }
             
             // Log audit action
             val currentUser = authRepository.getCurrentUser()
@@ -846,6 +917,23 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun proposeNewDeliveryDate(requestId: String, proposedDate: Date): Result<Unit> {
         return try {
+            val currentUser = authRepository.getCurrentUser()
+            val currentUserId = currentUser?.uid
+            
+            // Get the request to check if it belongs to the current user
+            // This determines if they're acting as a beneficiary (own request) or employee (someone else's request)
+            val requestDoc = firestore.collection("requests").document(requestId).get().await()
+            if (!requestDoc.exists()) {
+                return Result.failure(Exception("Request not found"))
+            }
+            
+            val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val beneficiaryUserId = requestData["userId"] as? String
+            
+            // Check if current user is the owner of this request
+            // If yes, they're acting as beneficiary; if no, they're acting as employee
+            val isOwnRequest = beneficiaryUserId == currentUserId
+            
             val timestamp = Timestamp(proposedDate)
             // Update proposedDeliveryDate and clear scheduledPickupDate to reset negotiation
             firestore.collection("requests").document(requestId)
@@ -857,8 +945,38 @@ class RequestsRepositoryImpl @Inject constructor(
                 )
                 .await()
             
+            // Send notification based on who is proposing:
+            // - If it's their own request (beneficiary proposing), notify all employees
+            // - If it's someone else's request (employee proposing), notify the beneficiary
+            if (isOwnRequest) {
+                // Beneficiary proposing a date for their own request - notify all employees
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyBeneficiaryDateProposal(requestId)
+                        Log.d("RequestsRepository", "Sent beneficiary date proposal notification to all employees")
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending beneficiary date proposal notification to employees", e)
+                    }
+                }
+            } else {
+                // Employee proposing a date for someone else's request - notify the beneficiary
+                if (beneficiaryUserId != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = beneficiaryUserId,
+                                isAccepted = false
+                            )
+                            Log.d("RequestsRepository", "Sent date proposal notification to beneficiary: $beneficiaryUserId")
+                        } catch (e: Exception) {
+                            Log.e("RequestsRepository", "Error sending date proposed notification to beneficiary", e)
+                        }
+                    }
+                }
+            }
+            
             // Log audit action
-            val currentUser = authRepository.getCurrentUser()
             CoroutineScope(Dispatchers.IO).launch {
                 auditRepository.logAction(
                     action = "propose_new_delivery_date",
@@ -878,7 +996,7 @@ class RequestsRepositoryImpl @Inject constructor(
 
     override suspend fun acceptEmployeeProposedDate(requestId: String): Result<Unit> {
         return try {
-            // Get the request to retrieve scheduledPickupDate
+            // Get the request to retrieve scheduledPickupDate and find employee who proposed
             val requestDoc = firestore.collection("requests").document(requestId).get().await()
             if (!requestDoc.exists()) {
                 return Result.failure(Exception("Request not found"))
@@ -889,17 +1007,46 @@ class RequestsRepositoryImpl @Inject constructor(
                 return Result.failure(Exception("No scheduled pickup date found"))
             }
             
+            // Get the employee who last updated this (we'll use current user if they're an employee)
+            // For simplicity, we'll notify the current user if they're an employee
+            val currentUser = authRepository.getCurrentUser()
+            val currentUserId = currentUser?.uid
+            
             // Update status to PENDENTE_LEVANTAMENTO
             firestore.collection("requests").document(requestId)
                 .update("status", 1) // PENDENTE_LEVANTAMENTO
                 .await()
             
+            // Send notification to all employees about date acceptance by beneficiary
+            // (Since we don't track which employee proposed, we notify all)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val adminUsers = firestore.collection("users")
+                        .whereEqualTo("isAdmin", true)
+                        .get()
+                        .await()
+                    
+                    adminUsers.documents.forEach { adminDoc ->
+                        try {
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = adminDoc.id,
+                                isAccepted = true
+                            )
+                        } catch (e: Exception) {
+                            Log.e("RequestsRepository", "Error sending date accepted notification to admin ${adminDoc.id}", e)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error sending date accepted notification to employees", e)
+                }
+            }
+            
             // Log audit action
-            val currentUser = authRepository.getCurrentUser()
             CoroutineScope(Dispatchers.IO).launch {
                 auditRepository.logAction(
                     action = "accept_employee_proposed_date",
-                    userId = currentUser?.uid,
+                    userId = currentUserId,
                     details = mapOf(
                         "requestId" to requestId,
                         "scheduledPickupDate" to scheduledPickupDate.toDate().toString()
@@ -1174,6 +1321,7 @@ class RequestsRepositoryImpl @Inject constructor(
             }
             
             val requestData = requestDoc.data ?: return Result.failure(Exception("Request data not found"))
+            val beneficiaryUserId = requestDoc.getString("userId")
             
             // Validate that request is in PENDENTE_LEVANTAMENTO status
             val currentStatus = (requestData["status"] as? Long)?.toInt() ?: (requestData["status"] as? Int) ?: 0
@@ -1191,10 +1339,34 @@ class RequestsRepositoryImpl @Inject constructor(
                 // Employee rescheduling: set scheduledPickupDate (employee proposal) and clear proposedDeliveryDate
                 updateData["scheduledPickupDate"] = timestamp
                 updateData["proposedDeliveryDate"] = FieldValue.delete()
+                
+                // Send notification to beneficiary
+                if (beneficiaryUserId != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            notificationRepository.notifyDateProposedOrAccepted(
+                                requestId = requestId,
+                                recipientUserId = beneficiaryUserId,
+                                isAccepted = false
+                            )
+                        } catch (e: Exception) {
+                            Log.e("RequestsRepository", "Error sending reschedule notification to beneficiary", e)
+                        }
+                    }
+                }
             } else {
                 // Beneficiary rescheduling: set proposedDeliveryDate (beneficiary proposal) and clear scheduledPickupDate
                 updateData["proposedDeliveryDate"] = timestamp
                 updateData["scheduledPickupDate"] = FieldValue.delete()
+                
+                // Send notification to all employees using the dedicated endpoint
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyBeneficiaryDateProposal(requestId)
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending beneficiary reschedule notification to employees", e)
+                    }
+                }
             }
             
             firestore.collection("requests").document(requestId)
@@ -1396,9 +1568,18 @@ class RequestsRepositoryImpl @Inject constructor(
                     requestsData["proposedDeliveryDate"] = Timestamp(date)
                 }
                 
-                firestore.collection("requests")
-                    .add(requestsData)
-                    .await()
+                val requestRef = firestore.collection("requests")
+                val requestDocRef = requestRef.add(requestsData).await()
+                val requestId = requestDocRef.id
+                
+                // Send notification to employees about new request (fire and forget)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        notificationRepository.notifyNewRequest(requestId)
+                    } catch (e: Exception) {
+                        Log.e("RequestsRepository", "Error sending new request notification", e)
+                    }
+                }
                 
                 Result.success(Unit)
             } catch (e: Exception) {
@@ -1408,6 +1589,231 @@ class RequestsRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("RequestsRepository", "Error submitting request: ${e.message}", e)
             Result.failure(Exception("Error submitting request: ${e.message}", e))
+        }
+    }
+
+    override suspend fun createUrgentRequest(userId: String, selectedItems: Map<String, Int>): Result<String> {
+        return try {
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                return Result.failure(Exception("User not authenticated"))
+            }
+
+            if (selectedItems.isEmpty()) {
+                return Result.failure(Exception("No items selected"))
+            }
+
+            // Validate items and calculate quantities to deduct
+            // First, collect item document IDs and quantities
+            val itemsToProcess = mutableMapOf<String, Int>()
+
+            selectedItems.forEach { (productDocId, requestedQuantity) ->
+                try {
+                    // First check if it's a document ID
+                    val itemDoc = firestore.collection("items").document(productDocId).get().await()
+                    
+                    if (itemDoc.exists()) {
+                        val itemQuantity = ((itemDoc.data?.get("quantity") as? Long)?.toInt()
+                            ?: (itemDoc.data?.get("quantity") as? Int) ?: 0)
+                        val reservedQuantity = ((itemDoc.data?.get("reservedQuantity") as? Long)?.toInt()
+                            ?: (itemDoc.data?.get("reservedQuantity") as? Int) ?: 0)
+                        val available = itemQuantity - reservedQuantity
+                        
+                        if (available > 0) {
+                            itemsToProcess[productDocId] = minOf(requestedQuantity, available)
+                        }
+                    } else {
+                        // It's a productId/barcode, search for items by barcode or productId
+                        // Try barcode first (most common case)
+                        var itemsSnapshot = try {
+                            firestore.collection("items")
+                                .whereEqualTo("barcode", productDocId)
+                                .get()
+                                .await()
+                        } catch (e: Exception) {
+                            null
+                        }
+                        
+                        // If not found by barcode, try productId
+                        if (itemsSnapshot == null || itemsSnapshot.isEmpty) {
+                            itemsSnapshot = try {
+                                firestore.collection("items")
+                                    .whereEqualTo("productId", productDocId)
+                                    .get()
+                                    .await()
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        
+                        if (itemsSnapshot == null || itemsSnapshot.isEmpty) {
+                            Log.w("RequestsRepository", "Item $productDocId not found by document ID, barcode, or productId")
+                            return@forEach
+                        }
+                        
+                        // Filter items with available stock > 0 and sort by expiry date
+                        val availableItems = itemsSnapshot.documents.mapNotNull { doc ->
+                            val itemQuantity = ((doc.data?.get("quantity") as? Long)?.toInt()
+                                ?: (doc.data?.get("quantity") as? Int) ?: 0)
+                            val reservedQuantity = ((doc.data?.get("reservedQuantity") as? Long)?.toInt()
+                                ?: (doc.data?.get("reservedQuantity") as? Int) ?: 0)
+                            val available = itemQuantity - reservedQuantity
+                            
+                            if (available > 0) {
+                                val expiryDate = (doc.data?.get("expiryDate") as? Timestamp)
+                                    ?: (doc.data?.get("expirationDate") as? Timestamp)
+                                Triple(doc.id, available, expiryDate?.toDate()?.time ?: Long.MAX_VALUE)
+                            } else {
+                                null
+                            }
+                        }
+                        
+                        if (availableItems.isEmpty()) {
+                            Log.w("RequestsRepository", "No available stock for item $productDocId")
+                            return@forEach
+                        }
+                        
+                        // Sort by expiry date (earliest first)
+                        val sortedItems = availableItems.sortedBy { it.third }
+                        
+                        var remainingQuantity = requestedQuantity
+                        for ((docId, available, _) in sortedItems) {
+                            if (remainingQuantity <= 0) break
+                            
+                            val quantityToUse = minOf(remainingQuantity, available)
+                            itemsToProcess[docId] = quantityToUse
+                            remainingQuantity -= quantityToUse
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("RequestsRepository", "Error processing item $productDocId: ${e.message}", e)
+                    // Continue with other items
+                }
+            }
+
+            if (itemsToProcess.isEmpty()) {
+                return Result.failure(Exception("No items available to process. Selected items: ${selectedItems.keys.joinToString()}"))
+            }
+
+            val verifiedItems = itemsToProcess
+
+            if (verifiedItems.isEmpty()) {
+                return Result.failure(Exception("No valid items to process"))
+            }
+
+            // Generate request ID before transaction
+            val requestRef = firestore.collection("requests").document()
+            val requestId = requestRef.id
+            
+            // Data class to hold item details for logging
+            data class ItemDetails(
+                val itemId: String,
+                val quantity: Int,
+                val barcode: String?,
+                val productName: String?
+            )
+            
+            // Use transaction to decrease quantities and create request
+            val itemDetailsList = firestore.runTransaction { transaction ->
+                // PHASE 1: Read all item documents and validate, collecting details
+                val itemData = verifiedItems.mapNotNull { (itemDocId, quantityToDeduct) ->
+                    val itemRef = firestore.collection("items").document(itemDocId)
+                    val itemDoc = transaction.get(itemRef)
+                    
+                    if (itemDoc.exists()) {
+                        val data = itemDoc.data ?: return@mapNotNull null
+                        val currentQuantity = (data["quantity"] as? Long)?.toInt()
+                            ?: (data["quantity"] as? Int) ?: 0
+                        val currentReserved = (data["reservedQuantity"] as? Long)?.toInt()
+                            ?: (data["reservedQuantity"] as? Int) ?: 0
+                        
+                        if (currentQuantity < quantityToDeduct) {
+                            throw Exception("Insufficient quantity for item ${data["name"] ?: itemDocId}")
+                        }
+                        
+                        val newQuantity = maxOf(0, currentQuantity - quantityToDeduct)
+                        val newReserved = maxOf(0, currentReserved - quantityToDeduct)
+                        
+                        // Collect item details for logging
+                        val barcode = data["barcode"] as? String
+                        val productName = data["name"] as? String
+                        
+                        // Return both update data and item details
+                        Pair(
+                            Triple(itemRef, newQuantity, newReserved),
+                            ItemDetails(itemDocId, quantityToDeduct, barcode, productName)
+                        )
+                    } else {
+                        null
+                    }
+                }
+                
+                // PHASE 2: Update all items
+                itemData.forEach { (updateData, _) ->
+                    val (itemRef, newQuantity, newReserved) = updateData
+                    transaction.update(itemRef, mapOf(
+                        "quantity" to newQuantity,
+                        "reservedQuantity" to newReserved
+                    ))
+                }
+                
+                // PHASE 3: Create request document with CONCLUIDO status
+                val itemsMapForFirestore = HashMap<String, Any>().apply {
+                    verifiedItems.forEach { (docId, quantity) ->
+                        this[docId] = quantity.toLong()
+                    }
+                }
+                
+                val submissionTimestamp = FieldValue.serverTimestamp()
+                val requestsData = hashMapOf<String, Any>(
+                    "userId" to userId,
+                    "status" to 2, // CONCLUIDO
+                    "submissionDate" to submissionTimestamp,
+                    "scheduledPickupDate" to submissionTimestamp, // Data de recolha = data de submissão
+                    "totalItems" to verifiedItems.values.sum(),
+                    "items" to itemsMapForFirestore
+                )
+                
+                transaction.set(requestRef, requestsData)
+                
+                // Return item details list for logging
+                itemData.map { it.second }
+            }.await()
+            
+            // Log audit actions
+            CoroutineScope(Dispatchers.IO).launch {
+                // Log the urgent request creation
+                auditRepository.logAction(
+                    action = "create_urgent_request",
+                    userId = currentUser.uid,
+                    details = mapOf(
+                        "beneficiaryUserId" to userId,
+                        "itemsCount" to verifiedItems.size,
+                        "requestId" to requestId
+                    )
+                )
+                
+                // Log each item removed with details using existing logAction structure
+                itemDetailsList.forEach { itemDetails ->
+                    auditRepository.logAction(
+                        action = "urgent_request_item",
+                        userId = currentUser.uid,
+                        details = mapOf(
+                            "itemId" to itemDetails.itemId,
+                            "quantity" to itemDetails.quantity,
+                            "barcode" to (itemDetails.barcode ?: ""),
+                            "productName" to (itemDetails.productName ?: ""),
+                            "requestId" to requestId,
+                            "beneficiaryUserId" to userId
+                        )
+                    )
+                }
+            }
+            
+            Result.success(requestId)
+        } catch (e: Exception) {
+            Log.e("RequestsRepository", "Error creating urgent request: ${e.message}", e)
+            Result.failure(Exception("Error creating urgent request: ${e.message}", e))
         }
     }
 }

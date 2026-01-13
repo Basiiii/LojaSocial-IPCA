@@ -25,4 +25,11 @@ interface UserRepository {
      * @return Flow emitting lists of beneficiary user profiles
      */
     suspend fun getAllBeneficiaries(): Flow<List<UserProfile>>
+    
+    /**
+     * Retrieves all users from the database (regardless of beneficiary status).
+     * 
+     * @return Flow emitting lists of all user profiles
+     */
+    suspend fun getAllUsers(): Flow<List<UserProfile>>
 }

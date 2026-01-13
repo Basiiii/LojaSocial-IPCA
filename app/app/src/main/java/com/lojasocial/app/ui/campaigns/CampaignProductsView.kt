@@ -28,7 +28,10 @@ fun CampaignProductsView(
 
     // Fetch products when view is created
     LaunchedEffect(campaign.id) {
-        viewModel.fetchCampaignProducts(campaign.id)
+        // Only fetch if campaign ID is valid
+        if (campaign.id.isNotBlank()) {
+            viewModel.fetchCampaignProducts(campaign.id)
+        }
     }
 
     Scaffold(

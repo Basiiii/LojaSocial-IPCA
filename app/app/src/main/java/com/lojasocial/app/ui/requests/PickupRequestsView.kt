@@ -58,7 +58,8 @@ fun PickupRequestsView(
     userRepository: UserRepository? = null,
     requestsRepository: RequestsRepository? = null,
     profilePictureRepository: ProfilePictureRepository? = null,
-    filterByCurrentUser: Boolean = false
+    filterByCurrentUser: Boolean = false,
+    initialRequestId: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedRequest by viewModel.selectedRequest.collectAsState()
@@ -98,6 +99,21 @@ fun PickupRequestsView(
         } else {
             // Admin view: set filter to null and fetch (setFilterUserId calls fetchRequests)
             viewModel.setFilterUserId(null)
+        }
+    }
+    
+    // Auto-select request if provided from notification
+    LaunchedEffect(initialRequestId, uiState) {
+        if (initialRequestId != null && uiState is PickupRequestsUiState.Success) {
+            val requests = (uiState as PickupRequestsUiState.Success).requests
+            if (requests.isNotEmpty()) {
+                // Wait a bit for requests to load, then select the request
+                kotlinx.coroutines.delay(500)
+                val request = requests.find { it.id == initialRequestId }
+                if (request != null && viewModel.selectedRequest.value == null) {
+                    viewModel.selectRequest(initialRequestId)
+                }
+            }
         }
     }
     

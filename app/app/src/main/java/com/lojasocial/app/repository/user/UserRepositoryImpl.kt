@@ -219,4 +219,59 @@ class UserRepositoryImpl @Inject constructor(
         
         awaitClose { listener.remove() }
     }
+
+    override suspend fun getAllUsers(): Flow<List<UserProfile>> = callbackFlow {
+        val listener = firestore.collection("users")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    // Don't close on permission errors - just emit empty list
+                    if (error is com.google.firebase.firestore.FirebaseFirestoreException) {
+                        val firestoreException = error as com.google.firebase.firestore.FirebaseFirestoreException
+                        if (firestoreException.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            trySend(emptyList())
+                            return@addSnapshotListener
+                        }
+                    }
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                val users = snapshot?.documents?.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        
+                        // Helper to safely get boolean
+                        fun getBoolean(key: String): Boolean {
+                            val value = data[key]
+                            return when (value) {
+                                is Boolean -> value
+                                is Long -> value == 1L
+                                is Number -> value.toInt() == 1
+                                else -> false
+                            }
+                        }
+                        
+                        // Get absence count from Firestore
+                        val absenceList = data["absence"] as? List<*>
+                        val absenceCount = absenceList?.size ?: 0
+                        
+                        UserProfile(
+                            uid = doc.id,
+                            email = data["email"] as? String ?: "",
+                            name = data["name"] as? String ?: "",
+                            isAdmin = getBoolean("isAdmin"),
+                            isBeneficiary = getBoolean("isBeneficiary"),
+                            profilePicture = data["profilePicture"] as? String,
+                            absences = absenceCount
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                } ?: emptyList()
+
+                trySend(users)
+            }
+        
+        awaitClose { listener.remove() }
+    }
 }

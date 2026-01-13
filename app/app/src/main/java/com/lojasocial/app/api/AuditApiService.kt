@@ -54,13 +54,13 @@ interface AuditApiService {
     /**
      * Retrieves all products received for a specific campaign.
      * 
-     * @param authorization The Bearer token for API authentication (format: "Bearer lojasocial2025")
+     * Authorization header is added automatically by the interceptor.
+     * 
      * @param campaignId The ID of the campaign
      * @return Response containing list of campaign product receipts with product information
      */
     @GET("api/audit/campaign/{campaignId}/products")
     suspend fun getCampaignProducts(
-        @Header("Authorization") authorization: String,
-        @Path("campaignId") campaignId: String
+        @Path(value = "campaignId", encoded = false) campaignId: String
     ): Response<CampaignProductsResponse>
 }

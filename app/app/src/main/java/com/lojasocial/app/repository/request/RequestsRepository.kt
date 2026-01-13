@@ -121,6 +121,15 @@ interface RequestsRepository {
      * @param isEmployeeRescheduling If true, sets scheduledPickupDate (employee proposal). If false, sets proposedDeliveryDate (beneficiary proposal).
      */
     suspend fun rescheduleDelivery(requestId: String, newDate: Date, isEmployeeRescheduling: Boolean): Result<Unit>
+    
+    /**
+     * Creates an urgent request that is immediately completed (status 2 = CONCLUIDO).
+     * Decreases both quantity and reservedQuantity for all items, similar to completeRequest.
+     * @param userId The ID of the beneficiary receiving the items
+     * @param selectedItems Map of product document IDs to quantities
+     * @return Result containing the created request ID on success
+     */
+    suspend fun createUrgentRequest(userId: String, selectedItems: Map<String, Int>): Result<String>
 }
 
 /**

@@ -27,6 +27,12 @@ class CampaignProductsViewModel @Inject constructor(
 
     fun fetchCampaignProducts(campaignId: String) {
         viewModelScope.launch {
+            // Validate campaign ID before making API call
+            if (campaignId.isBlank()) {
+                _uiState.value = CampaignProductsUiState.Error("ID da campanha inválido")
+                return@launch
+            }
+            
             _uiState.value = CampaignProductsUiState.Loading
             val result = auditRepository.getCampaignProducts(campaignId)
             result.fold(

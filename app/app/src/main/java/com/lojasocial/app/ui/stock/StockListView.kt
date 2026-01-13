@@ -523,9 +523,9 @@ fun ProductCard(
                 product = productWithStock.product,
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFE5E7EB)),
-                contentScale = ContentScale.Crop
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop,
+                backgroundColor = Color.White // Fill transparent areas with card background color
             )
 
             Spacer(modifier = Modifier.width(16.dp))

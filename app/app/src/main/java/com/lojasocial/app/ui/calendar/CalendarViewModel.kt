@@ -11,9 +11,15 @@ import com.lojasocial.app.repository.campaign.CampaignRepository
 import com.lojasocial.app.repository.request.RequestsRepository
 import com.lojasocial.app.repository.request.UserProfileData
 import com.lojasocial.app.repository.user.UserRepository
+import com.lojasocial.app.repository.user.ProfilePictureRepository
+import com.lojasocial.app.repository.product.ProductRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.firstOrNull
 import java.util.Calendar
 import java.util.Date
 import javax.inject.Inject
@@ -27,7 +33,9 @@ class CalendarViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val campaignRepository: CampaignRepository,
     private val requestsRepository: RequestsRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val profilePictureRepository: ProfilePictureRepository,
+    val productRepository: ProductRepository
 ) : ViewModel() {
     
     private val _selectedDate = MutableStateFlow<Date?>(null)
@@ -58,6 +66,14 @@ class CalendarViewModel @Inject constructor(
     // Map of date to list of accepted requests (Pedido Aceite) for that date
     private val _acceptedRequestsByDate = MutableStateFlow<Map<Date, List<Request>>>(emptyMap())
     val acceptedRequestsByDate: StateFlow<Map<Date, List<Request>>> = _acceptedRequestsByDate.asStateFlow()
+    
+    // Map of request ID to beneficiary profile data (name and profile picture)
+    private val _beneficiaryProfiles = MutableStateFlow<Map<String, UserProfileData>>(emptyMap())
+    val beneficiaryProfiles: StateFlow<Map<String, UserProfileData>> = _beneficiaryProfiles.asStateFlow()
+    
+    // Map of request ID to profile picture base64
+    private val _profilePictures = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val profilePictures: StateFlow<Map<String, String?>> = _profilePictures.asStateFlow()
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -257,7 +273,8 @@ class CalendarViewModel @Inject constructor(
     }
     
     /**
-     * Loads all accepted requests (status = 1, PENDENTE_LEVANTAMENTO) and creates a map of dates to requests.
+     * Loads all accepted requests (status = 1, PENDENTE_LEVANTAMENTO) and concluded requests (status = 2, CONCLUIDO)
+     * and creates a map of dates to requests.
      * Employees see all accepted requests, beneficiaries only see their own.
      */
     private fun loadAcceptedRequests() {
@@ -269,9 +286,9 @@ class CalendarViewModel @Inject constructor(
                         val isEmployee = _isEmployee.value
                         val isBeneficiaryPortal = _isBeneficiaryPortal.value
                         
-                        // Filter only accepted requests (status = 1) with scheduledPickupDate
+                        // Filter accepted requests (status = 1) and concluded requests (status = 2) with scheduledPickupDate
                         var acceptedRequests = allRequests.filter { 
-                            it.status == 1 && it.scheduledPickupDate != null 
+                            (it.status == 1 || it.status == 2) && it.scheduledPickupDate != null 
                         }
                         
                         // If accessing from beneficiary portal, filter to only show user's own requests
@@ -306,6 +323,31 @@ class CalendarViewModel @Inject constructor(
                         }
                         
                         _acceptedRequestsByDate.value = requestsMap
+                        
+                        // Fetch beneficiary profiles for all accepted requests in parallel
+                        val profilesMap = coroutineScope {
+                            acceptedRequests.map { request ->
+                                async {
+                                    val userResult = requestsRepository.getUserProfile(request.userId)
+                                    request.id to userResult.getOrElse { UserProfileData() }
+                                }
+                            }.awaitAll().toMap()
+                        }
+                        
+                        val picturesMap = coroutineScope {
+                            acceptedRequests.map { request ->
+                                async {
+                                    try {
+                                        request.id to profilePictureRepository.getProfilePicture(request.userId).firstOrNull()
+                                    } catch (e: Exception) {
+                                        request.id to null
+                                    }
+                                }
+                            }.awaitAll().toMap()
+                        }
+                        
+                        _beneficiaryProfiles.value = profilesMap
+                        _profilePictures.value = picturesMap
                     }
             } catch (e: Exception) {
                 // Handle error silently or log it

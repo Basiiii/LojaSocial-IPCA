@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Date
+import com.google.firebase.Timestamp
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,7 +53,19 @@ class RequestItemsViewModel @Inject constructor(
                 val newProducts = itemsRepository.getProducts(lastVisibleId = lastVisibleId)
 
                 if (newProducts.isNotEmpty()) {
-                    lastVisibleId = newProducts.last().docId
+                    // Extract pagination ID from docId if it contains "|" separator
+                    // Format: "productId|lastItemDocId" or just "productId"
+                    val lastDocId = newProducts.last().docId
+                    lastVisibleId = if (lastDocId.contains("|")) {
+                        lastDocId.split("|")[1] // Extract the actual item document ID
+                    } else {
+                        null // If no pagination info, we've reached the end or pagination is broken
+                    }
+                    
+                    // Clean up docId to remove pagination info for display
+                    val cleanedProducts = newProducts.map { product ->
+                        product.copy(docId = product.docId.split("|")[0])
+                    }
 
                     val currentProducts = if (isLoadMore && _uiState.value is RequestItemsUiState.Success) {
                         (_uiState.value as RequestItemsUiState.Success).products
@@ -60,7 +73,43 @@ class RequestItemsViewModel @Inject constructor(
                         emptyList()
                     }
 
-                    _uiState.value = RequestItemsUiState.Success(currentProducts + newProducts)
+                    // Merge products with the same barcode (not docId, since docId might vary)
+                    val mergedProducts = if (currentProducts.isNotEmpty()) {
+                        val productMap = currentProducts.associateBy { it.barcode.ifEmpty { it.docId } }.toMutableMap()
+                        
+                        cleanedProducts.forEach { newProduct ->
+                            val barcodeKey = newProduct.barcode.ifEmpty { newProduct.docId }
+                            val existingProduct = productMap[barcodeKey]
+                            if (existingProduct != null) {
+                                // Merge: sum quantities and use the nearest expiry date
+                                val mergedQuantity = existingProduct.quantity + newProduct.quantity
+                                val mergedExpiryDate = when {
+                                    existingProduct.expiryDate == null -> newProduct.expiryDate
+                                    newProduct.expiryDate == null -> existingProduct.expiryDate
+                                    else -> {
+                                        // Use the nearest expiry date
+                                        val existingDate = existingProduct.expiryDate.toDate()
+                                        val newDate = newProduct.expiryDate.toDate()
+                                        if (existingDate.before(newDate)) existingProduct.expiryDate else newProduct.expiryDate
+                                    }
+                                }
+                                
+                                productMap[barcodeKey] = existingProduct.copy(
+                                    quantity = mergedQuantity,
+                                    expiryDate = mergedExpiryDate
+                                )
+                            } else {
+                                // New product, add it
+                                productMap[barcodeKey] = newProduct
+                            }
+                        }
+                        
+                        productMap.values.toList()
+                    } else {
+                        cleanedProducts
+                    }
+
+                    _uiState.value = RequestItemsUiState.Success(mergedProducts)
                 } else if (!isLoadMore) {
                     _uiState.value = RequestItemsUiState.Success(emptyList())
                 } else {

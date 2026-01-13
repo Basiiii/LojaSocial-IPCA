@@ -47,13 +47,19 @@ import kotlinx.coroutines.flow.firstOrNull
 import com.lojasocial.app.repository.user.ProfilePictureRepository
 import com.lojasocial.app.utils.FileUtils
 import com.lojasocial.app.domain.product.ProductCategory
+import com.lojasocial.app.domain.product.Product
+import com.lojasocial.app.repository.product.ProductRepository
+import com.lojasocial.app.ui.components.ProductImage
 import com.lojasocial.app.ui.theme.BgYellow
 import com.lojasocial.app.ui.theme.TextYellow
 import java.util.Calendar
 import com.lojasocial.app.domain.request.RequestStatus
 import com.lojasocial.app.domain.request.Request
 import com.lojasocial.app.ui.components.CustomDatePickerDialog
-import com.lojasocial.app.ui.theme.LojaSocialBackground
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -71,6 +77,7 @@ fun RequestDetailsDialog(
     onComplete: () -> Unit = {},
     onCancelDelivery: (Boolean) -> Unit = {},
     profilePictureRepository: ProfilePictureRepository? = null,
+    productRepository: ProductRepository? = null,
     canAcceptReject: Boolean = true,
     isBeneficiaryView: Boolean = false,
     onAcceptEmployeeDate: () -> Unit = {},
@@ -124,7 +131,8 @@ fun RequestDetailsDialog(
                 expiryDate = item.expiryDate,
                 icon = getCategoryIcon(categoryString),
                 iconBgColor = getCategoryBgColor(categoryString),
-                iconTint = getCategoryTintColor(categoryString)
+                iconTint = getCategoryTintColor(categoryString),
+                productDocId = item.productDocId
             )
         }
 
@@ -225,7 +233,10 @@ fun RequestDetailsDialog(
                         )
 
                         // 2. Product List Card
-                        ProductListCard(productItems = productItems)
+                        ProductListCard(
+                            productItems = productItems,
+                            productRepository = productRepository
+                        )
 
                         // 3. Proposed Delivery Date Card (from beneficiary) - only show if employee hasn't proposed a date
                         if (status == RequestStatus.SUBMETIDO && formattedProposedDate != null && request.scheduledPickupDate == null) {
@@ -248,10 +259,17 @@ fun RequestDetailsDialog(
                         }
 
                         // 5. Collection Info Card
-                        if (status != RequestStatus.SUBMETIDO && status != RequestStatus.REJEITADO) {
+                        if (status == RequestStatus.REJEITADO) {
+                            // Show rejection reason for rejected requests
+                            CollectionInfoCard(
+                                pickupDate = "",
+                                rejectionReason = request.rejectionReason
+                            )
+                        } else if (status != RequestStatus.SUBMETIDO) {
+                            // Show pickup date for other non-submitted requests
                             CollectionInfoCard(
                                 pickupDate = formattedPickupDate ?: "",
-                                rejectionReason = if (status == RequestStatus.REJEITADO) request.rejectionReason else null
+                                rejectionReason = null
                             )
                         }
                     }
@@ -584,7 +602,8 @@ data class ProductItemData(
     val expiryDate: Date? = null,
     val icon: ImageVector,
     val iconBgColor: Color,
-    val iconTint: Color
+    val iconTint: Color,
+    val productDocId: String = "" // For fetching product image
 )
 
 @Composable
@@ -691,9 +710,13 @@ fun UserHeaderCard(
 }
 
 @Composable
-fun ProductListCard(productItems: List<ProductItemData>) {
+fun ProductListCard(
+    productItems: List<ProductItemData>,
+    productRepository: ProductRepository? = null
+) {
     // Date format for displaying expiry dates
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale("pt", "PT")) }
+    val firestore = remember { FirebaseFirestore.getInstance() }
     
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -714,83 +737,147 @@ fun ProductListCard(productItems: List<ProductItemData>) {
                 )
             } else {
                 productItems.forEach { item ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF8F9FA), RoundedCornerShape(8.dp))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Icon Box
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(item.iconBgColor, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = null,
-                                    tint = item.iconTint,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                    ProductItemRow(
+                        item = item,
+                        dateFormat = dateFormat,
+                        productRepository = productRepository,
+                        firestore = firestore
+                    )
+                }
+            }
+        }
+    }
+}
 
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            // Name and Brand Column
-                            Column(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text(
-                                    text = item.name,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                                if (item.brand.isNotEmpty()) {
-                                    Text(
-                                        text = item.brand,
-                                        fontSize = 13.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-                            }
-
-                            // Quantity
-                            Text(
-                                text = "Qtd: ${item.quantity}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.Black
-                            )
+@Composable
+private fun ProductItemRow(
+    item: ProductItemData,
+    dateFormat: SimpleDateFormat,
+    productRepository: ProductRepository?,
+    firestore: FirebaseFirestore
+) {
+    var product by remember(item.productDocId) { mutableStateOf<Product?>(null) }
+    var hasImage by remember { mutableStateOf(false) }
+    
+    // Fetch product to get image
+    LaunchedEffect(item.productDocId, productRepository) {
+        if (item.productDocId.isNotEmpty() && productRepository != null) {
+            try {
+                // First get the item document to extract barcode
+                val itemDoc = withContext(Dispatchers.IO) {
+                    firestore.collection("items").document(item.productDocId).get().await()
+                }
+                
+                if (itemDoc.exists()) {
+                    val itemData = itemDoc.data
+                    val barcode = (itemData?.get("barcode") as? String)
+                        ?: (itemData?.get("productId") as? String)
+                        ?: itemData?.get("productId")?.toString()
+                    
+                    if (barcode != null) {
+                        // Fetch product using barcode
+                        val fetchedProduct = withContext(Dispatchers.IO) {
+                            productRepository.getProductByBarcodeId(barcode)
                         }
-                        
-                        // Expiry Date Row
-                        if (item.expiryDate != null) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CalendarToday,
-                                    contentDescription = null,
-                                    tint = Color(0xFFDC2626),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Validade: ${dateFormat.format(item.expiryDate)}",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFFDC2626)
-                                )
-                            }
-                        }
+                        product = fetchedProduct
+                        hasImage = fetchedProduct?.let { 
+                            !it.imageUrl.isNullOrEmpty() || !it.serializedImage.isNullOrBlank() 
+                        } ?: false
                     }
                 }
+            } catch (e: Exception) {
+                // Handle error silently, will fallback to icon
+                product = null
+                hasImage = false
+            }
+        }
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF8F9FA), RoundedCornerShape(8.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Product Image or Icon Box
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (hasImage) Color.Transparent else item.iconBgColor
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (hasImage && product != null) {
+                    ProductImage(
+                        product = product,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        backgroundColor = Color.White
+                    )
+                } else {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = item.iconTint,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Name and Brand Column
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = item.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black
+                )
+                if (item.brand.isNotEmpty()) {
+                    Text(
+                        text = item.brand,
+                        fontSize = 13.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            // Quantity
+            Text(
+                text = "Qtd: ${item.quantity}",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.Black
+            )
+        }
+        
+        // Expiry Date Row
+        if (item.expiryDate != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = Color(0xFFDC2626),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Validade: ${dateFormat.format(item.expiryDate)}",
+                    fontSize = 12.sp,
+                    color = Color(0xFFDC2626)
+                )
             }
         }
     }

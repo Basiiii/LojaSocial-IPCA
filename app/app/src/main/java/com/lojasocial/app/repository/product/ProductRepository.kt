@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import retrofit2.Response
 import java.util.Date
@@ -215,6 +218,46 @@ class ProductRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("ProductRepository", "Error getting all products", e)
+            emptyList()
+        }
+    }
+    
+    /**
+     * Batch fetch products by their document IDs (barcodes).
+     * Uses parallel coroutines to fetch multiple products simultaneously.
+     * 
+     * @param barcodes List of barcode/product IDs to fetch
+     * @return List of Products found
+     */
+    suspend fun getProductsByBarcodes(barcodes: List<String>): List<Product> {
+        if (barcodes.isEmpty()) return emptyList()
+        
+        return try {
+            Log.d("ProductRepository", "Batch fetching ${barcodes.size} products by barcodes")
+            
+            // Fetch all products in parallel using coroutines for better performance
+            val allProducts = coroutineScope {
+                barcodes.map { barcode ->
+                    async {
+                        try {
+                            val doc = productsCollection.document(barcode).get().await()
+                            if (doc.exists()) {
+                                doc.toObject(Product::class.java)?.copy(id = doc.id)
+                            } else {
+                                null
+                            }
+                        } catch (e: Exception) {
+                            Log.e("ProductRepository", "Error fetching product $barcode: ${e.message}", e)
+                            null
+                        }
+                    }
+                }.awaitAll().filterNotNull()
+            }
+            
+            Log.d("ProductRepository", "Batch fetched ${allProducts.size} products out of ${barcodes.size} requested")
+            allProducts
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Error batch fetching products by barcodes", e)
             emptyList()
         }
     }

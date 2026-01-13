@@ -1,0 +1,328 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam nodesep 15
+skinparam ranksep 25
+skinparam packageStyle rectangle
+skinparam defaultFontSize 9
+skinparam classFontSize 9
+skinparam packageFontSize 10
+skinparam packageFontStyle bold
+skinparam shadowing false
+skinparam roundcorner 5
+skinparam maxwidth 1000
+skinparam class {
+    BackgroundColor #C0E3CD
+    BorderColor #7FB89A
+    FontColor #000000
+}
+skinparam enum {
+    BackgroundColor #C0E3CD
+    BorderColor #7FB89A
+    FontColor #000000
+}
+skinparam interface {
+    BackgroundColor #C0E3CD
+    BorderColor #7FB89A
+    FontColor #000000
+}
+top to bottom direction
+
+' Domain Models - Top Section
+package "Domain Models" #E9F5EE {
+    skinparam package {
+        BackgroundColor #E9F5EE
+        BorderColor #7FB89A
+        FontSize 10
+    }
+    together {
+        class Product {
+            +String id
+            +String name
+            +String brand
+            +Int category
+            +String imageUrl
+            +getCategoryDisplayName(): String
+        }
+        
+        enum ProductCategory {
+            ALIMENTAR
+            CASA
+            HIGIENE_PESSOAL
+        }
+        
+        class StockItem {
+            +String id
+            +String barcode
+            +String campaignId
+            +Date createdAt
+            +Date expirationDate
+            +Int quantity
+            +Int reservedQuantity
+            +String productId
+        }
+        
+        class Campaign {
+            +String id
+            +String name
+            +Date startDate
+            +Date endDate
+        }
+    }
+    
+    together {
+        class Request {
+            +String id
+            +String userId
+            +Int status
+            +Date submissionDate
+            +Int totalItems
+            +Date scheduledPickupDate
+            +Date proposedDeliveryDate
+            +String rejectionReason
+            +List<RequestItemDetail> items
+        }
+        
+        class RequestItemDetail {
+            +String productDocId
+            +String productName
+            +Int quantity
+            +String brand
+            +Date expiryDate
+            +Int category
+        }
+        
+        enum RequestStatus {
+            SUBMETIDO
+            PENDENTE_LEVANTAMENTO
+            CONCLUIDO
+            REJEITADO
+            CANCELADO
+        }
+    }
+    
+    together {
+        class Application {
+            +String id
+            +String userId
+            +PersonalInfo personalInfo
+            +AcademicInfo academicInfo
+            +List<ApplicationDocument> documents
+            +Date submissionDate
+            +ApplicationStatus status
+            +String rejectionMessage
+        }
+        
+        enum ApplicationStatus {
+            PENDING
+            APPROVED
+            REJECTED
+        }
+    }
+    
+    together {
+        class Activity {
+            +String id
+            +ActivityType type
+            +String title
+            +String subtitle
+            +Date timestamp
+            +String userId
+            +String userName
+        }
+        
+        enum ActivityType {
+            REQUEST_SUBMITTED
+            REQUEST_ACCEPTED
+            PICKUP_COMPLETED
+            REQUEST_REJECTED
+            APPLICATION_SUBMITTED
+            APPLICATION_APPROVED
+            APPLICATION_REJECTED
+        }
+    }
+    
+    class UserProfile {
+        +String uid
+        +String email
+        +String name
+        +Boolean isAdmin
+        +Boolean isBeneficiary
+        +String profilePicture
+    }
+}
+
+' Repositories - Middle Section
+package "Repositories" #E9F5EE {
+    skinparam package {
+        BackgroundColor #E9F5EE
+        BorderColor #7FB89A
+        FontSize 10
+    }
+    interface ApplicationRepository {
+        +submitApplication(Application): Result<String>
+        +convertFileToBase64(Uri): Result<String>
+        +getApplications(): Flow<List<Application>>
+        +getApplicationById(String): Result<Application>
+        +updateApplicationStatus(String, ApplicationStatus): Result<Unit>
+    }
+    
+    interface AuthRepository {
+        +signIn(String, String): Result<AuthResult>
+        +signUp(String, String): Result<AuthResult>
+        +signOut()
+        +getCurrentUser(): FirebaseUser?
+        +isUserLoggedIn(): Flow<Boolean>
+    }
+    
+    interface UserRepository {
+        +getUserProfile(String): Flow<UserProfile?>
+        +getCurrentUserProfile(): Flow<UserProfile?>
+        +updateProfile(UserProfile): Result<Unit>
+        +createProfile(UserProfile): Result<Unit>
+        +saveFcmToken(String): Result<Unit>
+        +getAllBeneficiaries(): Flow<List<UserProfile>>
+    }
+    
+    interface RequestsRepository {
+        +getAllRequests(): Flow<List<Request>>
+        +getRequests(): Flow<List<Request>>
+        +getRequestsByUserId(String): Result<List<Request>>
+        +getRequestsPaginated(Int, Date?): Pair<List<Request>, Boolean>
+        +getRequestById(String): Result<Request>
+        +acceptRequest(String, Date): Result<Unit>
+        +rejectRequest(String, String?): Result<Unit>
+        +completeRequest(String): Result<Unit>
+        +submitRequest(List<RequestItemDetail>): Result<String>
+    }
+    
+    interface ProductRepository {
+        +getProductById(String): Product?
+        +getProductByBarcodeId(String): Product?
+        +getProductByBarcode(String): Result<BarcodeProduct>
+        +getStockItemByBarcodeAndExpiry(String, Date): StockItem?
+        +updateStockItemQuantity(String, Int)
+        +saveOrUpdateProduct(Product, String)
+        +saveStockItem(StockItem): String
+        +searchProductsByName(String): List<Product>
+        +getAllProducts(): List<Product>
+    }
+    
+    interface StockItemRepository {
+        +getStockItemByBarcode(String): StockItem?
+        +saveStockItem(StockItem): String
+        +updateStockItem(String, Map<String, Any>): Boolean
+        +getExpiringItems(Int): List<StockItem>
+        +getStockItemsByBarcode(String): List<StockItem>
+        +getAllStockItems(): List<StockItem>
+    }
+    
+    interface CampaignRepository {
+        +getActiveAndRecentCampaigns(): List<Campaign>
+        +getAllCampaigns(): List<Campaign>
+        +getCampaignsPaginated(Int, Date?): Pair<List<Campaign>, Boolean>
+        +getCampaignById(String): Campaign?
+        +getCampaignByName(String): Campaign?
+        +createCampaign(Campaign): Result<String>
+        +updateCampaign(Campaign): Result<Unit>
+        +deleteCampaign(String): Result<Unit>
+    }
+    
+    interface AuditRepository {
+        +logAction(String, String?, Map<String, Any>?)
+        +getLogs(String, String): Result<List<AuditLogEntry>>
+        +getCampaignProducts(String): Result<List<CampaignProductReceipt>>
+    }
+    
+    interface ActivityRepository {
+        +getRecentActivitiesForBeneficiary(Int): Flow<List<Activity>>
+        +getRecentActivitiesForEmployee(Int): Flow<List<Activity>>
+    }
+    
+    interface CalendarRepository {
+        +getPickupRequestsForDate(Date, Boolean): Flow<List<PickupRequest>>
+        +getPickupCountsForDateRange(Date, Date, Boolean): Flow<Map<Date, Int>>
+    }
+    
+    interface ExpirationRepository {
+        +checkExpiringItems(): Result<ExpirationCheckResponse>
+    }
+    
+    interface ItemsRepository {
+        +getProducts(Int, String?): List<RequestItem>
+    }
+    
+    interface ProfilePictureRepository {
+        +uploadProfilePicture(String, String): Result<Unit>
+        +getProfilePicture(String): Flow<String?>
+    }
+    
+    interface PendingRequestsRepository {
+        +getPendingRequests(): List<PendingRequest>
+    }
+}
+
+' API Services - Bottom Section
+package "API Services" #E9F5EE {
+    skinparam package {
+        BackgroundColor #E9F5EE
+        BorderColor #7FB89A
+        FontSize 10
+    }
+    interface ProductApiService {
+        +getProductByBarcode(String): Response<BarcodeApiResponse>
+    }
+    
+    interface AuditApiService {
+        +logAction(AuditLogRequest): Response<Unit>
+        +getLogs(String, String): Response<AuditLogResponse>
+        +getCampaignProducts(String): Response<CampaignProductsResponse>
+    }
+    
+    interface ExpirationApiService {
+        +checkExpiringItems(): Response<ExpirationCheckResponse>
+    }
+    
+    interface ChatApiService {
+        +sendMessage(ChatRequest): Response<ChatResponse>
+    }
+}
+
+' Domain Model Relationships
+Product --> ProductCategory : uses
+StockItem --> Product : references
+StockItem --> Campaign : references
+Request --> RequestItemDetail : contains
+Request --> RequestStatus : uses
+Application --> ApplicationStatus : uses
+Activity --> ActivityType : uses
+
+' Repository to Domain Model Relationships
+ApplicationRepository ..> Application
+RequestsRepository ..> Request
+RequestsRepository ..> RequestItemDetail
+ProductRepository ..> Product
+ProductRepository ..> StockItem
+StockItemRepository ..> StockItem
+CampaignRepository ..> Campaign
+ActivityRepository ..> Activity
+UserRepository ..> UserProfile
+
+' Repository to Repository Relationships (key dependencies only)
+ApplicationRepository ..> AuditRepository
+ApplicationRepository ..> AuthRepository
+RequestsRepository ..> ProductRepository
+RequestsRepository ..> AuditRepository
+ProductRepository ..> AuditRepository
+ActivityRepository ..> RequestsRepository
+ActivityRepository ..> ApplicationRepository
+ActivityRepository ..> UserRepository
+
+' Repository to API Service Relationships
+ProductRepository ..> ProductApiService
+AuditRepository ..> AuditApiService
+ExpirationRepository ..> ExpirationApiService
+
+@enduml

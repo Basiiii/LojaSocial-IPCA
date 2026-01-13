@@ -69,7 +69,13 @@ class MainActivity : ComponentActivity() {
         
         // Handle deep link from notification
         val screen = intent.getStringExtra("screen")
+        val notificationType = intent.getStringExtra("type")
+        val requestId = intent.getStringExtra("requestId")
+        val applicationId = intent.getStringExtra("applicationId")
         val shouldNavigateToExpiringItems = screen == "expiringItems"
+        val shouldNavigateToApplicationDetail = screen == "applicationDetail" && applicationId != null
+        val shouldNavigateToRequestDetails = screen == "requestDetails" && requestId != null
+        val shouldNavigateToBeneficiaryPortal = screen == "beneficiaryPortal"
         
         setContent {
             LojaSocialTheme(darkTheme = false) {
@@ -122,9 +128,25 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         
-                        // Navigate to expiring items if opened from notification
-                        if (shouldNavigateToExpiringItems && state.profile != null) {
-                            startDestination = Screen.ExpiringItems.route
+                        // Navigate based on notification type
+                        // Note: startDestination must be a simple route, not parameterized
+                        // We'll handle navigation to parameterized routes after NavHost is created
+                        if (state.profile != null) {
+                            when {
+                                shouldNavigateToExpiringItems -> {
+                                    startDestination = Screen.ExpiringItems.route
+                                }
+                                shouldNavigateToApplicationDetail -> {
+                                    startDestination = state.destination
+                                }
+                                shouldNavigateToRequestDetails -> {
+                                    // Navigate to pickup requests, will auto-select request
+                                    startDestination = Screen.PickupRequests.route
+                                }
+                                shouldNavigateToBeneficiaryPortal -> {
+                                    startDestination = Screen.BeneficiaryPortal.route
+                                }
+                            }
                         }
                     }
 
@@ -150,11 +172,38 @@ class MainActivity : ComponentActivity() {
                             expirationRepository = expirationRepository,
                             campaignRepository = campaignRepository,
                             requestsRepository = requestsRepository,
-                            profilePictureRepository = profilePictureRepository
+                            profilePictureRepository = profilePictureRepository,
+                            activity = this@MainActivity,
+                            notificationRequestId = requestId,
+                            notificationApplicationId = applicationId
                         )
+                        
+                        // Handle navigation to parameterized routes after NavHost is created
+                        if (shouldNavigateToApplicationDetail && applicationId != null) {
+                            LaunchedEffect(navController) {
+                                kotlinx.coroutines.delay(100) // Small delay to ensure NavHost is ready
+                                try {
+                                    val route = Screen.ApplicationDetail.createRoute(applicationId)
+                                    navController.navigate(route) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("MainActivity", "Error navigating to application detail", e)
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+    
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val screen = intent?.getStringExtra("screen")
+        val applicationId = intent?.getStringExtra("applicationId")
+        val requestId = intent?.getStringExtra("requestId")
+        Log.d("MainActivity", "onNewIntent called - screen: $screen, applicationId: $applicationId, requestId: $requestId")
     }
 }
