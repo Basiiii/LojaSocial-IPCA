@@ -1,4 +1,4 @@
-This is BibTeX, Version 0.99d
+This is BibTeX, Version 0.99e
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: essay.aux
 Reallocating 'name_of_file' (item size: 1) to 9 items.
@@ -22,12 +22,12 @@ Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Database file #1: essay-blx.bib
 Database file #2: references.bib
-Biblatex version: 3.19
+Biblatex version: 3.21
 Reallocating 'wiz_functions' (item size: 4) to 9000 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 You've used 1 entry,
-            6399 wiz_defined-function locations,
-            1203 strings with 8973 characters,
+            6402 wiz_defined-function locations,
+            1203 strings with 8980 characters,
 and the built_in function-call counts, 1534 in all, are:
 = -- 73
 > -- 70
